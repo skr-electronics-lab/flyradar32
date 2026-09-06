@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlyRadar32 Pro</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <circle cx="12" cy="12" r="4.5" opacity="0.5"/>
+        <path d="M12 12 L18.4 5.6"/>
+        <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <div>
+      <h1>FlyRadar32</h1>
+      <p>Professional ADS-B Radar Firmware by SKR Electronics Lab</p>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-tab="wifi">Network</button>
+    <button class="tab" data-tab="location">Location</button>
+    <button class="tab" data-tab="display">Display & API</button>
+    <button class="tab" data-tab="system">System</button>
+  </div>
+
+  <!-- NETWORK -->
+  <div class="panel active" id="panel-wifi">
+    <div class="card">
+      <h2>Connection Status</h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-label">Wi-Fi State</div>
+          <div class="status-value" id="wifiState">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">IP Address</div>
+          <div class="status-value" id="wifiIp">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Local mDNS</div>
+          <div class="status-value" id="mdnsAddr">-</div>
+        </div>
+      </div>
+      <div id="wifiErrorRow" style="display:none; margin-top: 15px;">
+        <span class="status-label">Error: </span>
+        <span class="status-value disconnected" id="wifiError">-</span>
+      </div>
+    </div>
+
+    <div id="wifiSetupCards" style="display: none;">
+      <div class="card" id="connectCard">
+        <h2>Connect to Wi-Fi</h2>
+      <div class="form-group">
+        <label for="ssidInput">Network name (SSID)</label>
+        <div style="display:flex; gap: 10px;">
+          <input type="text" id="ssidInput" placeholder="Enter or select below" autocomplete="off">
+          <button class="btn" id="scanBtn">Scan</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="passInput">Password</label>
+        <input type="password" id="passInput" placeholder="Network password" autocomplete="off">
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="connectBtn">Connect</button>
+      </div>
+    </div>
+
+    <div class="card" id="scanCard">
+      <h2>Available Networks <span id="scanCount" style="font-size:14px; font-weight:normal; color:var(--text-muted); margin-left: auto;"></span></h2>
+      <div id="netList" style="max-height: 200px; overflow-y: auto;">
+        <div style="color:var(--text-muted); font-size:14px;">Press Scan to find networks...</div>
+      </div>
+    </div>
+    </div>
+    
+    <div class="btn-row" id="showWifiSetupBtnRow" style="display: none;">
+        <button class="btn" id="showWifiSetupBtn" style="background:var(--card-bg); border: 1px solid var(--border);">Configure New Network</button>
+    </div>
+  </div>
+
+  <!-- LOCATION -->
+  <div class="panel" id="panel-location">
+    <div class="card">
+      <h2>Receiver Location</h2>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom: 20px;">
+        Set the GPS coordinates for your radar hardware.
+      </p>
+
+      <div class="form-group">
+        <label for="pasteCoords">Paste from Google Maps</label>
+        <input type="text" id="pasteCoords" placeholder="e.g. 23.1841228, 87.8666717">
+        <div class="help-text">Just copy the coordinates from Google Maps and paste them here to auto-fill.</div>
+      </div>
+
+      <div style="display:flex; gap: 20px; margin-bottom: 20px;">
+        <div class="form-group" style="flex:1; margin-bottom:0;">
+          <label for="latInput">Latitude</label>
+          <input type="number" step="0.000001" id="latInput" placeholder="-90 to 90">
+        </div>
+        <div class="form-group" style="flex:1; margin-bottom:0;">
+          <label for="lonInput">Longitude</label>
+          <input type="number" step="0.000001" id="lonInput" placeholder="-180 to 180">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="geoBtn" style="background:var(--card-bg); border: 1px solid var(--border);">Auto-detect (IP)</button>
+        <button class="btn" id="saveLocationBtn">Save Location</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISPLAY & API -->
+  <div class="panel" id="panel-display">
+    <div class="card">
+      <h2>Data Polling</h2>
+      <div class="form-group">
+        <label for="refreshSelect">Data Refresh Interval</label>
+        <select id="refreshSelect">
+          <option value="5">5 seconds</option>
+          <option value="10">10 seconds (Recommended)</option>
+          <option value="15">15 seconds</option>
+          <option value="30">30 seconds</option>
+          <option value="60">60 seconds</option>
+        </select>
+        <div class="help-text">How often the ESP32 fetches new aircraft positions from the API.</div>
+      </div>
+      <button class="btn" id="saveRefreshBtn">Save Interval</button>
+    </div>
+
+    <div class="card">
+      <h2>TFT Radar Display</h2>
+      <div class="form-group">
+        <label for="zoomSelect">Radar Range (Scale)</label>
+        <select id="zoomSelect">
+          <option value="0">50 km</option>
+          <option value="1">100 km</option>
+          <option value="2">150 km</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="labelsSelect">Flight Labels</label>
+        <select id="labelsSelect">
+          <option value="0">Disabled</option>
+          <option value="1">Selected Aircraft Only</option>
+          <option value="2">All Aircraft</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="iconSelect">Aircraft Icon</label>
+        <select id="iconSelect">
+          <option value="0">Dots</option>
+          <option value="1">Arrow</option>
+          <option value="2">Aeroplane</option>
+        </select>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="sweepToggle">
+        <label for="sweepToggle">Show classic radar sweep animation</label>
+      </div>
+      <button class="btn" id="saveDisplayBtn" style="margin-top: 10px;">Save Display Settings</button>
+    </div>
+
+    <div class="card">
+      <h2>Radar Theme</h2>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom: 16px;">
+        Choose the color scheme shown on the device's on-board radar screen.
+      </p>
+      <div class="theme-row" id="themeRow">
+        <div class="theme-swatch" data-theme="0">
+          <div class="dot" style="background:#39FF6B;"></div>
+          <span>Green</span>
+        </div>
+        <div class="theme-swatch" data-theme="1">
+          <div class="dot" style="background:#39E5FF;"></div>
+          <span>Cyan</span>
+        </div>
+        <div class="theme-swatch" data-theme="2">
+          <div class="dot" style="background:#FFB000;"></div>
+          <span>Amber</span>
+        </div>
+      </div>
+      <button class="btn" id="saveThemeBtn" style="margin-top: 18px;">Save Theme</button>
+    </div>
+
+    <div class="card">
+      <h2>Radar Customization</h2>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Compass markers</div>
+          <div class="toggle-desc">Show N / E / S / W around the radar ring</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="compassToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Range ring labels</div>
+          <div class="toggle-desc">Show distance (km) on each graticule ring</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="rangeLabelsToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-label">Breadcrumb trail</div>
+          <div class="toggle-desc">Fading tail of each aircraft's recent fixes</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="trailToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+      <button class="btn" id="saveCustomizationBtn" style="margin-top: 16px;">Save Customization</button>
+    </div>
+  </div>
+
+  <!-- SYSTEM -->
+  <div class="panel" id="panel-system">
+    <div class="card">
+      <h2>System Information</h2>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-label">Firmware</div>
+          <div class="status-value" id="fwName">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Version</div>
+          <div class="status-value" id="fwVersion">-</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">API Status</div>
+          <div class="status-value" id="dataStatus">-</div>
+        </div>
+      </div>
+      <p style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--text-muted);">
+        Developed by <strong>SKR Electronics Lab</strong>
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>Security PIN</h2>
+      <p style="color:var(--text-muted); font-size:14px; margin-bottom: 20px;">
+        Require a PIN to change configuration settings in this Web UI.
+      </p>
+      <div class="form-group">
+        <label for="pinInput">New PIN (leave empty to disable)</label>
+        <input type="password" id="pinInput" placeholder="Enter PIN">
+      </div>
+      <button class="btn" id="savePinBtn">Update PIN</button>
+    </div>
+
+    <div class="card">
+      <h2>Danger Zone</h2>
+      <div class="btn-row">
+        <button class="btn danger" id="disconnectBtn">Forget Wi-Fi & Restart</button>
+        <button class="btn danger" id="resetBtn">Factory Reset Device</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast">Settings saved successfully.</div>
+
+<script src="app.js"></script>
+</body>
+</html>

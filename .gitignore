@@ -1,0 +1,18 @@
+# PlatformIO build artifacts and caches
+.pio/
+
+# VS Code local state (keep extensions.json for collaborator setup)
+.vscode/*
+!.vscode/extensions.json
+
+# Old project copies / archives — do not commit, the live code is in src/
+esp32_adsb_radar.zip
+esp32_adsb_radar_unzipped/
+
+# Dev scratch files
+test_map.html
+
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store
