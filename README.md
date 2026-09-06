@@ -1,115 +1,222 @@
-# ESP32 ADS-B Radar - Full Firmware
+<div align="center">
 
-Multi-provider ADS-B/aircraft radar on an ESP32 + ST7735 display, with
-3-button on-device navigation, a captive-portal Wi-Fi setup flow, and a
-responsive web management UI served from the device itself.
+# FlyRadar32
 
-## Hardware wiring
+**A live ADS-B aircraft radar on your desk — ESP32 + 1.8" ST7735 TFT**
 
-| Function        | GPIO |
-|------------------|------|
-| TFT SCLK         | 18   |
-| TFT MOSI (SDA)   | 23   |
-| TFT CS           | 5    |
-| TFT RST (RES)    | 4    |
-| TFT DC           | 2    |
-| TFT BL (LED)     | 15   |
-| Button UP        | 25   |
-| Button DOWN      | 26   |
-| Button SELECT    | 27   |
+Live aircraft positions, callsigns, altitude & speed — rendered on a sweeping
+radar display, no PC required.
 
-All buttons are wired to GND with `INPUT_PULLUP` used in firmware - no
-external resistors needed. GPIO0 is deliberately **not** used for any
-button: it's the ESP32's boot-mode strap pin, and holding it low at
-power-on forces the download bootloader instead of your app.
+[![PlatformIO](https://img.shields.io/badge/PlatformIO-FE7D37?style=for-the-badge&logo=platformio&logoColor=white)](https://platformio.org/)
+[![ESP32](https://img.shields.io/badge/ESP32-E7352C?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/)
+[![Arduino](https://img.shields.io/badge/Arduino-00979D?style=for-the-badge&logo=arduino&logoColor=white)](https://www.arduino.cc/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-5E6AD2?style=for-the-badge)](LICENSE)
 
-## Project layout
+[Features](#-features) · [Hardware](#-hardware) · [Build](#-build--flash) · [First Boot](#-first-boot) · [Web UI](#-web-ui) · [Roadmap](#-roadmap)
+
+</div>
+
+---
+
+## Why
+
+Airplanes fly over your head every day. Commercial sites show you a map on a
+phone — FlyRadar32 puts the sky on a dedicated gadget instead: a physical
+radar sweep on a 160×128 TFT, a 3-button interface, and a web dashboard
+served from the device itself. It's a complete IoT build: firmware, captive
+portal, REST API, and frontend, all on a $4 chip.
+
+## ✨ Features
+
+- **Live ADS-B tracking** — aircraft positions, callsign, altitude, speed,
+  vertical rate, and distance from you, via free community APIs
+- **Multi-provider with automatic failover** — airplanes.live and adsb.lol
+  tried in your priority order; a provider that fails 3× gets a 5-cycle
+  cooldown instead of hammering
+- **Real radar display** — sweep animation, range rings, compass labels,
+  altitude-based aircraft colors, and flight-history trails
+- **On-device navigation** — 3 buttons (UP / DOWN / SELECT) walk the cursor
+  between aircraft; SELECT opens full aircraft detail, long-press opens
+  settings (range, brightness, theme, providers, factory reset…)
+- **Self-hosted web UI** — the device serves a responsive dashboard
+  (Wi-Fi setup, location, display & API config, live aircraft list) from
+  LittleFS
+- **Captive-portal Wi-Fi setup** — first boot starts an access point;
+  phones auto-redirect to the setup page, zero code editing to deploy
+- **Power-loss-safe settings** — everything persists to NVS (Preferences)
+- **Customizable look** — themes, aircraft icons vs. dots, labels,
+  sweep on/off, range rings, compass — live from either the device or the web
+
+## 🧰 Hardware
+
+| Part | Notes |
+|------|-------|
+| ESP32 DevKit (WROOM-32) | any classic ESP32 dev board |
+| 1.8" ST7735 TFT (128×160) | black-tab variant, SPI |
+| 3× momentary pushbuttons | to GND, internal pullups used |
+
+**~$10 total** — no HATs, no soldering beyond 11 wires.
+
+### Wiring
+
+| Function | GPIO | | Function | GPIO |
+|----------|------|-|----------|------|
+| TFT SCLK | 18 | | Button UP | 25 |
+| TFT MOSI (SDA) | 23 | | Button DOWN | 26 |
+| TFT CS | 5 | | Button SELECT | 27 |
+| TFT RST (RES) | 4 | | | |
+| TFT DC | 2 | | | |
+| TFT BL (LED) | 15 | | | |
+
+> **GPIO0 warning:** never wire a button to GPIO0 — it's the boot strap pin;
+> holding it low at power-on forces the download bootloader instead of your app.
 
 ```
-platformio.ini
-include/            headers for every module
-src/
-  main.cpp          screen state machine, button routing, render loop
-  storage.cpp        NVS-backed settings (Preferences)
-  buttons.cpp         debounced short/long press for 3 buttons
-  wifi_manager.cpp    AP fallback + captive portal + non-blocking connect
-  webui.cpp           ESPAsyncWebServer REST API + static file serving
-  api_providers.cpp   background fetch task, multi-provider fallback, OAuth2
-  radar_display.cpp   canvas-based double-buffered rendering
-data/                files uploaded to LittleFS (the web UI)
-  index.html, style.css, app.js
+                    ┌─────────────┐
+        3V3 ────────┤VCC        BL├──────── 3V3 (backlight)
+        GPIO18 ─────┤SCK       CS├──────── GPIO5
+        GPIO23 ─────┤SDA      RES├──────── GPIO4
+           GND ─────┤GND       DC├──────── GPIO2
+                    │  ST7735    │
+                    │  1.8" TFT  │   ┌─[BTN]─ GND   GPIO25 (UP)
+                    └─────────────┘   ├─[BTN]─ GND   GPIO26 (DOWN)
+                                      └─[BTN]─ GND   GPIO27 (SELECT)
 ```
 
-## Building
+## 🔨 Build & flash
 
 This is a PlatformIO project.
 
+```bash
+pio run                 # compile
+pio run -t upload       # flash firmware
+pio run -t uploadfs     # flash web UI (data/) to LittleFS
+pio device monitor      # serial log @ 115200
 ```
-pio run                # compile
-pio run -t upload      # flash firmware
-pio run -t uploadfs    # flash the data/ folder to LittleFS (the web UI)
-pio device monitor      # serial log
+
+First flash needs **both** `upload` and `uploadfs` — firmware and web UI are
+flashed separately.
+
+## 🚀 First boot
+
+1. **No stored Wi-Fi?** The device starts an access point: `FlyRadar32-XXXX`
+   (password: `radar1234`, change `AP_PASSWORD` in `config.h` before
+   deploying). If a saved network dies later, it re-hosts the AP and retries
+   every 60 s.
+2. **Connect** a phone or laptop to that AP — most phones auto-prompt
+   "sign in to network" (captive portal implemented for Android/Apple/Windows
+   connectivity-check URLs). Fallback: `http://192.168.4.1`.
+3. **Wi-Fi tab** → Scan → tap a network → password → Connect. Status mirrors
+   on the device screen and in the web UI.
+4. The device now shows its IP on screen — **open it from any device**
+   on the same network.
+5. **Location tab** → paste `lat, lon` straight from Google Maps, or tap
+   Auto-detect (IP).
+6. **Display & API tab** → refresh interval, radar range, labels, theme,
+   provider toggles.
+7. **On-device:** UP/DOWN walks the radar cursor between aircraft;
+   SELECT (short) = aircraft detail · SELECT (long) = settings menu.
+
+## 🌐 Web UI
+
+Served from the device itself (LittleFS, no cloud):
+
+| Tab | What it does |
+|-----|---------------|
+| Status | live aircraft table: callsign, altitude, speed, distance |
+| Wi-Fi | scan, join, signal strength, AP fallback |
+| Location | `lat, lon` paste or IP auto-detect |
+| Display & API | refresh interval, range, theme, sweep, provider priority |
+
+The firmware exposes a small REST API (`ESPAsyncWebServer`) the frontend
+talks to — the same endpoints will drive anything else you want to build
+on top (Home Assistant, Node-RED, custom dashboards).
+
+## 🗺️ How it works
+
+```
+ ┌─────────┐   HTTPS    ┌──────────────────┐   JSON    ┌─────────────┐
+ │ ADS-B    │◄──────────┤ api_providers    │◄─────────│ airplanes.live
+ │ web APIs │            │ (background task,│           │ adsb.lol
+ └─────────┘            │  failover,       │          └─────────────┘
+                        │  3-fail cooldown) │
+                        └────────┬─────────┘
+                                 │ aircraft[]
+              ┌──────────────────┼──────────────────┐
+              ▼                  ▼                   ▼
+      ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+      │ radar_display │   │ main.cpp      │   │ webui         │
+      │ double-buffer │   │ buttons,      │   │ REST API +    │
+      │ canvas sweep  │   │ state machine │   │ static files  │
+      └──────────────┘   └──────────────┘   └──────────────┘
 ```
 
-Both `upload` and `uploadfs` are required on first flash - the firmware
-and the web UI are flashed separately.
+Fetch runs on a background FreeRTOS task, rendering never blocks on the
+network, and settings persist across power cycles via NVS.
 
-## First boot flow
+## 📁 Project layout
 
-1. On first boot (no stored Wi-Fi credentials), the device starts an
-   access point named `FlyRadar32-XXXX` (password `radar1234`, see
-   `AP_PASSWORD` in `config.h` - change this before deploying).
-   If a stored network becomes unreachable later, the device re-hosts
-   the same AP and retries the stored credentials every 60 s
-   (paused while a client is connected to the portal).
-2. Connect a phone or laptop to that AP. Most phones will prompt to
-   "sign in to network" automatically (captive portal redirect is
-   implemented for the common Android/Apple/Windows connectivity-check
-   URLs); otherwise open `http://192.168.4.1` manually.
-3. On the **Wi-Fi** tab: tap **Scan**, tap a network to autofill the
-   SSID, enter the password, tap **Connect**. The device shows
-   connecting/success/failure both on its own screen and in the web UI's
-   status card. On failure it stays in AP mode so you can retry.
-4. Once connected, the device screen shows its new IP address. Open that
-   IP from any device on the same network to keep managing it.
-5. On the **Location** tab, paste coordinates copied directly from Google
-   Maps (format `lat, lon`) or tap **Auto-detect (IP)** for a rough fix.
-6. On the **Display & API** tab you can set the refresh interval, radar
-   range, labels, icon, sweep animation, theme and customization toggles.
-   The two data providers (`airplanes.live`, `adsb.lol`) can be toggled
-   on-device via Settings -> Data Providers.
-7. On-device: UP/DOWN move the radar cursor between tracked aircraft,
-   SELECT (short) opens full detail for the highlighted plane, SELECT
-   (long) opens the Settings menu (range, brightness, labels, icon, theme,
-   compass, range rings, trails, data providers, aircraft list, force
-   refresh, system info, factory reset).
+```
+platformio.ini        pins, flags, library pins (LVGL 8.3.x pinned —
+                       8.4 changed dark-theme greys)
+include/              headers for every module + config.h (all tunables)
+src/
+  main.cpp            screen state machine, button routing, render loop
+  storage.cpp          NVS-backed settings (Preferences)
+  buttons.cpp         debounced short/long press for 3 buttons
+  wifi_manager.cpp    AP fallback + captive portal + non-blocking connect
+  webui.cpp           ESPAsyncWebServer REST API + static file serving
+  api_providers.cpp   background fetch task, multi-provider failover, OAuth2
+  radar_display.cpp   canvas-based double-buffered rendering
+data/                 files uploaded to LittleFS (the web UI)
+  index.html, style.css, app.js
+```
 
-## API providers implemented
+## ✈️ API providers
 
-- **airplanes.live** - `GET https://api.airplanes.live/v2/point/{lat}/{lon}/{radius_nm}`, no auth.
-- **adsb.lol** - same schema/endpoint shape as airplanes.live (ADS-B Exchange v2-compatible), no auth: `https://api.adsb.lol/v2/point/{lat}/{lon}/{radius_nm}`.
-- OpenSky Network - **not implemented yet** (roadmap: OAuth2 client-credentials flow, required since March 2026; the old basic-auth method is retired).
+| Provider | Auth | Status |
+|----------|------|--------|
+| [airplanes.live](https://api.airplanes.live/v2/point/{lat}/{lon}/{radius_nm}) | none | ✅ working |
+| [adsb.lol](https://api.adsb.lol/v2/point/{lat}/{lon}/{radius_nm}) | none | ✅ working |
+| OpenSky Network | OAuth2 client-credentials | 🚧 roadmap (basic-auth retired March 2026) |
 
-The background task tries enabled providers in your configured priority
-order each cycle; a provider that fails 3 times in a row is skipped for
-the next 5 cycles (simple backoff) rather than retried every time.
+Providers are tried in your configured priority order each cycle. A
+provider failing 3× in a row is skipped for the next 5 cycles — the radar
+never starves because one API is having a bad day.
 
-## Known limitations / good next steps
+## 🗺 Roadmap
 
-- **TLS certificate validation is disabled** (`setInsecure()`) on all
-  HTTPS clients for simplicity. For a deployed device, pin the actual
-  server certificates instead.
-- **Wi-Fi scan is synchronous** (blocks ~2-4s while scanning). Fine for
-  an occasional settings action; an async scan (`WiFi.scanNetworks(true)`)
-  with a poll endpoint would avoid tying up a request thread.
-- Cursor selection on the radar walks the aircraft array in whatever
-  order the provider returned it. Sorting by bearing before display would
-  make UP/DOWN feel like walking clockwise around the compass - a cheap,
-  worthwhile follow-up.
-- No NTP time sync is performed. Not required for anything currently
-  implemented (OAuth2 expiry uses relative `millis()` timing), but would
-  be needed if you later want real certificate validation or to log
-  timestamps.
-- The AP setup password (`radar1234`) and the absence of any transport
-  encryption on the plain-HTTP config server are fine for a home/hobby
-  deployment; harden both before shipping this to anyone else.
+- [ ] Sort radar cursor by bearing — UP/DOWN walks clockwise around the compass
+- [ ] OpenSky provider (OAuth2 client-credentials flow)
+- [ ] TLS certificate pinning (replace `setInsecure()`)
+- [ ] Async Wi-Fi scan (`WiFi.scanNetworks(true)` + poll endpoint)
+- [ ] NTP time sync (needed for real cert validation / timestamps)
+- [ ] Weather overlay at your location
+- [ ] Aircraft photos on the detail page
+
+## ⚠️ Limitations (honest ones)
+
+- **TLS validation is off** (`setInsecure()`) on all HTTPS clients — fine for
+  a home gadget; pin real certificates before shipping to others.
+- **Wi-Fi scan blocks** the request thread ~2-4 s (occasional settings
+  action only; async scan is roadmap).
+- **Plain-HTTP config server + default AP password** — fine for home/hobby
+  deployment; harden both before giving this to strangers.
+- Cursor walks aircraft in provider response order — bearing-sort is the
+  cheap fix (roadmap #1).
+
+## 📄 License
+
+[MIT](LICENSE) — free to build, modify, and sell. If it lands you a job in
+aviation, tell me the story.
+
+---
+
+<div align="center">
+
+**Build video & full tutorial → [skrelectronicslab.com](https://www.skrelectronicslab.com)**
+
+[![Website](https://img.shields.io/badge/Website-5E6AD2?style=for-the-badge)](https://www.skrelectronicslab.com)
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@skr_electronics_lab)
+
+</div>
