@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
+#include <esp_mac.h>
 
 static DNSServer dnsServer;
 static WifiState state = WIFI_STATE_AP_MODE;
@@ -15,9 +16,10 @@ static bool apActive = false;
 static bool mdnsStarted = false;
 
 static void startApMode() {
-    WiFi.mode(WIFI_AP_STA);
+    WiFi.persistent(false);
+    WiFi.mode(WIFI_AP);
     uint8_t mac[6];
-    WiFi.macAddress(mac);
+    esp_read_mac(mac, ESP_MAC_WIFI_SOFTAP);
     char suffix[5];
     snprintf(suffix, sizeof(suffix), "%02X%02X", mac[4], mac[5]);
     apSsid = String(AP_SSID_PREFIX) + suffix;
@@ -46,11 +48,15 @@ static void stopApMode() {
 }
 
 void WifiManager::begin() {
+    WiFi.persistent(false);
+    WiFi.setAutoReconnect(false);
+    WiFi.disconnect(true);
+
     AppSettings& s = Storage::settings();
-    WiFi.mode(WIFI_STA);
     WiFi.setHostname(MDNS_NAME);
 
     if (s.staSsid.length() > 0) {
+        WiFi.mode(WIFI_STA);
         WifiManager::startConnect(s.staSsid, s.staPassword);
         unsigned long start = millis();
         while (WiFi.status() != WL_CONNECTED && millis() - start < CONNECT_TIMEOUT_MS) {
@@ -68,10 +74,11 @@ void WifiManager::begin() {
 }
 
 void WifiManager::startConnect(const String& ssid, const String& password) {
-    // No mode juggling needed: in setup mode we're already in AP_STA (the
-    // portal stays alive while STA connects); when already connected we stay
-    // pure STA. The old `if (!apActive) WiFi.mode(WIFI_AP_STA)` brought up a
-    // stray default open AP while reconfiguring from the web UI.
+    if (apActive) {
+        WiFi.mode(WIFI_AP_STA);
+    } else {
+        WiFi.mode(WIFI_STA);
+    }
     WiFi.begin(ssid.c_str(), password.c_str());
     connectStartedMs = millis();
     state = WIFI_STATE_CONNECTING;
@@ -92,11 +99,8 @@ void WifiManager::loop() {
             if (!apActive) startApMode();
         }
     } else if (state == WIFI_STATE_FAILED || state == WIFI_STATE_AP_MODE) {
-        // Self-heal: a router reboot used to leave the device in setup mode
-        // until it was power-cycled. Retry stored credentials every 60s —
-        // but never while a client is using the setup portal, since a
-        // successful retry would kick it off the network.
         static unsigned long nextStaRetryMs = 0;
+        if (nextStaRetryMs == 0) nextStaRetryMs = millis();
         if (millis() - nextStaRetryMs > 60000UL && WiFi.softAPgetStationNum() == 0) {
             AppSettings& s = Storage::settings();
             if (s.staSsid.length() > 0) {

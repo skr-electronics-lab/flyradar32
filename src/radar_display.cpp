@@ -171,14 +171,34 @@ static uint16_t altitudeColor(int altFt, bool onGround, const ThemePalette& th) 
 // the Settings -> Brightness slider appears to do nothing.
 #define BACKLIGHT_ACTIVE_LOW  false
 
+// Use explicit LEDC API for reliable PWM on GPIO15.
+// ledcSetup/ledcAttachPin/ledcWrite are the correct ESP32 Arduino APIs;
+// analogWrite() may not initialize LEDC properly when TFT_eSPI has
+// already touched GPIO15 during init.
+static bool backlightInit = false;
 static void setBacklight(uint8_t brightness) {
-    ledcWrite(TFT_BLK, BACKLIGHT_ACTIVE_LOW ? (255 - brightness) : brightness);
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
+    if (!backlightInit) {
+        ledcAttach(TFT_BLK, 5000, 8);
+        backlightInit = true;
+    }
+    uint8_t val = BACKLIGHT_ACTIVE_LOW ? (255 - brightness) : brightness;
+    ledcWrite(TFT_BLK, val);
+#else
+    if (!backlightInit) {
+        ledcSetup(0, 5000, 8);
+        ledcAttachPin(TFT_BLK, 0);
+        backlightInit = true;
+    }
+    uint8_t val = BACKLIGHT_ACTIVE_LOW ? (255 - brightness) : brightness;
+    ledcWrite(0, val);
+#endif
 }
 
 // ---------------------------------------------------------------------
-// Breadcrumb trail â€” keeps the last few fixes for each aircraft so the
+// Breadcrumb trail — keeps the last few fixes for each aircraft so the
 // radar can draw a fading tail behind it. Matched by ICAO hex across
-// fetch cycles. Memory cost: MAX_PLANES * TRAIL_LEN * 8 bytes â‰ˆ 360 B.
+// fetch cycles. Memory cost: MAX_PLANES * TRAIL_LEN * 8 bytes ≈ 360 B.
 // ---------------------------------------------------------------------
 struct TrailSlot {
     char hex[8] = {0};
@@ -266,26 +286,29 @@ static void drawAircraftIcon(int px, int py, float trackDeg, uint16_t color, uin
         return;
     }
 
-    // AIRCRAFT_ICON_PLANE: Sleek supersonic tactical delta jet silhouette
-    // Crisp symmetrical geometry with delta wings, tail stabilizers, and pinpoint center beacon
-    int fx, fy, tlx, tly, trx, try_;
-    rotatePt(6, 0, rad, nx, ny);          // Sharp nose cone
-    rotatePt(-1, -5.5f, rad, wlx, wly);   // Left wingtip
-    rotatePt(-1, 5.5f, rad, wrx, wry);    // Right wingtip
-    rotatePt(-4, -2.5f, rad, tlx, tly);   // Left tail stabilizer
-    rotatePt(-4, 2.5f, rad, trx, try_);   // Right tail stabilizer
-    rotatePt(-4, 0, rad, tx, ty);         // Fuselage tail end
-    rotatePt(-1, 0, rad, fx, fy);         // Mid-body wing root
+    // AIRCRAFT_ICON_PLANE: Authentic FlightRadar24 commercial jet airliner silhouette
+    int fx, fy, tlx, tly, trx, try_, elx, ely, erx, ery;
+    rotatePt(7, 0, rad, nx, ny);            // Nose cone
+    rotatePt(0, -6.0f, rad, wlx, wly);     // Left wingtip
+    rotatePt(0, 6.0f, rad, wrx, wry);      // Right wingtip
+    rotatePt(-1.5f, -3.0f, rad, elx, ely);  // Left engine nacelle
+    rotatePt(-1.5f, 3.0f, rad, erx, ery);   // Right engine nacelle
+    rotatePt(-5, -3.0f, rad, tlx, tly);    // Left tail stabilizer
+    rotatePt(-5, 3.0f, rad, trx, try_);    // Right tail stabilizer
+    rotatePt(-5.5f, 0, rad, tx, ty);       // Tail tip
+    rotatePt(-2, 0, rad, fx, fy);          // Mid-fuselage root
 
-    // Delta main wings
+    // Main swept wings
     canvas.fillTriangle(px + nx, py + ny, px + wlx, py + wly, px + fx, py + fy, color);
     canvas.fillTriangle(px + nx, py + ny, px + wrx, py + wry, px + fx, py + fy, color);
-    // Tail stabilizers
+    // Swept tail wings
     canvas.fillTriangle(px + fx, py + fy, px + tlx, py + tly, px + tx, py + ty, color);
     canvas.fillTriangle(px + fx, py + fy, px + trx, py + try_, px + tx, py + ty, color);
-    // Fuselage center spine
+    // Engine nacelles under wings
+    canvas.fillCircle(px + elx, py + ely, 1, color);
+    canvas.fillCircle(px + erx, py + ery, 1, color);
+    // Fuselage spine
     canvas.drawLine(px + nx, py + ny, px + tx, py + ty, color);
-    // White transponder beacon center dot (GPS fix accuracy)
     canvas.drawPixel(px, py, CLR_TEXT);
 }
 
@@ -296,7 +319,6 @@ void RadarDisplay::begin() {
     canvas.setColorDepth(16);
     canvas.createSprite(SCREEN_W, SCREEN_H);
 
-    ledcAttach(TFT_BLK, 5000, 8);
     setBacklight(Storage::settings().brightness);
 
     lv_init();
@@ -361,15 +383,16 @@ void RadarDisplay::showWifiSetupScreen(const String& apSsid, const String& apIp)
     lv_obj_t * desc = lv_label_create(card);
     String pass = String(AP_PASSWORD);
     lv_label_set_recolor(desc, true);
+    lv_obj_set_style_text_font(desc, &lv_font_montserrat_12, 0);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, 0);
     if (pass.length() > 0) {
-        lv_label_set_text_fmt(desc, "Network: #%06x %s#\nPassword: #%06x %s#\nOpen: #%06x %s#",
-            theme().accent_hex, apSsid.c_str(), theme().accent_hex, pass.c_str(), theme().accent_hex, apIp.c_str());
+        lv_label_set_text_fmt(desc, "SSID: #%06x %s#\nPass: #%06x %s#\nIP: #%06x %s#\nURL: #%06x %s.local#",
+            theme().accent_hex, apSsid.c_str(), theme().accent_hex, pass.c_str(), theme().accent_hex, apIp.c_str(), theme().accent_hex, MDNS_NAME);
     } else {
-        lv_label_set_text_fmt(desc, "Network: #%06x %s#\nOpen: #%06x %s#",
-            theme().accent_hex, apSsid.c_str(), theme().accent_hex, apIp.c_str());
+        lv_label_set_text_fmt(desc, "SSID: #%06x %s#\nIP: #%06x %s#\nURL: #%06x %s.local#",
+            theme().accent_hex, apSsid.c_str(), theme().accent_hex, apIp.c_str(), theme().accent_hex, MDNS_NAME);
     }
-    lv_obj_align(desc, LV_ALIGN_TOP_MID, 0, 34);
+    lv_obj_align(desc, LV_ALIGN_TOP_MID, 0, 30);
 }
 
 void RadarDisplay::showConnectedScreen(const String& staIp) {
@@ -377,9 +400,10 @@ void RadarDisplay::showConnectedScreen(const String& staIp) {
     lv_obj_t * card = buildCard("CONNECTED!", getLVThemeColor());
 
     lv_obj_t * desc = lv_label_create(card);
-    lv_label_set_text_fmt(desc, "IP: %s", staIp.c_str());
+    lv_obj_set_style_text_font(desc, &lv_font_montserrat_12, 0);
+    lv_label_set_text_fmt(desc, "IP: %s\nURL: http://%s.local", staIp.c_str(), MDNS_NAME);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_align(desc, LV_ALIGN_TOP_MID, 0, 38);
+    lv_obj_align(desc, LV_ALIGN_TOP_MID, 0, 32);
 
     lv_obj_t * hint = lv_label_create(card);
     lv_label_set_text(hint, "Starting radar...");
@@ -403,7 +427,9 @@ void RadarDisplay::renderScrollMenu(const char* title, const char* items[], int 
         lv_obj_set_scrollbar_mode(list_obj, LV_SCROLLBAR_MODE_OFF);
 
         for (int i = 0; i < itemCount; i++) {
-            lv_obj_t * btn = lv_list_add_btn(list_obj, NULL, items[i]);
+            char formattedItem[36];
+            snprintf(formattedItem, sizeof(formattedItem), "%s%s", (i == selectedIndex ? "> " : "  "), items[i]);
+            lv_obj_t * btn = lv_list_add_btn(list_obj, NULL, formattedItem);
             lv_obj_set_style_bg_color(btn, lv_color_hex(UI_ROW_BG), 0);
             lv_obj_set_style_bg_color(btn, getLVThemeColor(), LV_STATE_FOCUSED);
             lv_obj_set_style_text_color(btn, lv_color_hex(UI_TEXT_MAIN), 0);
@@ -418,11 +444,15 @@ void RadarDisplay::renderScrollMenu(const char* title, const char* items[], int 
         lastSelScroll = -1;
     }
 
-    // Update selection â€” scroll only when it changes. Re-issuing the
-    // animated scroll every 30ms frame made the menus feel laggy/jittery.
     if (list_obj) {
         for (uint32_t i = 0; i < lv_obj_get_child_cnt(list_obj); i++) {
             lv_obj_t * btn = lv_obj_get_child(list_obj, i);
+            lv_obj_t * label = lv_obj_get_child(btn, 0);
+            if (label) {
+                char formattedItem[36];
+                snprintf(formattedItem, sizeof(formattedItem), "%s%s", ((int)i == selectedIndex ? "> " : "  "), items[i]);
+                lv_label_set_text(label, formattedItem);
+            }
             if ((int)i == selectedIndex) {
                 lv_obj_add_state(btn, LV_STATE_FOCUSED);
                 if (lastSelScroll != selectedIndex) {
@@ -441,13 +471,16 @@ void RadarDisplay::renderSystemInfo(const String& ip, const String& wifiSsid) {
     if (current_menu_title != "SYSINFO") {
         lv_obj_t * card = buildCard("SYSTEM INFO", getLVThemeColor());
 
+        // Compact single-label block — all in 12-pt font to fit without overlap.
+        // Removed the blank line before brand text that caused the hint to overlap.
         lv_obj_t * info = lv_label_create(card);
         lv_label_set_text_fmt(info,
-            "FW: %s v%s\nWi-Fi: %s\nIP: %s\n\nSKR Electronics Lab",
+            "%s v%s\nWiFi: %s\nIP: %s\nSKR Electronics Lab",
             FW_NAME, FW_VERSION, wifiSsid.c_str(), ip.c_str());
+        lv_obj_set_style_text_font(info, &lv_font_montserrat_12, 0);
         lv_obj_set_style_text_align(info, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_color(info, lv_color_hex(UI_TEXT_MAIN), 0);
-        lv_obj_align(info, LV_ALIGN_TOP_MID, 0, 32);
+        lv_obj_align(info, LV_ALIGN_TOP_MID, 0, 28);
 
         lv_obj_t * hint = lv_label_create(card);
         lv_label_set_text(hint, "SELECT to return");

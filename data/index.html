@@ -458,19 +458,19 @@
 
         <div class="provider-status-list">
           <div class="provider-item active">
-            <div class="provider-status-dot green"></div>
-            <div class="provider-info">
-              <strong>OpenSky Network</strong>
-              <span>Primary Open REST Airspace Vector Feed</span>
-            </div>
-            <span class="provider-badge">ACTIVE</span>
-          </div>
-
-          <div class="provider-item standby">
             <div class="provider-status-dot cyan"></div>
             <div class="provider-info">
               <strong>adsb.lol</strong>
-              <span>Community ADS-B Exchange v2 Feed</span>
+              <span>Primary — Community ADS-B Exchange v2 (No auth, HTTP)</span>
+            </div>
+            <span class="provider-badge">PRIMARY</span>
+          </div>
+
+          <div class="provider-item standby">
+            <div class="provider-status-dot green"></div>
+            <div class="provider-info">
+              <strong>OpenSky Network</strong>
+              <span>Backup — REST API (anonymous or OAuth2 credentials)</span>
             </div>
             <span class="provider-badge backup">BACKUP</span>
           </div>
@@ -479,15 +479,52 @@
             <div class="provider-status-dot gray"></div>
             <div class="provider-info">
               <strong>airplanes.live</strong>
-              <span>Legacy Feed (Cloudflare Guard Active)</span>
+              <span>Tertiary — HTTPS Feed (Cloudflare rate limiting)</span>
             </div>
-            <span class="provider-badge off">DISABLED</span>
+            <span class="provider-badge off">TERTIARY</span>
           </div>
         </div>
       </div>
 
+      <!-- Card 3b: OpenSky Network API Credentials & JSON Import -->
+      <div class="card glass-card" id="openSkyCredentialsCard">
+        <div class="card-title-row">
+          <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <h3>OpenSky API Credentials</h3>
+        </div>
+        <p class="card-desc">OAuth2 client credentials for live OpenSky Network vector state feeds.</p>
+
+        <div class="form-group">
+          <label>Import OpenSky Credentials File (.json)</label>
+          <div class="file-upload-dropzone" id="jsonDropzone">
+            <input type="file" id="openskyJsonFile" accept=".json" style="display:none;" />
+            <button type="button" class="btn btn-secondary" style="width:100%; margin-bottom: 6px;" onclick="document.getElementById('openskyJsonFile').click()">
+              📁 Upload credentials.json
+            </button>
+            <div class="help-text" id="jsonFileStatus">Select credentials.json to auto-detect Client ID & Secret.</div>
+          </div>
+        </div>
+
+        <form id="openSkyForm" style="margin-top: 10px;">
+          <div class="form-group">
+            <label for="osClientId">Client ID</label>
+            <input type="text" id="osClientId" placeholder="skr4test@gmail.com-api-client" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="osClientSecret">Client Secret</label>
+            <input type="password" id="osClientSecret" placeholder="••••••••••••••••" autocomplete="off" />
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Save OpenSky Credentials</button>
+        </form>
+      </div>
+
       <!-- Card 4: Wi-Fi & System Utilities -->
-      <div class="card glass-card">
+      <div class="card glass-card" id="wifiSetupCard">
         <div class="card-title-row">
           <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>

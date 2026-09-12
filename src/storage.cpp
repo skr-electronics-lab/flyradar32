@@ -21,20 +21,34 @@ static void loadAll() {
     for (int i = 0; i < PROVIDER_COUNT; i++) {
         String enKey = "en" + String(i);
         String prKey = "pr" + String(i);
-        bool defEnabled = (i == PROVIDER_OPENSKY || i == PROVIDER_ADSB_LOL);
-        cache.providerEnabled[i]  = prefs.getBool(enKey.c_str(), defEnabled);
-        cache.providerPriority[i] = prefs.getUChar(prKey.c_str(), i);
+        // Default: all providers enabled. Default priority: adsb.lol(1)=0, OpenSky(0)=1, airplanes.live(2)=2
+        // This makes adsb.lol the first-tried provider (no auth needed, HTTP, fastest).
+        uint8_t defPriority = (i == PROVIDER_ADSB_LOL) ? 0 : (i == PROVIDER_OPENSKY) ? 1 : 2;
+        cache.providerEnabled[i]  = prefs.getBool(enKey.c_str(), true);
+        cache.providerPriority[i] = prefs.getUChar(prKey.c_str(), defPriority);
     }
     cache.refreshInterval     = prefs.getInt("refInt", 10);
+    // Empty defaults: system will use anonymous/unauthenticated OpenSky if no credentials set.
+    cache.openSkyClientId     = prefs.getString("osId", "");
+    cache.openSkyClientSecret = prefs.getString("osSecret", "");
     prefs.end();
 
+    // When OpenSky credentials are not configured, ensure adsb.lol is primary (priority 0)
+    // to prevent rate-limiting (429) on anonymous OpenSky requests.
+    if (cache.openSkyClientId.isEmpty() && cache.providerPriority[PROVIDER_OPENSKY] <= cache.providerPriority[PROVIDER_ADSB_LOL]) {
+        cache.providerPriority[PROVIDER_ADSB_LOL] = 0;
+        cache.providerPriority[PROVIDER_OPENSKY] = 1;
+    }
+
+    // Open READ-WRITE so prefs.remove("pin") is valid (read-only mode silently
+    // ignores or aborts on writes — was the root cause of the fresh-flash reboot loop).
     prefs.begin(NVS_NS_DISPLAY, false);
     cache.zoomLevel      = prefs.getInt("zoom", 1);
     cache.labelsMode     = prefs.getUChar("lblMode", 2);
     cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_DOT);
     cache.showSweepAnim  = prefs.getBool("swpAnim", true);
     cache.brightness     = prefs.getUChar("bright", 255);
-    prefs.remove("pin"); // clear any stale lock
+    prefs.remove("pin"); // clear any stale config-lock pin on every boot
     cache.configPin      = "";
     cache.theme          = prefs.getUChar("theme", 0);
     cache.showCompass    = prefs.getBool("cmp", true);
@@ -104,6 +118,15 @@ void Storage::saveProviderConfig(const bool enabled[PROVIDER_COUNT], const uint8
         cache.providerPriority[i] = priority[i];
     }
     prefs.end();
+}
+
+void Storage::saveOpenSkyCredentials(const String& clientId, const String& clientSecret) {
+    prefs.begin(NVS_NS_API, false);
+    prefs.putString("osId", clientId);
+    prefs.putString("osSecret", clientSecret);
+    prefs.end();
+    cache.openSkyClientId = clientId;
+    cache.openSkyClientSecret = clientSecret;
 }
 
 void Storage::saveRefreshInterval(int seconds) {

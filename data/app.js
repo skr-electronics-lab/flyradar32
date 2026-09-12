@@ -344,33 +344,49 @@
   }
 
   function drawAircraftGlyph(ctx, x, y, trackDeg, color) {
-    // Authentic ATC/ADSB radar blip — no plane shape, just a clean blip + heading tick
     ctx.save();
-
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 8;
-
-    // Filled blip circle
+    ctx.translate(x, y);
+    ctx.rotate(trackDeg * Math.PI / 180);
     ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // White center dot (transponder position fix)
-    ctx.fillStyle = "rgba(255,255,255,0.95)";
-    ctx.beginPath();
-    ctx.arc(x, y, 1.4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Short heading vector tick
-    const trkRad = (trackDeg - 90) * Math.PI / 180;
     ctx.strokeStyle = color;
-    ctx.lineWidth = 1.8;
-    ctx.shadowBlur = 5;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 6;
+
+    // Authentic FlightRadar24 commercial jet airliner silhouette
     ctx.beginPath();
-    ctx.moveTo(x + Math.cos(trkRad) * 4, y + Math.sin(trkRad) * 4);
-    ctx.lineTo(x + Math.cos(trkRad) * 18, y + Math.sin(trkRad) * 18);
-    ctx.stroke();
+    ctx.moveTo(0, -10);                           // Nose
+    ctx.bezierCurveTo(1.5, -7, 2, -3, 2, 0);       // Right fuselage
+    ctx.lineTo(10, 3);                            // Right wingtip
+    ctx.lineTo(10, 4.5);
+    ctx.lineTo(2.5, 2.5);                         // Right wing trailing edge
+    ctx.lineTo(2, 6);                             // Rear fuselage right
+    ctx.lineTo(5.5, 8.5);                         // Right tailtip
+    ctx.lineTo(5.5, 9.5);
+    ctx.lineTo(0.8, 8);                           // Tail center right
+    ctx.lineTo(0, 10);                            // Tail cone
+    ctx.lineTo(-0.8, 8);                          // Tail center left
+    ctx.lineTo(-5.5, 9.5);
+    ctx.lineTo(-5.5, 8.5);                        // Left tailtip
+    ctx.lineTo(-2, 6);                            // Rear fuselage left
+    ctx.lineTo(-2.5, 2.5);                        // Left wing trailing edge
+    ctx.lineTo(-10, 4.5);
+    ctx.lineTo(-10, 3);                           // Left wingtip
+    ctx.lineTo(-2, 0);                            // Left fuselage
+    ctx.bezierCurveTo(-2, -3, -1.5, -7, 0, -10);   // Left nose
+    ctx.closePath();
+    ctx.fill();
+
+    // Twin jet engine nacelles under main wings
+    ctx.beginPath();
+    ctx.arc(3.5, 2, 1, 0, Math.PI * 2);
+    ctx.arc(-3.5, 2, 1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // White center beacon (transponder position fix accuracy)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.beginPath();
+    ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
+    ctx.fill();
 
     ctx.restore();
   }
@@ -623,6 +639,18 @@
         wifiBars.className = s.wifiState === "connected" ? "wifi-bars good" : "wifi-bars";
       }
 
+      if ((s.wifiState === "ap_mode" || s.wifiState === "failed") && !window.captivePortalRedirected) {
+        window.captivePortalRedirected = true;
+        const settingsTabBtn = document.querySelector('.nav-tab[data-tab="station-settings"]');
+        if (settingsTabBtn) settingsTabBtn.click();
+        const wifiCard = document.getElementById("wifiSetupCard");
+        if (wifiCard) {
+          wifiCard.scrollIntoView({ behavior: "smooth" });
+          wifiCard.style.outline = "2px solid #00FF66";
+          wifiCard.style.boxShadow = "0 0 20px rgba(0,255,102,0.4)";
+        }
+      }
+
       // Update seconds ago in header
       const secAgo = Math.max(0, Math.round((Date.now() - lastDataUpdateMs) / 1000));
       const refreshText = document.getElementById("refreshTimerText");
@@ -864,26 +892,34 @@
 
   // Danger Zone Actions
   document.getElementById("disconnectBtn")?.addEventListener("click", async () => {
-    if (confirm("Forget Wi-Fi credentials and restart in AP setup mode?")) {
-      showToast("Restarting in setup mode... Connect to 'FlyRadar32-Setup' Wi-Fi in ~10s.");
-      try {
-        await apiPost("/api/wifi/clear", {});
-      } catch (e) {
-        console.log("Device rebooted into setup mode:", e);
-      }
+    if (!confirm("Forget Wi-Fi credentials? The device will restart in setup AP mode.")) return;
+    const btn = document.getElementById("disconnectBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Forgetting..."; }
+    showToast("Forgetting Wi-Fi... Device will reboot into setup mode in ~3s");
+    try {
+      await apiPost("/api/wifi/clear", {});
+    } catch (e) {
+      // Expected: device reboots mid-request, fetch throws NetworkError — that's fine.
     }
+    // Show countdown — device reboots within ~400ms of the request
+    showToast("✓ Done! Connect to the FlyRadar32-XXXX Wi-Fi AP that appears in ~10s");
+    if (btn) { btn.textContent = "Restarting..."; }
   });
 
   document.getElementById("resetBtn")?.addEventListener("click", async () => {
-    if (confirm("Restore factory defaults? All settings and calibration will be reset to factory fresh state.")) {
-      showToast("Hardware restoring factory defaults... Please wait.");
-      try {
-        await apiPost("/api/factory-reset", {});
-      } catch (e) {
-        console.log("Device restored to factory defaults:", e);
-      }
+    if (!confirm("Factory Reset: ALL settings (Wi-Fi, location, providers) will be erased. Continue?")) return;
+    const btn = document.getElementById("resetBtn");
+    if (btn) { btn.disabled = true; btn.textContent = "Resetting..."; }
+    showToast("Factory reset in progress... Device rebooting in ~3s");
+    try {
+      await apiPost("/api/factory-reset", {});
+    } catch (e) {
+      // Expected: device reboots and closes connection.
     }
+    showToast("✓ Factory reset complete. Connect to new FlyRadar32-XXXX AP in ~10s");
+    if (btn) { btn.textContent = "Reset Done"; }
   });
+
 
   // -------------------------------------------------------------
   // Wi-Fi Scan & Connect Handlers
@@ -941,12 +977,70 @@
       connectBtn.textContent = "Connecting...";
       try {
         await apiPost("/api/wifi/connect", { ssid, password: pass });
-        showToast("Wi-Fi credentials saved. Device reconnecting...");
+        alert(`Success! Connecting to network '${ssid}'...\n\nESP32 is now switching to Station mode and closing setup AP.\n\nPlease reconnect your device to '${ssid}' and open:\nhttp://flyradar32.local`);
+        showToast(`Wi-Fi saved! Connect to '${ssid}' and visit http://flyradar32.local`);
       } catch (e) {
         showToast("Connect failed: " + e.message, true);
       } finally {
         connectBtn.disabled = false;
         connectBtn.textContent = "Connect Wi-Fi";
+      }
+    });
+  }
+
+  // -------------------------------------------------------------
+  // OpenSky Credentials & JSON Import Handlers
+  // -------------------------------------------------------------
+  const jsonFileInput = document.getElementById("openskyJsonFile");
+  const jsonFileStatus = document.getElementById("jsonFileStatus");
+  if (jsonFileInput) {
+    jsonFileInput.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = JSON.parse(evt.target.result);
+          const clientId = data.clientId || data.client_id || data.clientIdStr || "";
+          const clientSecret = data.clientSecret || data.client_secret || data.secret || "";
+
+          if (clientId) {
+            const el = document.getElementById("osClientId");
+            if (el) el.value = clientId;
+          }
+          if (clientSecret) {
+            const el = document.getElementById("osClientSecret");
+            if (el) el.value = clientSecret;
+          }
+
+          if (clientId && clientSecret) {
+            if (jsonFileStatus) jsonFileStatus.textContent = `Loaded credentials for '${clientId}'`;
+            showToast("OpenSky credentials loaded from JSON file!");
+            apiPost("/api/settings/opensky", { clientId, clientSecret })
+              .then(() => setSavingIndicator(false, "OpenSky Credentials Saved"))
+              .catch(err => console.warn("OpenSky save error:", err));
+          } else {
+            showToast("JSON loaded, but clientId or clientSecret key was missing", true);
+          }
+        } catch (err) {
+          showToast("Failed to parse credentials JSON file: " + err.message, true);
+        }
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  const openSkyForm = document.getElementById("openSkyForm");
+  if (openSkyForm) {
+    openSkyForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const clientId = document.getElementById("osClientId")?.value.trim() || "";
+      const clientSecret = document.getElementById("osClientSecret")?.value.trim() || "";
+      try {
+        await apiPost("/api/settings/opensky", { clientId, clientSecret });
+        showToast("OpenSky credentials saved to ESP32!");
+      } catch (err) {
+        showToast("Failed to save OpenSky credentials: " + err.message, true);
       }
     });
   }

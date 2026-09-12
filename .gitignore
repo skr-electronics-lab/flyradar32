@@ -11,6 +11,9 @@ esp32_adsb_radar_unzipped/
 
 # Dev scratch files
 test_map.html
+scratch/
+credentials*.json
+*.env
 
 # OS junk
 Thumbs.db

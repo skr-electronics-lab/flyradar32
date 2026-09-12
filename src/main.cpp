@@ -447,6 +447,7 @@ void setup() {
     } else {
         currentScreen = SCR_WIFI_SETUP;
     }
+    lastPeriodicRefreshMs = millis();
 }
 
 void loop() {

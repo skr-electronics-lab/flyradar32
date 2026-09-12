@@ -125,7 +125,7 @@ static void registerStatusRoutes() {
         };
 
         appendStr("{\"count\":");  appendInt(count);
-        appendStr(",\"provider\":"); appendJson(pst.lastProviderUsed ? pst.lastProviderUsed : "");
+        appendStr(",\"provider\":"); appendJson(pst.lastProviderUsed.isEmpty() ? "" : pst.lastProviderUsed.c_str());
         appendStr(",\"lastFetchOk\":"); appendBool(pst.lastFetchOk);
         appendStr(",\"fetchInProgress\":"); appendBool(pst.fetchInProgress);
         appendStr(",\"lastSuccessMs\":"); appendInt((int)pst.lastSuccessMs);
@@ -158,7 +158,9 @@ static void registerStatusRoutes() {
         appendStr("]}");
         buf[pos] = '\0';
 
-        request->send(200, "application/json", buf);
+        AsyncWebServerResponse* response = request->beginResponse_P(200, "application/json", (const uint8_t*)buf, pos);
+        response->addHeader("Cache-Control", "no-cache");
+        request->send(response);
     });
 
     server.on("/api/refresh", HTTP_POST, [](AsyncWebServerRequest* request) {
@@ -174,6 +176,22 @@ static void rebootDeferred(uint32_t delayMs = 400) {
         ESP.restart();
         vTaskDelete(NULL);
     }, "rebootTask", 2048, (void*)(uintptr_t)delayMs, 1, NULL);
+}
+
+static void connectDeferred(const String& ssid, const String& pass, uint32_t delayMs = 500) {
+    struct ConnectArgs {
+        String ssid;
+        String pass;
+        uint32_t delayMs;
+    };
+    ConnectArgs* args = new ConnectArgs{ssid, pass, delayMs};
+    xTaskCreate([](void* p) {
+        ConnectArgs* a = (ConnectArgs*)p;
+        vTaskDelay(pdMS_TO_TICKS(a->delayMs));
+        WifiManager::startConnect(a->ssid, a->pass);
+        delete a;
+        vTaskDelete(NULL);
+    }, "connTask", 3072, args, 1, NULL);
 }
 
 static void registerWifiRoutes() {
@@ -196,8 +214,8 @@ static void registerWifiRoutes() {
                 return;
             }
             Storage::saveWifi(ssid, pass);
-            WifiManager::startConnect(ssid, pass);
             sendOk(request);
+            connectDeferred(ssid, pass, 500);
         });
     }, nullptr, jsonBody());
 }
@@ -223,11 +241,23 @@ static void registerSettingsRoutes() {
         JsonArray pr = doc.createNestedArray("providerPriority");
         for (int i = 0; i < PROVIDER_COUNT; i++) { en.add(s.providerEnabled[i]); pr.add(s.providerPriority[i]); }
         doc["refreshInterval"] = s.refreshInterval;
+        doc["openSkyClientId"] = s.openSkyClientId;
         doc["pinSet"] = !s.configPin.isEmpty();
         String out;
         serializeJson(doc, out);
         request->send(200, "application/json", out);
     });
+
+    server.on("/api/settings/opensky", HTTP_POST, [](AsyncWebServerRequest* request) {
+        handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
+            if (!pinOk(request)) return;
+            String clientId = doc["clientId"] | "";
+            String clientSecret = doc["clientSecret"] | "";
+            Storage::saveOpenSkyCredentials(clientId, clientSecret);
+            ApiProviders::requestRefresh();
+            sendOk(request);
+        });
+    }, nullptr, jsonBody());
 
     server.on("/api/settings/location", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
@@ -247,9 +277,9 @@ static void registerSettingsRoutes() {
     server.on("/api/settings/providers", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
             if (!pinOk(request)) return;
-            // Only save the provider enable/priority arrays when they were
-            // actually sent — otherwise a refresh-interval-only save would
-            // fall back to the hardcoded defaults and silently reset them.
+            if (doc.containsKey("clientId") && doc.containsKey("clientSecret")) {
+                Storage::saveOpenSkyCredentials(doc["clientId"], doc["clientSecret"]);
+            }
             if (doc.containsKey("enabled") || doc.containsKey("priority")) {
                 bool en[PROVIDER_COUNT]; uint8_t pr[PROVIDER_COUNT];
                 JsonArray enArr = doc["enabled"].as<JsonArray>();

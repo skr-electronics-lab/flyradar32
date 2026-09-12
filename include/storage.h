@@ -20,6 +20,8 @@ struct AppSettings {
     bool showCompass;
     bool showRangeLabels;
     bool showTrail;
+    String openSkyClientId;
+    String openSkyClientSecret;
 };
 
 class Storage {
@@ -35,6 +37,7 @@ public:
     
     static void saveLocation(double lat, double lon);
     static void saveProviderConfig(const bool enabled[PROVIDER_COUNT], const uint8_t priority[PROVIDER_COUNT]);
+    static void saveOpenSkyCredentials(const String& clientId, const String& clientSecret);
     static void saveRefreshInterval(int seconds);
     
     static void saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim, uint8_t brightness,

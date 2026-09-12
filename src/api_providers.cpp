@@ -144,6 +144,62 @@ static bool parseOpenSkyFallback(const String& payload, AircraftPoint temp[MAX_P
     return (tempCount > 0);
 }
 
+static String cachedOpenSkyToken = "";
+static unsigned long openSkyTokenFetchedMs = 0;
+static const unsigned long OPENSKY_TOKEN_LIFETIME_MS = 25 * 60 * 1000UL;
+
+static String getOpenSkyToken(const String& clientId, const String& clientSecret) {
+    if (clientId.isEmpty() || clientSecret.isEmpty()) return "";
+
+    if (cachedOpenSkyToken.length() > 0 && (millis() - openSkyTokenFetchedMs < OPENSKY_TOKEN_LIFETIME_MS)) {
+        return cachedOpenSkyToken;
+    }
+
+    if (ESP.getMaxAllocHeap() < 35000) {
+        Serial.printf("[fetch] Skipping OpenSky token: maxAllocHeap too low (%u < 35000)\n", ESP.getMaxAllocHeap());
+        return "";
+    }
+
+    WiFiClientSecure client;
+    client.setInsecure();
+    client.setHandshakeTimeout(10);
+
+    HTTPClient http;
+    http.setTimeout(10000);
+    http.setConnectTimeout(6000);
+
+    String tokenUrl = "https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token";
+    if (http.begin(client, tokenUrl)) {
+        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+        String body = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+        int code = http.POST(body);
+        Serial.printf("[fetch] OpenSky OAuth token response code: %d\n", code);
+        if (code == HTTP_CODE_OK) {
+            String payload = http.getString();
+            http.end();
+            client.stop();
+
+            DynamicJsonDocument doc(2048);
+            DeserializationError err = deserializeJson(doc, payload);
+            if (!err && doc.containsKey("access_token")) {
+                cachedOpenSkyToken = doc["access_token"].as<String>();
+                openSkyTokenFetchedMs = millis();
+                Serial.printf("[fetch] OpenSky OAuth token obtained! (len=%d)\n", cachedOpenSkyToken.length());
+                return cachedOpenSkyToken;
+            } else {
+                Serial.println("[fetch] Failed to parse OpenSky token JSON");
+            }
+        } else {
+            http.end();
+            client.stop();
+        }
+    } else {
+        client.stop();
+    }
+
+    return "";
+}
+
 // ---------------------------------------------------------------
 // Provider: OpenSky Network (https://opensky-network.org)
 // High-reliability open REST API returning state vectors in bounding box
@@ -151,6 +207,14 @@ static bool parseOpenSkyFallback(const String& payload, AircraftPoint temp[MAX_P
 static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
                          double homeLat, double homeLon, float maxRangeKm) {
     tempCount = 0;
+
+    Storage::lock();
+    String clientId = Storage::settings().openSkyClientId;
+    String clientSecret = Storage::settings().openSkyClientSecret;
+    Storage::unlock();
+
+    String token = getOpenSkyToken(clientId, clientSecret);
+
     double dLat = (double)maxRangeKm / 111.0;
     double cosLat = cos(homeLat * DEG_TO_RAD);
     if (cosLat < 0.05) cosLat = 0.05;
@@ -167,6 +231,10 @@ static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
                  "&lomax=" + String(lomax, 4);
 
     Serial.printf("[fetch] OpenSky heap: free=%u maxAlloc=%u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+    if (ESP.getMaxAllocHeap() < 35000) {
+        Serial.printf("[fetch] Skipping OpenSky: maxAllocHeap too low (%u < 35000)\n", ESP.getMaxAllocHeap());
+        return false;
+    }
 
     WiFiClientSecure client;
     client.setInsecure();
@@ -178,6 +246,9 @@ static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
 
     bool ok = false;
     if (http.begin(client, url)) {
+        if (token.length() > 0) {
+            http.addHeader("Authorization", "Bearer " + token);
+        }
         int code = http.GET();
         Serial.printf("[fetch] OpenSky url=%s code=%d\n", url.c_str(), code);
         if (code == HTTP_CODE_OK) {
@@ -189,6 +260,9 @@ static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
             ok = parseOpenSkyFallback(payload, temp, tempCount, homeLat, homeLon, maxRangeKm);
             Serial.printf("[fetch] OpenSky parsed %d planes (ok=%d)\n", tempCount, ok);
         } else {
+            if (code == 401) {
+                cachedOpenSkyToken = "";
+            }
             http.end();
             client.stop();
         }
@@ -331,7 +405,121 @@ static bool fetchAirplanesLive(AircraftPoint temp[MAX_PLANES], int& tempCount, d
 }
 
 static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double lat, double lon, float rangeKm) {
-    return fetchAdsbSchemaProvider("api.adsb.lol", temp, tempCount, lat, lon, rangeKm);
+    tempCount = 0;
+    int radiusNm = (int)(rangeKm / 1.852) + 1;
+    String url = "http://api.adsb.lol/v2/point/" + String(lat, 4) + "/" +
+                 String(lon, 4) + "/" + String(radiusNm);
+
+    Serial.printf("[fetch] adsb.lol heap: free=%u maxAlloc=%u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+
+    WiFiClient client;
+    HTTPClient http;
+
+    http.setTimeout(8000);
+    http.setConnectTimeout(6000);
+    http.setUserAgent("Mozilla/5.0 (ESP32 ADS-B Ground Station)");
+    if (!http.begin(client, url)) {
+        client.stop();
+        return false;
+    }
+
+    int code = http.GET();
+    Serial.printf("[fetch] adsb.lol url=%s code=%d\n", url.c_str(), code);
+    bool ok = false;
+    if (code == HTTP_CODE_OK) {
+        String payload = http.getString();
+        http.end();
+        client.stop();
+
+        static StaticJsonDocument<384> filter;
+        static bool filterInit = false;
+        if (!filterInit) {
+            filter["ac"][0]["lat"] = true;
+            filter["ac"][0]["lon"] = true;
+            filter["ac"][0]["flight"] = true;
+            filter["ac"][0]["alt_baro"] = true;
+            filter["ac"][0]["gs"] = true;
+            filter["ac"][0]["track"] = true;
+            filter["ac"][0]["hex"] = true;
+            filter["ac"][0]["t"] = true;
+            filter["ac"][0]["type"] = true;
+            filter["ac"][0]["desc"] = true;
+            filter["ac"][0]["squawk"] = true;
+            filter["ac"][0]["r"] = true;
+            filter["ac"][0]["ownOp"] = true;
+            filterInit = true;
+        }
+
+        DynamicJsonDocument doc(4096);
+        DeserializationError err = deserializeJson(doc, payload, DeserializationOption::Filter(filter));
+        if (!err) {
+            JsonArray arr = doc["ac"].as<JsonArray>();
+            for (JsonObject ac : arr) {
+                if (tempCount >= MAX_PLANES) break;
+                if (!ac["lat"].is<float>() || !ac["lon"].is<float>()) continue;
+
+                double plat = ac["lat"];
+                double plon = ac["lon"];
+                float d = distanceKm(lat, lon, plat, plon);
+                if (d > rangeKm) continue;
+
+                AircraftPoint& p = temp[tempCount];
+                p.valid = true;
+                p.distanceKm = d;
+                p.bearingDeg = bearingDeg(lat, lon, plat, plon);
+                p.speedKt = ac["gs"] | 0.0f;
+                p.trackDeg = ac["track"] | 0.0f;
+                p.onGround = false;
+
+                if (ac["alt_baro"].is<float>()) {
+                    p.altitudeFt = (int)ac["alt_baro"].as<float>();
+                } else if (ac["alt_baro"].is<int>()) {
+                    p.altitudeFt = ac["alt_baro"].as<int>();
+                } else if (strncmp(ac["alt_baro"] | "", "ground", 6) == 0) {
+                    p.altitudeFt = 0;
+                    p.onGround = true;
+                } else {
+                    p.altitudeFt = 0;
+                }
+
+                String flightStr = ac["flight"] | "";
+                flightStr.trim();
+                strncpy(p.flight, flightStr.c_str(), 9); p.flight[9] = '\0';
+                String hexStr = ac["hex"] | "";
+                strncpy(p.icaoHex, hexStr.c_str(), 7); p.icaoHex[7] = '\0';
+
+                String modelStr = ac["t"] | "";
+                if (modelStr.isEmpty()) {
+                    String rawType = ac["type"] | "";
+                    if (rawType != "adsb_icao" && rawType != "mlat" && rawType != "tisb") {
+                        modelStr = rawType;
+                    }
+                }
+                strncpy(p.aircraftType, modelStr.c_str(), 7); p.aircraftType[7] = '\0';
+                
+                String descStr = ac["desc"] | "";
+                descStr.trim();
+                strncpy(p.desc, descStr.c_str(), 31); p.desc[31] = '\0';
+
+                const char* sq = ac["squawk"] | "";
+                strncpy(p.squawk, sq, 4); p.squawk[4] = '\0';
+                
+                String regStr = ac["r"] | "";
+                regStr.trim();
+                strncpy(p.registration, regStr.c_str(), 11); p.registration[11] = '\0';
+                String opStr = ac["ownOp"] | "";
+                opStr.trim();
+                strncpy(p.operatorName, opStr.c_str(), 31); p.operatorName[31] = '\0';
+
+                tempCount++;
+            }
+            ok = true;
+        }
+    } else {
+        http.end();
+        client.stop();
+    }
+    return ok;
 }
 
 // ---------------------------------------------------------------
@@ -406,7 +594,6 @@ static void runFetchCycle() {
                 skipCyclesRemaining[idx] = BACKOFF_SKIP_CYCLES;
                 failStreak[idx] = 0;
             }
-            // Small pause between providers so MbedTLS memory is cleanly released
             vTaskDelay(pdMS_TO_TICKS(800));
         }
     }
@@ -445,8 +632,8 @@ static void apiTask(void* param) {
 void ApiProviders::begin() {
     dataMutex = xSemaphoreCreateMutex();
     sharedCount = 0;
-    // Stack: 16KB on Core 1 (Application core) so Core 0 network IDLE task is never starved
-    xTaskCreatePinnedToCore(apiTask, "apiTask", 16384, nullptr, 1, nullptr, 1);
+    // Stack: 8KB on Core 1 (Application core)
+    xTaskCreatePinnedToCore(apiTask, "apiTask", 8192, nullptr, 1, nullptr, 1);
 }
 
 void ApiProviders::requestRefresh() {
