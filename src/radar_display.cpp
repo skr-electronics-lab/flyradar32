@@ -1,4 +1,4 @@
-﻿#include "radar_display.h"
+#include "radar_display.h"
 #include "storage.h"
 #include "wifi_manager.h"
 #include <SPI.h>
@@ -9,19 +9,19 @@
 // ---------------------------------------------------------------------
 // IMPORTANT: tft is constructed with the DEFAULT (no-arg) constructor so
 // TFT_eSPI uses the native panel resolution baked into the build flags
-// (TFT_WIDTH=128, TFT_HEIGHT=160 â€” the panel's true rotation-0 shape).
+// (TFT_WIDTH=128, TFT_HEIGHT=160 — the panel's true rotation-0 shape).
 // tft.setRotation(TFT_ROTATION) then swaps width/height for us so
 // tft.width()==SCREEN_W (160) and tft.height()==SCREEN_H (128). Every
 // buffer we allocate below (LVGL's draw buf, LVGL's hor_res/ver_res, and
-// the radar TFT_eSprite) is sized from SCREEN_W/SCREEN_H â€” the *same*
-// rotated numbers the physical driver now reports â€” so nothing can ever
+// the radar TFT_eSprite) is sized from SCREEN_W/SCREEN_H — the *same*
+// rotated numbers the physical driver now reports — so nothing can ever
 // disagree about the canvas shape again. See config.h for the full
 // derivation/explanation of the old landscape bug.
 // ---------------------------------------------------------------------
 static lv_color_t getLVThemeColor();
 
 // ---------------------------------------------------------------------
-// UI design tokens Ã¢â‚¬â€ instrument-panel dark theme (fixed, theme-neutral).
+// UI design tokens â€” instrument-panel dark theme (fixed, theme-neutral).
 // Three elevation tiers (screen < card < row) so surfaces visibly layer
 // instead of collapsing into black; borders are light enough to read on
 // every tier; text tiers keep >=4.5:1 (primary) / >=3:1 (secondary)
@@ -34,11 +34,7 @@ static lv_color_t getLVThemeColor();
 #define UI_TEXT_MAIN 0xE8EAED   // primary text (~13:1 on card)
 #define UI_TEXT_DIM  0x9AA3AD   // secondary text (~5:1 on card)
 
-// Same colors as RGB565 for the raw-canvas scope drawing
-#define UI_SCR_BG_565  0x1088   // 0x0E1116
-#define UI_BORDER_565 0x35D4   // 0x333A42
-
-// Menu card geometry Ã¢â‚¬â€ single source of truth for every menu-style screen
+// Menu card geometry â€” single source of truth for every menu-style screen
 // (scroll menu, plane list, plane detail, info screens). Card: 150x116,
 // centered on the 160x128 canvas, leaving a clean 5px margin on each side.
 #define CARD_W  150
@@ -69,8 +65,6 @@ static lv_obj_t* list_obj = nullptr;
 static lv_obj_t* title_label = nullptr;
 static String current_detail_hex = "";
 static lv_obj_t* detail_cont = nullptr;
-static lv_obj_t* sbRoot = nullptr;   // radar sidebar card (LVGL)
-static lv_obj_t* sbRows[8] = {nullptr};  // its row labels
 
 // LVGL's dark theme ships a different screen grey in every minor version.
 // Pin the screen background to our own chrome palette so the UI stays
@@ -88,7 +82,6 @@ static void clearLVGL() {
     detail_cont = nullptr;
     current_menu_title = "";
     current_detail_hex = "";
-    sbRoot = nullptr;   // radar sidebar is LVGL too â€” rebuild on next render
 }
 
 void RadarDisplay::forceLVGLRefresh() {
@@ -123,7 +116,7 @@ static lv_obj_t* buildCard(const char* title, lv_color_t titleColor) {
     lv_obj_set_style_text_color(header, titleColor, 0);
     lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
 
-    // short accent underline under the title â€” the theme's signature detail
+    // short accent underline under the title — the theme's signature detail
     lv_obj_t * rule = lv_obj_create(card);
     lv_obj_remove_style_all(rule);
     lv_obj_set_size(rule, 24, 2);
@@ -206,9 +199,9 @@ static void setBacklight(uint8_t brightness) {
 }
 
 // ---------------------------------------------------------------------
-// Breadcrumb trail Ã¢â‚¬â€ keeps the last few fixes for each aircraft so the
+// Breadcrumb trail â€” keeps the last few fixes for each aircraft so the
 // radar can draw a fading tail behind it. Matched by ICAO hex across
-// fetch cycles. Memory cost: MAX_PLANES * (TRAIL_LEN*8 + 16) Ã¢â€°Ë† 1.1 KB.
+// fetch cycles. Memory cost: MAX_PLANES * (TRAIL_LEN*8 + 16) â‰ˆ 1.1 KB.
 // ---------------------------------------------------------------------
 struct TrailSlot {
     char hex[8] = {0};
@@ -226,7 +219,7 @@ static TrailSlot* findOrAllocTrail(const char* hex) {
         if (trails[i].used && strncmp(trails[i].hex, hex, 7) == 0) return &trails[i];
     }
     // Take the first unused slot; if all are full, steal the oldest slot
-    // (lowest age stamp) Ã¢â‚¬â€ NOT an arbitrary trails[0], which would corrupt
+    // (lowest age stamp) â€” NOT an arbitrary trails[0], which would corrupt
     // an unrelated aircraft's history.
     TrailSlot* victim = &trails[0];
     for (int i = 0; i < MAX_PLANES; i++) {
@@ -326,9 +319,8 @@ void RadarDisplay::begin() {
     tft.init();
     tft.setRotation(TFT_ROTATION);
 
-    // Scope canvas covers only the scope zone; the sidebar is an LVGL card
     canvas.setColorDepth(16);
-    canvas.createSprite(RADAR_ZONE_W, SCREEN_H);
+    canvas.createSprite(SCREEN_W, SCREEN_H);
 
     setBacklight(Storage::settings().brightness);
 
@@ -363,7 +355,7 @@ void RadarDisplay::showBootStatus(const char* line1, const char* line2) {
         lv_obj_set_style_text_color(logo, getLVThemeColor(), 0);
         lv_obj_align(logo, LV_ALIGN_TOP_MID, 0, 22);
 
-        // accent rule under the logo â€” same signature as buildCard
+        // accent rule under the logo — same signature as buildCard
         lv_obj_t * rule = lv_obj_create(lv_scr_act());
         lv_obj_remove_style_all(rule);
         lv_obj_set_size(rule, 32, 2);
@@ -482,7 +474,7 @@ void RadarDisplay::renderSystemInfo(const String& ip, const String& wifiSsid) {
     if (current_menu_title != "SYSINFO") {
         lv_obj_t * card = buildCard("SYSTEM INFO", getLVThemeColor());
 
-        // Compact single-label block â€” all in 12-pt font to fit without overlap.
+        // Compact single-label block — all in 12-pt font to fit without overlap.
         // Removed the blank line before brand text that caused the hint to overlap.
         lv_obj_t * info = lv_label_create(card);
         String tmLine = WifiManager::timeSynced() ? String("\nTime: ") + WifiManager::getClockDateTime() : "";
@@ -633,7 +625,7 @@ void RadarDisplay::renderPlaneDetail(const AircraftPoint& p, int scrollY) {
     if (is_radar_active) { is_radar_active = false; clearLVGL(); }
 
     // Rebuild whenever the aircraft's *data* changes too, not just when the
-    // ICAO hex changes â€” otherwise altitude/speed/distance stay frozen at
+    // ICAO hex changes — otherwise altitude/speed/distance stay frozen at
     // whatever they were when the screen was first drawn.
     static uint32_t builtSig = 0;
     uint32_t sig = ((uint32_t)p.altitudeFt * 31u) ^ ((uint32_t)(p.speedKt * 10.0f) * 7u) ^
@@ -697,7 +689,7 @@ void RadarDisplay::renderPlaneDetail(const AircraftPoint& p, int scrollY) {
 void RadarDisplay::renderPlaneList(const AircraftPoint planes[], int count, int selectedIndex) {
     if (is_radar_active) { is_radar_active = false; }
 
-    // Rebuild when the aircraft set changes (cheap hex-signature compare) â€”
+    // Rebuild when the aircraft set changes (cheap hex-signature compare) —
     // previously the list was built once and never refreshed, so rows went
     // stale while the selection index tracked the *new* data.
     static char listSig[MAX_PLANES * 7 + 1] = "";
@@ -785,12 +777,7 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
     // sampleTrailHistory() so history keeps advancing while menus are open.
     // This function only *draws* what's already recorded.
 
-    // -----------------------------------------------------------------
-    // Scope background: modern dark tier + hairline frame (matches the
-    // card language of every other screen). Scope zone is 0..SIDEBAR_X.
-    // -----------------------------------------------------------------
-    canvas.fillScreen(UI_SCR_BG_565);
-    canvas.drawRect(0, 0, RADAR_ZONE_W, SCREEN_H, UI_BORDER_565);
+    canvas.fillScreen(CLR_BG);
 
     // --- Radar graticule ---
     canvas.drawCircle(CX, CY, RADAR_R, th.grid);
@@ -801,7 +788,7 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
 
     // Always draw range labels and compass if enabled, providing immediate scope visibility
     if (s.showRangeLabels) {
-        canvas.setTextColor(th.dim, UI_SCR_BG_565);
+        canvas.setTextColor(th.dim, CLR_BG);
         canvas.setCursor(CX + 2, CY - (int)(RADAR_R * 0.33f) - 7);
         canvas.print((int)(rangeKm * 0.33f));
         canvas.setCursor(CX + 2, CY - (int)(RADAR_R * 0.66f) - 7);
@@ -811,7 +798,7 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
     }
 
     if (s.showCompass) {
-        canvas.setTextColor(th.dim, UI_SCR_BG_565);
+        canvas.setTextColor(th.dim, CLR_BG);
         canvas.setCursor(CX - 3, CY - RADAR_R + 2);
         canvas.print("N");
         canvas.setCursor(CX + RADAR_R - 9, CY - 4);
@@ -880,7 +867,7 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
             if (ly < 1) ly = 1;
             if (ly > SCREEN_H - 9) ly = SCREEN_H - 9;
 
-            canvas.setTextColor(th.text, UI_SCR_BG_565);
+            canvas.setTextColor(th.text, CLR_BG);
             canvas.setCursor(lx, ly);
             canvas.print(lbl);
         }
@@ -891,7 +878,7 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
         int pulseR = 4 + (millis() % 2400) / 120; // 4..24px
         uint16_t pulseColor = ((millis() % 2400) < 1200) ? th.grid : th.dim;
         canvas.drawCircle(CX, CY, pulseR, pulseColor);
-        canvas.setTextColor(th.dim, UI_SCR_BG_565);
+        canvas.setTextColor(th.dim, CLR_BG);
         canvas.setTextDatum(MC_DATUM);
         canvas.drawString("SCANNING SKY...", CX, CY + (int)(RADAR_R * 0.42f));
         canvas.setTextDatum(TL_DATUM);
@@ -915,77 +902,105 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
         canvas.drawLine(CX, CY, ex, ey, th.accent);
     }
 
-    canvas.pushSprite(0, 0);
-
     // -----------------------------------------------------------------
-    // Sidebar: floating LVGL card (matches settings/detail screens)
+    // Sidebar: Dedicated instrument column (X: 112..160, W: 48)
     // -----------------------------------------------------------------
-    if (!sbRoot) {
-        sbRoot = lv_obj_create(lv_scr_act());
-        lv_obj_set_pos(sbRoot, SIDEBAR_X + 2, 3);
-        lv_obj_set_size(sbRoot, SIDEBAR_W - 5, SCREEN_H - 6);
-        lv_obj_set_style_bg_color(sbRoot, lv_color_hex(UI_CARD_BG), 0);
-        lv_obj_set_style_border_width(sbRoot, 1, 0);
-        lv_obj_set_style_border_color(sbRoot, lv_color_hex(UI_BORDER), 0);
-        lv_obj_set_style_pad_all(sbRoot, 4, 0);
-        lv_obj_set_style_radius(sbRoot, 8, 0);
-        lv_obj_set_style_shadow_width(sbRoot, 0, 0);
-        lv_obj_clear_flag(sbRoot, LV_OBJ_FLAG_SCROLLABLE);
-        for (int i = 0; i < 8; i++) {
-            sbRows[i] = lv_label_create(sbRoot);
-            lv_obj_set_style_text_font(sbRows[i], &lv_font_montserrat_12, 0);
-            lv_obj_set_pos(sbRows[i], 0, i * 14);
-            lv_obj_set_style_text_align(sbRows[i], LV_TEXT_ALIGN_CENTER, 0);
-            lv_obj_set_width(sbRows[i], SIDEBAR_W - 13);
-        }
-    }
+    // Elevated dark panel background + dividing graticule line
+    canvas.fillRect(SIDEBAR_X, 0, SIDEBAR_W, SCREEN_H, 0x0821);
+    canvas.drawLine(SIDEBAR_X, 0, SIDEBAR_X, SCREEN_H - 1, th.grid);
 
-    const AircraftPoint* sp = (selectedIndex >= 0 && selectedIndex < count && planes[selectedIndex].valid)
-                              ? &planes[selectedIndex] : nullptr;
+    int sx = SIDEBAR_X + 3;
+    int sw = SIDEBAR_W - 6;
 
-    // Row 0: status pill
+    // 1. Top Status Pill (Y: 2..14)
     const char* stStr = "STANDBY";
-    uint32_t stHex = 0x9AA3AD;
-    if (status.fetchInProgress)      { stStr = "SYNC";  stHex = theme().accent_hex; }
-    else if (count > 0 || (status.lastSuccessMs > 0 && (millis() - status.lastSuccessMs < 45000))) { stStr = "LIVE"; stHex = theme().accent_hex; }
-    else if (status.lastAttemptMs > 0) { stStr = "SEARCH"; stHex = 0x9AA3AD; }
-    char stBuf[20];
-    snprintf(stBuf, sizeof(stBuf), "%s  %d TGT", stStr, count);
-    lv_label_set_text(sbRows[0], stBuf);
-    lv_obj_set_style_text_color(sbRows[0], lv_color_hex(stHex), 0);
+    uint16_t stColor = th.dim;
+    if (status.fetchInProgress) {
+        stStr = "SYNC";
+        stColor = th.planeHi;
+    } else if (count > 0 || (status.lastSuccessMs > 0 && (millis() - status.lastSuccessMs < 45000))) {
+        stStr = "LIVE";
+        stColor = th.sweep;
+    } else if (status.lastAttemptMs > 0) {
+        stStr = "SEARCH";
+        stColor = th.dim;
+    }
+    canvas.drawRoundRect(sx, 2, sw, 12, 3, stColor);
+    canvas.fillCircle(sx + 5, 8, 2, stColor);
+    canvas.setTextColor(stColor, 0x0821);
+    canvas.setCursor(sx + 10, 4);
+    canvas.print(stStr);
 
-    // Row 1: range
-    char rngBuf[16];
-    snprintf(rngBuf, sizeof(rngBuf), "%d km", (int)rangeKm);
-    lv_label_set_text(sbRows[1], rngBuf);
-    lv_obj_set_style_text_color(sbRows[1], lv_color_hex(UI_TEXT_DIM), 0);
+    // 2. Targets & Range Cards (Y: 16..41)
+    canvas.setTextColor(th.dim, 0x0821);
+    canvas.setCursor(sx, 17);
+    canvas.print("TGT:");
+    canvas.setTextColor(th.accent, 0x0821);
+    canvas.print(count);
 
-    if (sp) {
-        const char* rawSel = sp->flight[0] ? sp->flight : sp->icaoHex;
+    canvas.setTextColor(th.dim, 0x0821);
+    canvas.setCursor(sx, 29);
+    canvas.print("RNG:");
+    canvas.setTextColor(th.text, 0x0821);
+    canvas.print((int)rangeKm);
+    canvas.print("k");
+
+    // Divider line
+    canvas.drawLine(sx, 42, sx + sw, 42, th.grid);
+
+    // 3. Target Telemetry Box (Y: 44..126)
+    if (selectedIndex >= 0 && selectedIndex < count && planes[selectedIndex].valid) {
+        const AircraftPoint& sp = planes[selectedIndex];
+        const char* rawSel = sp.flight[0] ? sp.flight : sp.icaoHex;
         char selLbl[8];
         strncpy(selLbl, rawSel, 7); selLbl[7] = '\0';
         for (int c = strlen(selLbl) - 1; c >= 0 && selLbl[c] == ' '; c--) selLbl[c] = '\0';
 
-        char b[8][20];
-        snprintf(b[2], 20, "%s", selLbl);
-        snprintf(b[3], 20, "%ddkft", (int)(sp->altitudeFt / 1000.0f));
-        snprintf(b[4], 20, "%d kt", (int)sp->speedKt);
-        snprintf(b[5], 20, "%d km", (int)sp->distanceKm);
-        snprintf(b[6], 20, "%d%s", (int)sp->trackDeg, "\xC2\xB0");
-        if (sp->aircraftType[0])      snprintf(b[7], 20, "%s", sp->aircraftType);
-        else if (sp->squawk[0])       snprintf(b[7], 20, "SQ %s", sp->squawk);
-        else                          snprintf(b[7], 20, "%s", sp->icaoHex);
-        for (int i = 2; i < 8; i++) {
-            lv_label_set_text(sbRows[i], b[i]);
-            lv_obj_set_style_text_color(sbRows[i], i == 2 ? lv_color_hex(theme().accent_hex) : lv_color_hex(UI_TEXT_MAIN), 0);
+        // Callsign header
+        canvas.fillRoundRect(sx, 44, sw, 12, 2, th.grid);
+        canvas.setTextColor(th.sel, th.grid);
+        canvas.setCursor(sx + 2, 46);
+        canvas.print(selLbl);
+
+        canvas.setTextColor(th.text, 0x0821);
+        canvas.setCursor(sx, 58);
+        canvas.print((int)(sp.altitudeFt / 1000.0f));
+        canvas.print(".");
+        canvas.print((int)((sp.altitudeFt % 1000) / 100));
+        canvas.print("kft");
+
+        canvas.setCursor(sx, 70);
+        canvas.print((int)sp.speedKt);
+        canvas.print("kt");
+
+        canvas.setCursor(sx, 82);
+        canvas.print((int)sp.distanceKm);
+        canvas.print("km");
+
+        canvas.setCursor(sx, 94);
+        canvas.print((int)sp.trackDeg);
+        canvas.print((char)247); // degree symbol
+
+        canvas.setTextColor(th.dim, 0x0821);
+        canvas.setCursor(sx, 106);
+        if (sp.aircraftType[0]) {
+            char tBuf[7]; strncpy(tBuf, sp.aircraftType, 6); tBuf[6] = '\0';
+            canvas.print(tBuf);
+        } else if (sp.squawk[0]) {
+            canvas.print("SQ:");
+            canvas.print(sp.squawk);
+        } else {
+            canvas.print(sp.icaoHex);
         }
     } else {
-        lv_label_set_text(sbRows[2], "TARGET");
-        lv_label_set_text(sbRows[3], "SELECT");
-        lv_label_set_text(sbRows[4], "AUTO");
-        lv_label_set_text(sbRows[5], "");
-        lv_label_set_text(sbRows[6], "");
-        lv_label_set_text(sbRows[7], "");
-        for (int i = 2; i < 8; i++) lv_obj_set_style_text_color(sbRows[i], lv_color_hex(UI_TEXT_DIM), 0);
+        canvas.setTextColor(th.dim, 0x0821);
+        canvas.setCursor(sx, 48);
+        canvas.print("TARGET");
+        canvas.setCursor(sx, 60);
+        canvas.print("SELECT");
+        canvas.setCursor(sx, 72);
+        canvas.print("AUTO");
     }
+
+    canvas.pushSprite(0, 0);
 }
