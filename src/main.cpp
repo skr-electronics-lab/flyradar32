@@ -119,7 +119,7 @@ static int calcScrollOffset(int selected, int total, int visible) {
 
 static void clampSelection() {
     if (planeCount == 0) { selectedPlaneIndex = -1; return; }
-    
+
     float maxVisibleDist = ApiProviders::ZOOM_KM[Storage::settings().zoomLevel];
 
     if (selectedPlaneIndex >= 0 && selectedPlaneIndex < planeCount) {
@@ -135,6 +135,37 @@ static void clampSelection() {
                 break;
             }
         }
+    }
+}
+
+// Sort planes by compass bearing (N->E->S->W clockwise). Called once per
+// new fetch so UP/DOWN walking the array = walking clockwise around the
+// scope, and the plane list shows compass order too.
+static void sortByBearing() {
+    char anchorHex[8] = "";
+    if (selectedPlaneIndex >= 0 && selectedPlaneIndex < planeCount) {
+        strncpy(anchorHex, planes[selectedPlaneIndex].icaoHex, 7);
+        anchorHex[7] = '\0';
+    }
+    for (int i = 1; i < planeCount; i++) {
+        AircraftPoint key = planes[i];
+        int j = i - 1;
+        while (j >= 0 && planes[j].bearingDeg > key.bearingDeg) {
+            planes[j + 1] = planes[j];
+            j--;
+        }
+        planes[j + 1] = key;
+    }
+    // Re-anchor the cursor to the same aircraft it had selected
+    if (anchorHex[0] != '\0') {
+        selectedPlaneIndex = -1;
+        for (int i = 0; i < planeCount; i++) {
+            if (planes[i].valid && strncmp(planes[i].icaoHex, anchorHex, 7) == 0) {
+                selectedPlaneIndex = i;
+                break;
+            }
+        }
+        if (selectedPlaneIndex < 0) clampSelection();
     }
 }
 
@@ -528,6 +559,14 @@ void loop() {
         lastDrawMs = millis();
 
         ApiProviders::getLatest(planes, planeCount);
+        // New fetch arrived? Sort by compass bearing (once) so cursor/list
+        // walk clockwise from here on.
+        static unsigned long lastSortedSuccessMs = 0;
+        ApiProviders::Status pst = ApiProviders::getStatus();
+        if (planeCount > 0 && pst.lastSuccessMs != 0 && pst.lastSuccessMs != lastSortedSuccessMs) {
+            lastSortedSuccessMs = pst.lastSuccessMs;
+            sortByBearing();
+        }
         RadarDisplay::sampleTrailHistory(planes, planeCount);
         clampSelection();
         if (listSelectedIndex >= planeCount) listSelectedIndex = planeCount > 0 ? planeCount - 1 : 0;
