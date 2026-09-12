@@ -10,14 +10,14 @@
   --bg-card-hover: rgba(20, 28, 44, 0.85);
   --bg-input: #080B11;
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-card: rgba(0, 255, 102, 0.18);
+  --border-card: rgba(0, 255, 0, 0.22);
   --text-bright: #F0F6FC;
   --text-main: #C9D1D9;
   --text-dim: #7D8590;
-  --accent: #00FF66;
-  --accent-glow: rgba(0, 255, 102, 0.28);
-  --accent-soft: rgba(0, 255, 102, 0.12);
-  --alt-high: #00FF66;
+  --accent: #00FF00;
+  --accent-glow: rgba(0, 255, 0, 0.35);
+  --accent-soft: rgba(0, 255, 0, 0.12);
+  --alt-high: #00FF00;
   --alt-mid: #FFB300;
   --alt-low: #FF3B30;
   --danger: #F85149;
@@ -463,9 +463,19 @@ body {
 .radar-scope-footer {
   width: 100%;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 14px;
+  padding: 0 4px;
+}
+
+@media (max-width: 650px) {
+  .radar-scope-footer {
+    justify-content: center;
+    gap: 10px;
+  }
 }
 
 .radar-legend {
@@ -504,6 +514,61 @@ body {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
+}
+
+/* ─── Scope Zoom Controls (Side bottom footer, completely off the radar circle) ─── */
+.scope-zoom-controls {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(14, 20, 30, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  padding: 4px 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  user-select: none;
+}
+
+.scope-zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.scope-zoom-btn:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow);
+  transform: scale(1.08);
+}
+
+.scope-zoom-btn:active {
+  transform: scale(0.95);
+}
+
+.scope-zoom-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-bright);
+  padding: 0 4px;
+  min-width: 52px;
+  text-align: center;
 }
 
 /* ================= RIGHT INSPECTION SIDEBAR ================= */
@@ -763,7 +828,7 @@ body {
 }
 
 .traffic-table tr:hover td {
-  background: rgba(0, 255, 102, 0.05);
+  background: rgba(0, 255, 0, 0.05);
   color: var(--text-bright);
 }
 
@@ -781,7 +846,7 @@ body {
   font-size: 11.5px;
   font-weight: 600;
 }
-.alt-pill.high { background: rgba(0, 255, 102, 0.15); color: #00FF66; }
+.alt-pill.high { background: rgba(0, 255, 0, 0.15); color: #00FF00; }
 .alt-pill.mid { background: rgba(255, 179, 0, 0.15); color: #FFB300; }
 .alt-pill.low { background: rgba(255, 59, 48, 0.15); color: #FF453A; }
 
@@ -810,10 +875,12 @@ body {
 }
 
 /* ================= SETTINGS GRIDS & FORMS ================= */
+.settings-unified-grid,
 .settings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  width: 100%;
 }
 
 .form-group {
@@ -1286,25 +1353,34 @@ input:checked + .slider:before {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 11px 14px;
   border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.provider-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-card);
 }
 
 .provider-item.active {
-  border-color: rgba(0, 255, 102, 0.3);
-  background: rgba(0, 255, 102, 0.04);
+  border-color: rgba(0, 255, 0, 0.45);
+  background: rgba(0, 255, 0, 0.07);
+  box-shadow: 0 0 14px rgba(0, 255, 0, 0.15);
 }
 
 .provider-status-dot {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-.provider-status-dot.green { background: #00FF66; box-shadow: 0 0 6px #00FF66; }
-.provider-status-dot.cyan { background: #00E5FF; box-shadow: 0 0 6px #00E5FF; }
+.provider-status-dot.green { background: #00FF00; box-shadow: 0 0 8px #00FF00; }
+.provider-status-dot.cyan { background: #00E5FF; box-shadow: 0 0 8px #00E5FF; }
 .provider-status-dot.gray { background: #555; }
 
 .provider-info {
@@ -1355,8 +1431,19 @@ input:checked + .slider:before {
 
 /* ================= COMPREHENSIVE RESPONSIVE DESIGN ================= */
 @media (max-width: 900px) {
-  .settings-unified-grid {
-    grid-template-columns: 1fr;
+  .settings-unified-grid,
+  .settings-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    gap: 14px;
+  }
+
+  .settings-unified-grid .card,
+  .settings-grid .card {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
   }
 }
 

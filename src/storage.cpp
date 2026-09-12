@@ -84,32 +84,39 @@ void Storage::unlock() {
 }
 
 void Storage::saveWifi(const String& ssid, const String& pass) {
+    lock();
     prefs.begin(NVS_NS_WIFI, false);
     prefs.putString("ssid", ssid);
     prefs.putString("pass", pass);
     prefs.end();
     cache.staSsid = ssid;
     cache.staPassword = pass;
+    unlock();
 }
 
 void Storage::clearWifi() {
+    lock();
     prefs.begin(NVS_NS_WIFI, false);
     prefs.clear();
     prefs.end();
     cache.staSsid = "";
     cache.staPassword = "";
+    unlock();
 }
 
 void Storage::saveLocation(double lat, double lon) {
+    lock();
     prefs.begin(NVS_NS_LOC, false);
     prefs.putDouble("lat", lat);
     prefs.putDouble("lon", lon);
     prefs.end();
     cache.lat = lat;
     cache.lon = lon;
+    unlock();
 }
 
 void Storage::saveProviderConfig(const bool enabled[PROVIDER_COUNT], const uint8_t priority[PROVIDER_COUNT]) {
+    lock();
     prefs.begin(NVS_NS_API, false);
     for (int i = 0; i < PROVIDER_COUNT; i++) {
         prefs.putBool(("en" + String(i)).c_str(), enabled[i]);
@@ -118,24 +125,29 @@ void Storage::saveProviderConfig(const bool enabled[PROVIDER_COUNT], const uint8
         cache.providerPriority[i] = priority[i];
     }
     prefs.end();
+    unlock();
 }
 
 void Storage::saveOpenSkyCredentials(const String& clientId, const String& clientSecret) {
+    lock();
     prefs.begin(NVS_NS_API, false);
     prefs.putString("osId", clientId);
     prefs.putString("osSecret", clientSecret);
     prefs.end();
     cache.openSkyClientId = clientId;
     cache.openSkyClientSecret = clientSecret;
+    unlock();
 }
 
 void Storage::saveRefreshInterval(int seconds) {
     if (seconds < 5) seconds = 5;
     if (seconds > 300) seconds = 300;
+    lock();
     prefs.begin(NVS_NS_API, false);
     prefs.putInt("refInt", seconds);
     prefs.end();
     cache.refreshInterval = seconds;
+    unlock();
 }
 
 void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim, uint8_t brightness,
@@ -145,6 +157,7 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     if (aircraftIcon > AIRCRAFT_ICON_ARROW) aircraftIcon = AIRCRAFT_ICON_DOT;
     if (theme >= THEME_COUNT) theme = 0;
 
+    lock();
     prefs.begin(NVS_NS_DISPLAY, false);
     prefs.putInt("zoom", zoomLevel);
     prefs.putUChar("lblMode", labelsMode);
@@ -166,13 +179,16 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     cache.showCompass = showCompass;
     cache.showRangeLabels = showRangeLabels;
     cache.showTrail = showTrail;
+    unlock();
 }
 
 void Storage::saveConfigPin(const String& pin) {
+    lock();
     prefs.begin(NVS_NS_DISPLAY, false);
     prefs.putString("pin", pin);
     prefs.end();
     cache.configPin = pin;
+    unlock();
 }
 
 void Storage::factoryReset() {

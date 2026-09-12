@@ -141,8 +141,8 @@ struct ThemePalette {
 };
 
 static const ThemePalette THEMES[THEME_COUNT] = {
-    // 0: Matrix Green (classic radar-scope look)
-    { 0x03E0, 0x07E0, 0xFFE0, 0xFD20, 0xF800, 0xFFFF, 0x7BEF, 0x07FF, 0xF800, 0x07E0, 0x00FF00 },
+    // 0: Matrix Green (pure radar green look matching connected text)
+    { 0x05E0, 0x07E0, 0xFFE0, 0xFD20, 0xF800, 0xFFFF, 0x7BEF, 0x07FF, 0xF800, 0x07E0, 0x00FF00 },
     // 1: Ice Cyan (modern HUD look)
     { 0x04FF, 0x07FF, 0xFFE0, 0xFD20, 0xF81F, 0xFFFF, 0x5AEB, 0xFFE0, 0xF800, 0x07FF, 0x00FFFF },
     // 2: Amber Retro (classic amber CRT look)
@@ -386,10 +386,10 @@ void RadarDisplay::showWifiSetupScreen(const String& apSsid, const String& apIp)
     lv_obj_set_style_text_font(desc, &lv_font_montserrat_12, 0);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, 0);
     if (pass.length() > 0) {
-        lv_label_set_text_fmt(desc, "SSID: #%06x %s#\nPass: #%06x %s#\nIP: #%06x %s#\nURL: #%06x %s.local#",
+        lv_label_set_text_fmt(desc, "SSID: #%06x %s#\nPass: #%06x %s#\nIP: #%06x %s#\nWEB: #%06x %s.local#",
             theme().accent_hex, apSsid.c_str(), theme().accent_hex, pass.c_str(), theme().accent_hex, apIp.c_str(), theme().accent_hex, MDNS_NAME);
     } else {
-        lv_label_set_text_fmt(desc, "SSID: #%06x %s#\nIP: #%06x %s#\nURL: #%06x %s.local#",
+        lv_label_set_text_fmt(desc, "SSID: #%06x %s#\nIP: #%06x %s#\nWEB: #%06x %s.local#",
             theme().accent_hex, apSsid.c_str(), theme().accent_hex, apIp.c_str(), theme().accent_hex, MDNS_NAME);
     }
     lv_obj_align(desc, LV_ALIGN_TOP_MID, 0, 30);
@@ -401,7 +401,7 @@ void RadarDisplay::showConnectedScreen(const String& staIp) {
 
     lv_obj_t * desc = lv_label_create(card);
     lv_obj_set_style_text_font(desc, &lv_font_montserrat_12, 0);
-    lv_label_set_text_fmt(desc, "IP: %s\nURL: http://%s.local", staIp.c_str(), MDNS_NAME);
+    lv_label_set_text_fmt(desc, "IP: %s\nWEB: %s.local", staIp.c_str(), MDNS_NAME);
     lv_obj_set_style_text_align(desc, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(desc, LV_ALIGN_TOP_MID, 0, 32);
 

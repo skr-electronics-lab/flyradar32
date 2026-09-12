@@ -78,13 +78,13 @@
   // Theme Palettes
   // -------------------------------------------------------------
   const THEME_PALETTES = {
-    0: { // Matrix Green
+    0: { // Matrix Green (Pure Green)
       bg: "#04070B",
-      grid: "rgba(0, 255, 102, 0.18)",
-      gridSub: "rgba(0, 255, 102, 0.08)",
-      accent: "#00FF66",
-      glow: "rgba(0, 255, 102, 0.25)",
-      text: "#E0F5E9"
+      grid: "rgba(0, 255, 0, 0.22)",
+      gridSub: "rgba(0, 255, 0, 0.09)",
+      accent: "#00FF00",
+      glow: "rgba(0, 255, 0, 0.35)",
+      text: "#E0FFE0"
     },
     1: { // Ice Cyan
       bg: "#04080E",
@@ -298,7 +298,7 @@
       const py = cy + Math.sin(rad) * r;
 
       // Color based on altitude
-      let altColor = "#00FF66"; // Cruise (>28k ft)
+      let altColor = "#00FF00"; // Cruise (>28k ft) - Pure Green
       if (p.alt < 10000) altColor = "#FF453A"; // Low approach (<10k ft)
       else if (p.alt < 28000) altColor = "#FFB300"; // Mid transit
 
@@ -391,9 +391,10 @@
     ctx.restore();
   }
 
-  // Radar Scope Click Target Detection
+  // Radar Scope Click Target Detection & Zooming
   if (canvas) {
     const handleScopeClick = (e) => {
+      if (e.touches && e.touches.length > 1) return; // Ignore pinch multi-touch
       const rect = canvas.getBoundingClientRect();
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -427,6 +428,58 @@
 
     canvas.addEventListener("click", handleScopeClick);
     canvas.addEventListener("touchstart", handleScopeClick, { passive: true });
+
+    // Mouse Wheel Zoom (strictly zoom in/out with locked fixed station center)
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const step = radarRangeKm > 100 ? 25 : (radarRangeKm > 50 ? 15 : 10);
+      if (e.deltaY < 0) {
+        setRadarRange(radarRangeKm - step);
+      } else {
+        setRadarRange(radarRangeKm + step);
+      }
+    }, { passive: false });
+
+    // Touch Pinch-to-Zoom (Fixed center, mobile responsive)
+    let lastTouchDist = 0;
+    canvas.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        lastTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+      }
+    }, { passive: false });
+
+    canvas.addEventListener("touchmove", (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (lastTouchDist > 0) {
+          const diff = dist - lastTouchDist;
+          if (Math.abs(diff) > 8) {
+            if (diff > 0) {
+              // Pinch spread: Zoom in (decrease range)
+              setRadarRange(radarRangeKm - (radarRangeKm > 60 ? 10 : 5));
+            } else {
+              // Pinch in: Zoom out (increase range)
+              setRadarRange(radarRangeKm + (radarRangeKm > 60 ? 10 : 5));
+            }
+            lastTouchDist = dist;
+          }
+        }
+      }
+    }, { passive: false });
+
+    canvas.addEventListener("touchend", (e) => {
+      if (e.touches.length < 2) {
+        lastTouchDist = 0;
+      }
+    });
   }
 
   // -------------------------------------------------------------
@@ -467,10 +520,7 @@
       document.getElementById("trafficBadge").textContent = count;
 
       if (data.rangeKm && !window.userManuallySelectedRange) {
-        radarRangeKm = data.rangeKm;
-        document.querySelectorAll(".range-btn").forEach(b => {
-          b.classList.toggle("active", Number(b.dataset.range) === radarRangeKm);
-        });
+        setRadarRange(data.rangeKm, false);
       }
 
       if (data.lat && data.lon) {
@@ -646,8 +696,8 @@
         const wifiCard = document.getElementById("wifiSetupCard");
         if (wifiCard) {
           wifiCard.scrollIntoView({ behavior: "smooth" });
-          wifiCard.style.outline = "2px solid #00FF66";
-          wifiCard.style.boxShadow = "0 0 20px rgba(0,255,102,0.4)";
+          wifiCard.style.outline = "2px solid #00FF00";
+          wifiCard.style.boxShadow = "0 0 20px rgba(0,255,0,0.4)";
         }
       }
 
@@ -711,6 +761,93 @@
   }
 
   // -------------------------------------------------------------
+  // Radar Range Zooming Function
+  // -------------------------------------------------------------
+  function setRadarRange(km, manual = true) {
+    km = Math.round(km);
+    if (km < 15) km = 15;
+    if (km > 300) km = 300;
+    radarRangeKm = km;
+    if (manual) window.userManuallySelectedRange = true;
+
+    const zoomBadge = document.getElementById("scopeZoomDisplay");
+    if (zoomBadge) zoomBadge.textContent = `${radarRangeKm} km`;
+
+    document.querySelectorAll(".range-btn").forEach(b => {
+      b.classList.toggle("active", Number(b.dataset.range) === radarRangeKm);
+    });
+  }
+
+  // Floating On-Canvas Zoom Buttons
+  document.getElementById("scopeZoomInBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const step = radarRangeKm > 100 ? 25 : (radarRangeKm > 50 ? 15 : 10);
+    setRadarRange(radarRangeKm - step);
+  });
+
+  document.getElementById("scopeZoomOutBtn")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const step = radarRangeKm > 100 ? 25 : (radarRangeKm > 50 ? 15 : 10);
+    setRadarRange(radarRangeKm + step);
+  });
+
+  // Range quick selector buttons on radar toolbar
+  document.querySelectorAll(".range-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      setRadarRange(Number(btn.dataset.range));
+    });
+  });
+
+  // -------------------------------------------------------------
+  // Provider Selection Management
+  // -------------------------------------------------------------
+  function updateProviderUI(activeProviderId) {
+    const pId = Number(activeProviderId);
+    const select = document.getElementById("primaryProviderSelect");
+    if (select) select.value = pId;
+
+    document.querySelectorAll(".provider-item").forEach(item => {
+      const id = Number(item.dataset.provider);
+      const isPrimary = (id === pId);
+      item.classList.toggle("active", isPrimary);
+      item.classList.toggle("standby", !isPrimary && (id === 0 || id === 1));
+      item.classList.toggle("disabled", !isPrimary && id === 2);
+
+      const badge = item.querySelector(".provider-badge");
+      if (badge) {
+        if (isPrimary) {
+          badge.textContent = "PRIMARY";
+          badge.className = "provider-badge";
+        } else if (id === 0) {
+          badge.textContent = "BACKUP";
+          badge.className = "provider-badge backup";
+        } else {
+          badge.textContent = "TERTIARY";
+          badge.className = "provider-badge off";
+        }
+      }
+    });
+  }
+
+  async function setPrimaryProvider(providerId) {
+    const id = Number(providerId);
+    updateProviderUI(id);
+    setSavingIndicator(true);
+    const names = { 1: "adsb.lol", 0: "OpenSky Network", 2: "airplanes.live" };
+    try {
+      await apiPost("/api/settings/providers", { primaryProvider: id });
+      setSavingIndicator(false, `Active: ${names[id] || "Provider"}`);
+      showToast(`Primary telemetry feed switched to ${names[id] || "selected feed"}`);
+      setTimeout(fetchAircraft, 300);
+      setTimeout(fetchStatus, 500);
+    } catch (e) {
+      console.warn("Provider switch error:", e);
+      setSavingIndicator(false, "Switch Failed");
+      showToast("Failed to switch provider: " + e.message, true);
+    }
+  }
+
+  // -------------------------------------------------------------
   // Load Settings & Bind Real-Time Auto-Save Listeners
   // -------------------------------------------------------------
   async function loadSettings() {
@@ -739,6 +876,10 @@
       if (rangeLabelsToggle) rangeLabelsToggle.checked = s.showRangeLabels;
       if (trailToggle) trailToggle.checked = s.showTrail;
       if (refreshSelect) refreshSelect.value = s.refreshInterval;
+
+      if (s.primaryProvider !== undefined) {
+        updateProviderUI(s.primaryProvider);
+      }
 
       if (brightnessSlider) {
         brightnessSlider.value = s.brightness || 255;
@@ -773,13 +914,17 @@
     });
   });
 
-  // Range quick selector buttons on radar toolbar
-  document.querySelectorAll(".range-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      window.userManuallySelectedRange = true;
-      document.querySelectorAll(".range-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      radarRangeKm = Number(btn.dataset.range);
+  // Primary Provider Select and click listeners
+  document.getElementById("primaryProviderSelect")?.addEventListener("change", (e) => {
+    setPrimaryProvider(e.target.value);
+  });
+
+  document.querySelectorAll(".provider-item").forEach(item => {
+    item.addEventListener("click", () => {
+      const p = item.dataset.provider;
+      if (p !== undefined) {
+        setPrimaryProvider(p);
+      }
     });
   });
 

@@ -223,6 +223,7 @@ static void registerWifiRoutes() {
 static void registerSettingsRoutes() {
     server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest* request) {
         if (!pinOk(request)) return;
+        Storage::lock();
         AppSettings& s = Storage::settings();
         DynamicJsonDocument doc(1024);
         doc["staSsid"] = s.staSsid;
@@ -239,13 +240,23 @@ static void registerSettingsRoutes() {
         doc["showTrail"] = s.showTrail;
         JsonArray en = doc.createNestedArray("providerEnabled");
         JsonArray pr = doc.createNestedArray("providerPriority");
-        for (int i = 0; i < PROVIDER_COUNT; i++) { en.add(s.providerEnabled[i]); pr.add(s.providerPriority[i]); }
+        int primIdx = 1;
+        for (int i = 0; i < PROVIDER_COUNT; i++) {
+            en.add(s.providerEnabled[i]);
+            pr.add(s.providerPriority[i]);
+            if (s.providerPriority[i] == 0) primIdx = i;
+        }
+        doc["primaryProvider"] = primIdx;
         doc["refreshInterval"] = s.refreshInterval;
         doc["openSkyClientId"] = s.openSkyClientId;
         doc["pinSet"] = !s.configPin.isEmpty();
+        Storage::unlock();
+
         String out;
         serializeJson(doc, out);
-        request->send(200, "application/json", out);
+        AsyncWebServerResponse* response = request->beginResponse(200, "application/json", out);
+        response->addHeader("Cache-Control", "no-cache");
+        request->send(response);
     });
 
     server.on("/api/settings/opensky", HTTP_POST, [](AsyncWebServerRequest* request) {
@@ -262,9 +273,13 @@ static void registerSettingsRoutes() {
     server.on("/api/settings/location", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
             if (!pinOk(request)) return;
-            double lat = doc["lat"] | DEFAULT_LAT;
-            double lon = doc["lon"] | DEFAULT_LON;
-            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+            if (!doc.containsKey("lat") || !doc.containsKey("lon")) {
+                request->send(400, "application/json", "{\"error\":\"lat and lon required\"}");
+                return;
+            }
+            double lat = doc["lat"];
+            double lon = doc["lon"];
+            if (lat < -90.0 || lat > 90.0 || lon < -180.0 || lon > 180.0) {
                 request->send(400, "application/json", "{\"error\":\"lat/lon out of range\"}");
                 return;
             }
@@ -280,7 +295,20 @@ static void registerSettingsRoutes() {
             if (doc.containsKey("clientId") && doc.containsKey("clientSecret")) {
                 Storage::saveOpenSkyCredentials(doc["clientId"], doc["clientSecret"]);
             }
-            if (doc.containsKey("enabled") || doc.containsKey("priority")) {
+            if (doc.containsKey("primaryProvider")) {
+                int p = doc["primaryProvider"].as<int>();
+                if (p >= 0 && p < PROVIDER_COUNT) {
+                    uint8_t pr[PROVIDER_COUNT];
+                    bool en[PROVIDER_COUNT] = {true, true, true};
+                    pr[p] = 0;
+                    int nextRank = 1;
+                    for (int i = 0; i < PROVIDER_COUNT; i++) {
+                        if (i != p) pr[i] = nextRank++;
+                    }
+                    Storage::saveProviderConfig(en, pr);
+                    ApiProviders::requestRefresh();
+                }
+            } else if (doc.containsKey("enabled") || doc.containsKey("priority")) {
                 bool en[PROVIDER_COUNT]; uint8_t pr[PROVIDER_COUNT];
                 JsonArray enArr = doc["enabled"].as<JsonArray>();
                 JsonArray prArr = doc["priority"].as<JsonArray>();
@@ -289,6 +317,7 @@ static void registerSettingsRoutes() {
                     pr[i] = (i < (int)prArr.size()) ? prArr[i].as<uint8_t>() : i;
                 }
                 Storage::saveProviderConfig(en, pr);
+                ApiProviders::requestRefresh();
             }
             if (doc.containsKey("refreshInterval")) {
                 Storage::saveRefreshInterval(doc["refreshInterval"]);

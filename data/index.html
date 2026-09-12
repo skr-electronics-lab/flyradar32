@@ -129,12 +129,17 @@
           <div class="radar-crosshair-center"></div>
         </div>
 
-        <!-- Radar Scope Footer: Altitude legend placed cleanly outside radar scope circle so it NEVER overlaps compass labels! -->
+        <!-- Radar Scope Footer: Altitude legend & Zoom controls placed cleanly outside radar scope circle -->
         <div class="radar-scope-footer">
           <div class="radar-legend">
             <div class="legend-item"><span class="legend-dot dot-high"></span> &gt; 28k ft (Cruise)</div>
             <div class="legend-item"><span class="legend-dot dot-mid"></span> 10k - 28k ft (Transit)</div>
             <div class="legend-item"><span class="legend-dot dot-low"></span> &lt; 10k ft (Approach)</div>
+          </div>
+          <div class="scope-zoom-controls">
+            <button class="scope-zoom-btn" id="scopeZoomInBtn" title="Zoom In (+)">+</button>
+            <span class="scope-zoom-badge" id="scopeZoomDisplay">100 km</span>
+            <button class="scope-zoom-btn" id="scopeZoomOutBtn" title="Zoom Out (&minus;)">&minus;</button>
           </div>
         </div>
       </div>
@@ -294,16 +299,16 @@
     </div>
 
     <div class="settings-unified-grid">
-      <!-- Card 1: Receiver Location -->
-      <div class="card glass-card">
+      <!-- Card 1: ADS-B Telemetry & Station Location -->
+      <div class="card glass-card" id="telemetryCard">
         <div class="card-title-row">
           <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
-            <circle cx="12" cy="10" r="3"/>
+            <path d="M4.93 19.07A10 10 0 0 1 12 2a10 10 0 0 1 7.07 17.07M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+            <line x1="12" y1="12" x2="12" y2="22"/>
           </svg>
-          <h3>Station GPS Coordinates</h3>
+          <h3>ADS-B Telemetry & Station Location</h3>
         </div>
-        <p class="card-desc">Ground station position used for all radar range and bearing vector calculations.</p>
+        <p class="card-desc">Ground station GPS coordinates and multi-feed provider prioritization.</p>
 
         <div class="form-group">
           <label for="pasteCoords">Quick Paste from Google Maps</label>
@@ -323,9 +328,58 @@
             <input type="number" step="0.0001" id="lonInput" placeholder="e.g. 88.3639">
           </div>
         </div>
+
+        <div class="form-grid-2">
+          <div class="form-group">
+            <label for="primaryProviderSelect">Primary Data Feed</label>
+            <select id="primaryProviderSelect">
+              <option value="1">adsb.lol (No Auth, HTTP)</option>
+              <option value="0">OpenSky Network (REST)</option>
+              <option value="2">airplanes.live (HTTPS)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="refreshSelect">Polling Interval</label>
+            <select id="refreshSelect">
+              <option value="5">5s (High Frequency)</option>
+              <option value="10" selected>10s (Recommended)</option>
+              <option value="15">15s (Standard)</option>
+              <option value="30">30s (Bandwidth Saver)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="provider-status-list" id="providerStatusList">
+          <div class="provider-item active" data-provider="1" title="Click to set as Primary">
+            <div class="provider-status-dot cyan"></div>
+            <div class="provider-info">
+              <strong>adsb.lol</strong>
+              <span>Community ADS-B Exchange v2 (No auth, fast HTTP)</span>
+            </div>
+            <span class="provider-badge" id="badge-1">PRIMARY</span>
+          </div>
+
+          <div class="provider-item standby" data-provider="0" title="Click to set as Primary">
+            <div class="provider-status-dot green"></div>
+            <div class="provider-info">
+              <strong>OpenSky Network</strong>
+              <span>REST API (Anonymous or OAuth2 credentials)</span>
+            </div>
+            <span class="provider-badge backup" id="badge-0">BACKUP</span>
+          </div>
+
+          <div class="provider-item disabled" data-provider="2" title="Click to set as Primary">
+            <div class="provider-status-dot gray"></div>
+            <div class="provider-info">
+              <strong>airplanes.live</strong>
+              <span>HTTPS Feed (Cloudflare rate limiting)</span>
+            </div>
+            <span class="provider-badge off" id="badge-2">TERTIARY</span>
+          </div>
+        </div>
       </div>
 
-      <!-- Card 2: Hardware Display & Theme -->
+      <!-- Card 2: Hardware Display & Themes -->
       <div class="card glass-card">
         <div class="card-title-row">
           <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -341,7 +395,7 @@
           <label>Phosphor HUD Palette</label>
           <div class="theme-row" id="themeRow">
             <div class="theme-swatch active" data-theme="0">
-              <div class="dot" style="background:#00FF66; box-shadow: 0 0 10px #00FF66;"></div>
+              <div class="dot" style="background:#00FF00; box-shadow: 0 0 10px #00FF00;"></div>
               <span>Matrix Green</span>
             </div>
             <div class="theme-swatch" data-theme="1">
@@ -430,58 +484,6 @@
               <input type="checkbox" id="sweepToggle" checked>
               <span class="slider"></span>
             </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Card 3: ADS-B Telemetry Engine -->
-      <div class="card glass-card">
-        <div class="card-title-row">
-          <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4.93 19.07A10 10 0 0 1 12 2a10 10 0 0 1 7.07 17.07M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
-            <line x1="12" y1="12" x2="12" y2="22"/>
-          </svg>
-          <h3>ADS-B Telemetry Engine</h3>
-        </div>
-        <p class="card-desc">Configure multi-feed provider prioritization and live background download rate.</p>
-
-        <div class="form-group">
-          <label for="refreshSelect">Background ADS-B Polling Interval</label>
-          <select id="refreshSelect">
-            <option value="5">5 seconds (High Frequency)</option>
-            <option value="10" selected>10 seconds (Balanced - Recommended)</option>
-            <option value="15">15 seconds (Standard)</option>
-            <option value="30">30 seconds (Conserve Bandwidth)</option>
-          </select>
-          <div class="help-text">Controls how frequently the ESP32 downloads fresh transponder packets.</div>
-        </div>
-
-        <div class="provider-status-list">
-          <div class="provider-item active">
-            <div class="provider-status-dot cyan"></div>
-            <div class="provider-info">
-              <strong>adsb.lol</strong>
-              <span>Primary — Community ADS-B Exchange v2 (No auth, HTTP)</span>
-            </div>
-            <span class="provider-badge">PRIMARY</span>
-          </div>
-
-          <div class="provider-item standby">
-            <div class="provider-status-dot green"></div>
-            <div class="provider-info">
-              <strong>OpenSky Network</strong>
-              <span>Backup — REST API (anonymous or OAuth2 credentials)</span>
-            </div>
-            <span class="provider-badge backup">BACKUP</span>
-          </div>
-
-          <div class="provider-item disabled">
-            <div class="provider-status-dot gray"></div>
-            <div class="provider-info">
-              <strong>airplanes.live</strong>
-              <span>Tertiary — HTTPS Feed (Cloudflare rate limiting)</span>
-            </div>
-            <span class="provider-badge off">TERTIARY</span>
           </div>
         </div>
       </div>
