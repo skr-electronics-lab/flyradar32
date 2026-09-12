@@ -62,6 +62,11 @@
 #define LONG_PRESS_MS   700
 #define DEBOUNCE_MS     20
 
+// Watchdog: max seconds one loop() pass may take before the device
+// self-reboots. Keep >= 10 — the slowest legit path (full redraw +
+// plane snapshot copy) is ~50 ms, this only catches true hangs.
+#define WDT_TIMEOUT_S  15
+
 // Backlight PWM runs on GPIO15 (TFT_BLK). If the screen dims INVERTED
 // (25% looks brighter than 100%), flip BACKLIGHT_ACTIVE_LOW in
 // src/radar_display.cpp. If brightness changes nothing at all, your

@@ -7,6 +7,7 @@
 #include "api_providers.h"
 #include "webui.h"
 #include <lvgl.h>
+#include <esp_task_wdt.h>
 
 static AppScreen currentScreen = SCR_BOOT;
 
@@ -452,9 +453,21 @@ void setup() {
         currentScreen = SCR_WIFI_SETUP;
     }
     lastPeriodicRefreshMs = millis();
+
+    // Hardware watchdog: if loop() ever hangs (LVGL deadlock, stuck menu
+    // handler), the ESP reboots instead of becoming a paperweight.
+    // Verified: worst legit loop() pass (full redraw + snapshot copy) ~50 ms.
+    esp_task_wdt_config_t wdtCfg = {};
+    wdtCfg.timeout_ms = WDT_TIMEOUT_S * 1000;
+    wdtCfg.idle_core_mask = 0;      // don't watch the idle tasks
+    wdtCfg.trigger_panic = true;    // abort + reboot on expiry
+    esp_task_wdt_init(&wdtCfg);
+    esp_task_wdt_add(NULL);
+    Serial.println("[wdt] watchdog armed");
 }
 
 void loop() {
+    esp_task_wdt_reset();
     WifiManager::loop();
 
     if (currentScreen == SCR_WIFI_SETUP) {
