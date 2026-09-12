@@ -158,9 +158,7 @@ static void registerStatusRoutes() {
         appendStr("]}");
         buf[pos] = '\0';
 
-        AsyncWebServerResponse* response = request->beginResponse_P(200, "application/json", (const uint8_t*)buf, pos);
-        response->addHeader("Cache-Control", "no-cache");
-        request->send(response);
+        request->send(200, "application/json", buf);
     });
 
     server.on("/api/refresh", HTTP_POST, [](AsyncWebServerRequest* request) {
@@ -254,9 +252,7 @@ static void registerSettingsRoutes() {
 
         String out;
         serializeJson(doc, out);
-        AsyncWebServerResponse* response = request->beginResponse(200, "application/json", out);
-        response->addHeader("Cache-Control", "no-cache");
-        request->send(response);
+        request->send(200, "application/json", out);
     });
 
     server.on("/api/settings/opensky", HTTP_POST, [](AsyncWebServerRequest* request) {

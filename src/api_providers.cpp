@@ -291,7 +291,7 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
 
     http.setTimeout(8000);
     http.setConnectTimeout(6000);
-    http.setUserAgent("Mozilla/5.0 (ESP32 ADS-B Ground Station)");
+    http.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36");
     if (!http.begin(client, url)) {
         client.stop();
         return false;
@@ -301,11 +301,6 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
     Serial.printf("[fetch] %s url=%s code=%d\n", host, url.c_str(), code);
     bool ok = false;
     if (code == HTTP_CODE_OK) {
-        String payload = http.getString();
-        // Immediately terminate connection & free TLS buffers before JSON parsing
-        http.end();
-        client.stop();
-
         static StaticJsonDocument<384> filter;
         static bool filterInit = false;
         if (!filterInit) {
@@ -326,9 +321,11 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
         }
 
         DynamicJsonDocument doc(4096);
-        DeserializationError err = deserializeJson(doc, payload, DeserializationOption::Filter(filter));
-        Serial.printf("[fetch] %s parse err=%s docSize=%u payloadLen=%u\n",
-                      host, err.c_str(), (unsigned)doc.size(), (unsigned)payload.length());
+        DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
+        http.end();
+        client.stop();
+
+        Serial.printf("[fetch] %s parse err=%s docSize=%u\n", host, err.c_str(), (unsigned)doc.size());
         if (!err) {
             JsonArray arr = doc["ac"].as<JsonArray>();
             for (JsonObject ac : arr) {
@@ -365,7 +362,6 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
                 String hexStr = ac["hex"] | "";
                 strncpy(p.icaoHex, hexStr.c_str(), 7); p.icaoHex[7] = '\0';
 
-                // In adsb.lol, "t" is the aircraft model (e.g. A20N, B77L). "type" is the transponder mode ("adsb_icao")
                 String modelStr = ac["t"] | "";
                 if (modelStr.isEmpty()) {
                     String rawType = ac["type"] | "";
@@ -394,6 +390,10 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
             ok = true;
         }
     } else {
+        if (code == 429) {
+            Serial.printf("[fetch] %s rate-limited (429), backing off for 30s\n", host);
+            skipCyclesRemaining[2] = 6; // airplanes.live
+        }
         http.end();
         client.stop();
     }
@@ -417,7 +417,7 @@ static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double 
 
     http.setTimeout(8000);
     http.setConnectTimeout(6000);
-    http.setUserAgent("Mozilla/5.0 (ESP32 ADS-B Ground Station)");
+    http.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36");
     if (!http.begin(client, url)) {
         client.stop();
         return false;
@@ -427,10 +427,6 @@ static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double 
     Serial.printf("[fetch] adsb.lol url=%s code=%d\n", url.c_str(), code);
     bool ok = false;
     if (code == HTTP_CODE_OK) {
-        String payload = http.getString();
-        http.end();
-        client.stop();
-
         static StaticJsonDocument<384> filter;
         static bool filterInit = false;
         if (!filterInit) {
@@ -451,7 +447,10 @@ static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double 
         }
 
         DynamicJsonDocument doc(4096);
-        DeserializationError err = deserializeJson(doc, payload, DeserializationOption::Filter(filter));
+        DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
+        http.end();
+        client.stop();
+
         if (!err) {
             JsonArray arr = doc["ac"].as<JsonArray>();
             for (JsonObject ac : arr) {
@@ -516,6 +515,10 @@ static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double 
             ok = true;
         }
     } else {
+        if (code == 429) {
+            Serial.println("[fetch] adsb.lol rate-limited (429), backing off for 30s");
+            skipCyclesRemaining[1] = 6;
+        }
         http.end();
         client.stop();
     }
@@ -532,7 +535,16 @@ static const char* providerNames[PROVIDER_COUNT] = {"OpenSky", "adsb.lol", "airp
 // ---------------------------------------------------------------
 // Background task
 // ---------------------------------------------------------------
+static unsigned long lastCycleDoneMs = 0;
+
 static void runFetchCycle() {
+    if (millis() - lastCycleDoneMs < 5000) {
+        xSemaphoreTake(dataMutex, portMAX_DELAY);
+        status.fetchInProgress = false;
+        xSemaphoreGive(dataMutex);
+        return;
+    }
+
     Storage::lock();
     AppSettings& s = Storage::settings();
 
@@ -594,9 +606,11 @@ static void runFetchCycle() {
                 skipCyclesRemaining[idx] = BACKOFF_SKIP_CYCLES;
                 failStreak[idx] = 0;
             }
-            vTaskDelay(pdMS_TO_TICKS(800));
+            vTaskDelay(pdMS_TO_TICKS(1200));
         }
     }
+
+    lastCycleDoneMs = millis();
 
     xSemaphoreTake(dataMutex, portMAX_DELAY);
     status.fetchInProgress = false;
@@ -622,7 +636,7 @@ static void apiTask(void* param) {
 
             runFetchCycle();
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -637,8 +651,11 @@ void ApiProviders::begin() {
 }
 
 void ApiProviders::requestRefresh() {
+    if (!dataMutex) return;
     xSemaphoreTake(dataMutex, portMAX_DELAY);
-    refreshRequested = true;
+    if (!status.fetchInProgress) {
+        refreshRequested = true;
+    }
     xSemaphoreGive(dataMutex);
 }
 

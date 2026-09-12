@@ -1292,10 +1292,10 @@
   // Start continuous 60fps radar sweep
   requestAnimationFrame(renderRadar);
 
-  // Automated Realtime Data Fetch (Every 2.5 seconds)
-  setInterval(fetchAircraft, 2500);
+  // Automated Realtime Data Fetch (Every 3.5 seconds)
+  setInterval(fetchAircraft, 3500);
 
-  // Background Status Refresh (Every 3.5 seconds)
-  setInterval(fetchStatus, 3500);
+  // Background Status Refresh (Every 6 seconds)
+  setInterval(fetchStatus, 6000);
 
 })();
