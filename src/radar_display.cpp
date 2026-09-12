@@ -169,7 +169,7 @@ static uint16_t altitudeColor(int altFt, bool onGround, const ThemePalette& th) 
 // Set to true if your module's backlight is active-LOW (brightness 0 = full
 // bright). Symptom when wrong: screen stuck fully bright or fully dark and
 // the Settings -> Brightness slider appears to do nothing.
-#define BACKLIGHT_ACTIVE_LOW  true
+#define BACKLIGHT_ACTIVE_LOW  false
 
 static void setBacklight(uint8_t brightness) {
     ledcWrite(TFT_BLK, BACKLIGHT_ACTIVE_LOW ? (255 - brightness) : brightness);
