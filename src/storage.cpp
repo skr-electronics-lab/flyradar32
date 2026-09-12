@@ -48,7 +48,9 @@ static void loadAll() {
     cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_DOT);
     cache.showSweepAnim  = prefs.getBool("swpAnim", true);
     cache.brightness     = prefs.getUChar("bright", 255);
-    prefs.remove("pin"); // clear config-lock pin from older firmware
+    // Legacy PIN key cleanup from older firmware — check before remove so
+    // fresh devices don't log an NVS "NOT_FOUND" error on every boot.
+    if (prefs.isKey("pin")) prefs.remove("pin");
     cache.theme          = prefs.getUChar("theme", 0);
     cache.showCompass    = prefs.getBool("cmp", true);
     cache.showRangeLabels= prefs.getBool("rlbl", true);
