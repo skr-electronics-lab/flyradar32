@@ -329,7 +329,7 @@ static bool fetchAdsbSchemaProvider(int providerIdx, const char* host, AircraftP
             filterInit = true;
         }
 
-        DynamicJsonDocument doc(6144);
+        DynamicJsonDocument doc(10240);
         DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
         http.end();
         client.stop();

@@ -544,7 +544,7 @@ static const char* compass16(int deg) {
 }
 
 void RadarDisplay::renderWeatherScreen() {
-    if (is_radar_active) { is_radar_active = false; }
+    if (is_radar_active) { is_radar_active = false; clearLVGL(); }
     if (current_menu_title != "WEATHER") {
         lv_obj_t * card = buildCard("STATION WEATHER", getLVThemeColor());
 

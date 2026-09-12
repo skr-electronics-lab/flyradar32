@@ -531,12 +531,9 @@ void setup() {
 
     // Hardware watchdog: if loop() ever hangs (LVGL deadlock, stuck menu
     // handler), the ESP reboots instead of becoming a paperweight.
-    // Verified: worst legit loop() pass (full redraw + snapshot copy) ~50 ms.
-    esp_task_wdt_config_t wdtCfg = {};
-    wdtCfg.timeout_ms = WDT_TIMEOUT_S * 1000;
-    wdtCfg.idle_core_mask = 0;      // don't watch the idle tasks
-    wdtCfg.trigger_panic = true;    // abort + reboot on expiry
-    esp_task_wdt_init(&wdtCfg);
+    // The Arduino core already initializes the TWDT with idle tasks
+    // subscribed (so deinit/reinit logs an error) — just subscribe loopTask
+    // to the existing watchdog; its 5s idle timeout is what catches hangs.
     esp_task_wdt_add(NULL);
     Serial.println("[wdt] watchdog armed");
 }
@@ -712,8 +709,10 @@ void loop() {
         }
     }
 
-    // LVGL must always run on the radar screen too — the sidebar card is
-    // an LVGL object updated per frame.
-    lv_timer_handler();
+    // Radar screen is canvas/SPI directly — LVGL only needs servicing on the
+    // menu/detail/weather screens.
+    if (currentScreen != SCR_RADAR) {
+        lv_timer_handler();
+    }
     delay(5);
 }
