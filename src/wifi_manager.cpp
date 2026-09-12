@@ -1,10 +1,11 @@
-#include "wifi_manager.h"
+﻿#include "wifi_manager.h"
 #include "config.h"
 #include "storage.h"
 #include <WiFi.h>
 #include <DNSServer.h>
 #include <ESPmDNS.h>
 #include <esp_mac.h>
+#include <time.h>
 
 static DNSServer dnsServer;
 static WifiState state = WIFI_STATE_AP_MODE;
@@ -39,6 +40,14 @@ static void startMdns() {
     }
 }
 
+// ---- NTP ----
+static bool ntpStarted = false;
+static void startNtp() {
+    if (ntpStarted) return;
+    configTzTime(DEFAULT_TZ, "pool.ntp.org", "time.nist.gov");
+    ntpStarted = true;
+}
+
 static void stopApMode() {
     if (apActive) {
         dnsServer.stop();
@@ -66,6 +75,7 @@ void WifiManager::begin() {
             state = WIFI_STATE_CONNECTED;
             stopApMode();
             startMdns();
+            startNtp();
             return;
         }
         lastError = "Could not connect to stored network";
@@ -93,6 +103,7 @@ void WifiManager::loop() {
             lastError = "";
             stopApMode();
             startMdns();
+            startNtp();
         } else if (millis() - connectStartedMs > CONNECT_TIMEOUT_MS) {
             state = WIFI_STATE_FAILED;
             lastError = "Connection failed or timed out";
@@ -102,7 +113,7 @@ void WifiManager::loop() {
         static unsigned long downSinceMs = 0;
         if (WiFi.status() != WL_CONNECTED) {
             // WiFi.status() can briefly report non-CONNECTED during roaming
-            // scans — require ~5 s of continuous down before a real reconnect
+            // scans â€” require ~5 s of continuous down before a real reconnect
             // so we don't spam WiFi.reconnect() on blips.
             if (downSinceMs == 0) downSinceMs = millis();
             else if (millis() - downSinceMs > 5000UL) {
@@ -169,3 +180,25 @@ String WifiManager::getApSsid() { return apSsid; }
 String WifiManager::getApIp() { return WiFi.softAPIP().toString(); }
 String WifiManager::getStaIp() { return WiFi.localIP().toString(); }
 String WifiManager::getLastError() { return lastError; }
+
+bool WifiManager::timeSynced() {
+    return ntpStarted && time(nullptr) > 1700000000; // post-2023 epoch = real time
+}
+String WifiManager::getClockTime() {
+    if (!timeSynced()) return "";
+    time_t now = time(nullptr);
+    struct tm t;
+    localtime_r(&now, &t);
+    char buf[8];
+    strftime(buf, sizeof(buf), "%H:%M", &t);
+    return String(buf);
+}
+String WifiManager::getClockDateTime() {
+    if (!timeSynced()) return "";
+    time_t now = time(nullptr);
+    struct tm t;
+    localtime_r(&now, &t);
+    char buf[20];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", &t);
+    return String(buf);
+}

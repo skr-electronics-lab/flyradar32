@@ -66,6 +66,7 @@ static void registerStatusRoutes() {
         doc["mdns"] = String(MDNS_NAME) + ".local";
         doc["fwName"] = FW_NAME;
         doc["fwVersion"] = FW_VERSION;
+        doc["time"] = WifiManager::getClockDateTime();
 
         ApiProviders::Status pst = ApiProviders::getStatus();
         doc["fetchInProgress"] = pst.fetchInProgress;

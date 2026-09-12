@@ -807,6 +807,8 @@
       }
 
       if (providerVal) providerVal.textContent = s.lastProvider || "OpenSky";
+      const clockEl = document.getElementById("stationClock");
+      if (clockEl) clockEl.textContent = s.time || "";
       if (wifiSsid) wifiSsid.textContent = s.staIp ? "Connected" : "AP Mode";
       if (wifiIpHeader) wifiIpHeader.textContent = s.staIp ? `(${s.staIp})` : "";
       if (wifiStateEl) wifiStateEl.textContent = s.wifiState || "Connected";

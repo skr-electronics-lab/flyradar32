@@ -33,4 +33,9 @@ namespace WifiManager {
     String getApIp();
     String getStaIp();
     String getLastError();
+
+    // NTP: "HH:MM" ("" if never synced) and "YYYY-MM-DD HH:MM" for detail rows
+    bool  timeSynced();
+    String getClockTime();       // HH:MM
+    String getClockDateTime();   // YYYY-MM-DD HH:MM
 }

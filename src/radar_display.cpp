@@ -1,5 +1,6 @@
 #include "radar_display.h"
 #include "storage.h"
+#include "wifi_manager.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
 #include <lvgl.h>
@@ -473,12 +474,13 @@ void RadarDisplay::renderSystemInfo(const String& ip, const String& wifiSsid) {
     if (current_menu_title != "SYSINFO") {
         lv_obj_t * card = buildCard("SYSTEM INFO", getLVThemeColor());
 
-        // Compact single-label block â€” all in 12-pt font to fit without overlap.
+        // Compact single-label block — all in 12-pt font to fit without overlap.
         // Removed the blank line before brand text that caused the hint to overlap.
         lv_obj_t * info = lv_label_create(card);
+        String tmLine = WifiManager::timeSynced() ? String("\nTime: ") + WifiManager::getClockDateTime() : "";
         lv_label_set_text_fmt(info,
-            "%s v%s\nWiFi: %s\nIP: %s\nSKR Electronics Lab",
-            FW_NAME, FW_VERSION, wifiSsid.c_str(), ip.c_str());
+            "%s v%s\nWiFi: %s\nIP: %s%s\nSKR Electronics Lab",
+            FW_NAME, FW_VERSION, wifiSsid.c_str(), ip.c_str(), tmLine.c_str());
         lv_obj_set_style_text_font(info, &lv_font_montserrat_12, 0);
         lv_obj_set_style_text_align(info, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_set_style_text_color(info, lv_color_hex(UI_TEXT_MAIN), 0);
@@ -580,6 +582,9 @@ void RadarDisplay::renderPlaneDetail(const AircraftPoint& p, int scrollY) {
         addRow("Sqk:", String(p.squawk));
         addRow("Dst:", String((int)p.distanceKm) + " km");
         addRow("Brg:", String((int)p.bearingDeg) + " deg");
+        if (WifiManager::timeSynced()) {
+            addRow("Upd:", WifiManager::getClockTime());
+        }
 
         current_detail_hex = String(p.icaoHex);
     }

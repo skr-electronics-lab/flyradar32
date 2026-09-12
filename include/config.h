@@ -184,3 +184,6 @@ struct AircraftPoint {
 #define AP_SSID_PREFIX "FlyRadar32-"
 #define AP_PASSWORD    "radar1234"
 #define WEB_CONFIG_PORT 80
+
+// POSIX TZ string for NTP local time (change to your zone, e.g. "EST5EDT,M3.2.0,M11.1.0")
+#define DEFAULT_TZ "IST-5:30"
