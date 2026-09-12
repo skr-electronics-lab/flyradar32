@@ -129,7 +129,7 @@
 // ============================================================
 #define MAX_PLANES 25
 
-// Trail (breadcrumb) history — cheap: 15 * 3 * 4 bytes ≈ 180 B
+// Trail (breadcrumb) history — 25 slots * (5 fixes * 8 bytes + 16 B) ≈ 1.1 KB
 #define TRAIL_LEN 5
 
 struct AircraftPoint {

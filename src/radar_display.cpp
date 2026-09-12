@@ -8,19 +8,19 @@
 // ---------------------------------------------------------------------
 // IMPORTANT: tft is constructed with the DEFAULT (no-arg) constructor so
 // TFT_eSPI uses the native panel resolution baked into the build flags
-// (TFT_WIDTH=128, TFT_HEIGHT=160 â€” the panel's true rotation-0 shape).
+// (TFT_WIDTH=128, TFT_HEIGHT=160 — the panel's true rotation-0 shape).
 // tft.setRotation(TFT_ROTATION) then swaps width/height for us so
 // tft.width()==SCREEN_W (160) and tft.height()==SCREEN_H (128). Every
 // buffer we allocate below (LVGL's draw buf, LVGL's hor_res/ver_res, and
-// the radar TFT_eSprite) is sized from SCREEN_W/SCREEN_H â€” the *same*
-// rotated numbers the physical driver now reports â€” so nothing can ever
+// the radar TFT_eSprite) is sized from SCREEN_W/SCREEN_H — the *same*
+// rotated numbers the physical driver now reports — so nothing can ever
 // disagree about the canvas shape again. See config.h for the full
 // derivation/explanation of the old landscape bug.
 // ---------------------------------------------------------------------
 static lv_color_t getLVThemeColor();
 
 // ---------------------------------------------------------------------
-// UI design tokens — instrument-panel dark theme (fixed, theme-neutral).
+// UI design tokens â€” instrument-panel dark theme (fixed, theme-neutral).
 // Three elevation tiers (screen < card < row) so surfaces visibly layer
 // instead of collapsing into black; borders are light enough to read on
 // every tier; text tiers keep >=4.5:1 (primary) / >=3:1 (secondary)
@@ -33,7 +33,7 @@ static lv_color_t getLVThemeColor();
 #define UI_TEXT_MAIN 0xE8EAED   // primary text (~13:1 on card)
 #define UI_TEXT_DIM  0x9AA3AD   // secondary text (~5:1 on card)
 
-// Menu card geometry — single source of truth for every menu-style screen
+// Menu card geometry â€” single source of truth for every menu-style screen
 // (scroll menu, plane list, plane detail, info screens). Card: 150x116,
 // centered on the 160x128 canvas, leaving a clean 5px margin on each side.
 #define CARD_W  150
@@ -115,7 +115,7 @@ static lv_obj_t* buildCard(const char* title, lv_color_t titleColor) {
     lv_obj_set_style_text_color(header, titleColor, 0);
     lv_obj_align(header, LV_ALIGN_TOP_MID, 0, 0);
 
-    // short accent underline under the title â€” the theme's signature detail
+    // short accent underline under the title — the theme's signature detail
     lv_obj_t * rule = lv_obj_create(card);
     lv_obj_remove_style_all(rule);
     lv_obj_set_size(rule, 24, 2);
@@ -198,42 +198,47 @@ static void setBacklight(uint8_t brightness) {
 }
 
 // ---------------------------------------------------------------------
-// Breadcrumb trail — keeps the last few fixes for each aircraft so the
+// Breadcrumb trail â€” keeps the last few fixes for each aircraft so the
 // radar can draw a fading tail behind it. Matched by ICAO hex across
-// fetch cycles. Memory cost: MAX_PLANES * TRAIL_LEN * 8 bytes ≈ 360 B.
+// fetch cycles. Memory cost: MAX_PLANES * (TRAIL_LEN*8 + 16) â‰ˆ 1.1 KB.
 // ---------------------------------------------------------------------
 struct TrailSlot {
     char hex[8] = {0};
     bool used = false;
     uint8_t count = 0;
+    uint8_t age = 0;      // bumped on each sample; used for oldest-steal
     float distKm[TRAIL_LEN];
     float bearingDeg[TRAIL_LEN];
 };
 static TrailSlot trails[MAX_PLANES];
-static unsigned long lastTrailSampleMs = 0;
+static uint8_t trailAgeCounter = 0;
 
 static TrailSlot* findOrAllocTrail(const char* hex) {
     for (int i = 0; i < MAX_PLANES; i++) {
         if (trails[i].used && strncmp(trails[i].hex, hex, 7) == 0) return &trails[i];
     }
-    // Steal the first unused slot, or the oldest one if all are full.
+    // Take the first unused slot; if all are full, steal the oldest slot
+    // (lowest age stamp) â€” NOT an arbitrary trails[0], which would corrupt
+    // an unrelated aircraft's history.
+    TrailSlot* victim = &trails[0];
     for (int i = 0; i < MAX_PLANES; i++) {
-        if (!trails[i].used) {
-            trails[i].used = true;
-            trails[i].count = 0;
-            strncpy(trails[i].hex, hex, 7);
-            trails[i].hex[7] = '\0';
-            return &trails[i];
-        }
+        if (!trails[i].used) { victim = &trails[i]; break; }
+        if ((uint8_t)(trailAgeCounter - trails[i].age) > (uint8_t)(trailAgeCounter - victim->age)) victim = &trails[i];
     }
-    return &trails[0];
+    victim->used = true;
+    victim->count = 0;
+    strncpy(victim->hex, hex, 7);
+    victim->hex[7] = '\0';
+    return victim;
 }
 
 static void sampleTrails(const AircraftPoint planes[], int count) {
     bool seen[MAX_PLANES] = {false};
+    trailAgeCounter++;
     for (int i = 0; i < count; i++) {
         if (!planes[i].valid || planes[i].icaoHex[0] == '\0') continue;
         TrailSlot* slot = findOrAllocTrail(planes[i].icaoHex);
+        slot->age = trailAgeCounter;
         // shift older samples back, insert newest at [0]
         for (int k = TRAIL_LEN - 1; k > 0; k--) {
             slot->distKm[k] = slot->distKm[k - 1];
@@ -242,17 +247,12 @@ static void sampleTrails(const AircraftPoint planes[], int count) {
         slot->distKm[0] = planes[i].distanceKm;
         slot->bearingDeg[0] = planes[i].bearingDeg;
         if (slot->count < TRAIL_LEN) slot->count++;
+        // Mark the owning index (O(n) lookup only when the slot was just stolen)
         for (int j = 0; j < MAX_PLANES; j++) if (&trails[j] == slot) seen[j] = true;
     }
     // Free slots for aircraft that vanished so they don't linger forever.
     for (int i = 0; i < MAX_PLANES; i++) {
-        if (trails[i].used && !seen[i]) {
-            bool stillPresent = false;
-            for (int p = 0; p < count; p++) {
-                if (planes[p].valid && strncmp(planes[p].icaoHex, trails[i].hex, 7) == 0) { stillPresent = true; break; }
-            }
-            if (!stillPresent) trails[i].used = false;
-        }
+        if (trails[i].used && !seen[i]) trails[i].used = false;
     }
 }
 
@@ -354,7 +354,7 @@ void RadarDisplay::showBootStatus(const char* line1, const char* line2) {
         lv_obj_set_style_text_color(logo, getLVThemeColor(), 0);
         lv_obj_align(logo, LV_ALIGN_TOP_MID, 0, 22);
 
-        // accent rule under the logo â€” same signature as buildCard
+        // accent rule under the logo — same signature as buildCard
         lv_obj_t * rule = lv_obj_create(lv_scr_act());
         lv_obj_remove_style_all(rule);
         lv_obj_set_size(rule, 32, 2);
@@ -473,7 +473,7 @@ void RadarDisplay::renderSystemInfo(const String& ip, const String& wifiSsid) {
     if (current_menu_title != "SYSINFO") {
         lv_obj_t * card = buildCard("SYSTEM INFO", getLVThemeColor());
 
-        // Compact single-label block — all in 12-pt font to fit without overlap.
+        // Compact single-label block â€” all in 12-pt font to fit without overlap.
         // Removed the blank line before brand text that caused the hint to overlap.
         lv_obj_t * info = lv_label_create(card);
         lv_label_set_text_fmt(info,
@@ -532,7 +532,7 @@ void RadarDisplay::renderPlaneDetail(const AircraftPoint& p, int scrollY) {
     if (is_radar_active) { is_radar_active = false; clearLVGL(); }
 
     // Rebuild whenever the aircraft's *data* changes too, not just when the
-    // ICAO hex changes â€” otherwise altitude/speed/distance stay frozen at
+    // ICAO hex changes — otherwise altitude/speed/distance stay frozen at
     // whatever they were when the screen was first drawn.
     static uint32_t builtSig = 0;
     uint32_t sig = ((uint32_t)p.altitudeFt * 31u) ^ ((uint32_t)(p.speedKt * 10.0f) * 7u) ^
@@ -593,11 +593,11 @@ void RadarDisplay::renderPlaneDetail(const AircraftPoint& p, int scrollY) {
 void RadarDisplay::renderPlaneList(const AircraftPoint planes[], int count, int selectedIndex) {
     if (is_radar_active) { is_radar_active = false; }
 
-    // Rebuild when the aircraft set changes (cheap hex-signature compare) â€”
+    // Rebuild when the aircraft set changes (cheap hex-signature compare) —
     // previously the list was built once and never refreshed, so rows went
     // stale while the selection index tracked the *new* data.
-    static char listSig[128] = "";
-    char sig[128]; sig[0] = '\0';
+    static char listSig[MAX_PLANES * 7 + 1] = "";
+    char sig[MAX_PLANES * 7 + 1]; sig[0] = '\0';
     for (int i = 0; i < count; i++) strncat(sig, planes[i].icaoHex, sizeof(sig) - strlen(sig) - 1);
 
     static int lastSelScroll = -1;
@@ -648,7 +648,18 @@ void RadarDisplay::renderPlaneList(const AircraftPoint planes[], int count, int 
     }
 }
 
-// -------------------------------------------------------------------------------------
+// Public hook: main loop calls this once per new fetch (keyed on the fetch
+// success timestamp) so trails advance even while a menu/detail screen is up.
+void RadarDisplay::sampleTrailHistory(const AircraftPoint planes[], int count) {
+    static unsigned long lastSampledSuccessMs = 0;
+    ApiProviders::Status st = ApiProviders::getStatus();
+    if (st.lastSuccessMs != 0 && st.lastSuccessMs != lastSampledSuccessMs) {
+        sampleTrails(planes, count);
+        lastSampledSuccessMs = st.lastSuccessMs;
+    }
+}
+
+// ---------------------------------------------------------------------
 // RADAR DRAWING (Hyper-optimized Native drawing embedded over LVGL)
 // Landscape layout: circular scope on the left (x: 0..SIDEBAR_X), a
 // dedicated status sidebar on the right (x: SIDEBAR_X..SCREEN_W). The
@@ -666,10 +677,9 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
     const ThemePalette& th = theme();
     const AppSettings& s = Storage::settings();
 
-    if (s.showTrail && status.lastSuccessMs != lastTrailSampleMs && status.lastSuccessMs != 0) {
-        sampleTrails(planes, count);
-        lastTrailSampleMs = status.lastSuccessMs;
-    }
+    // NOTE: trail *recording* now happens in the main loop via
+    // sampleTrailHistory() so history keeps advancing while menus are open.
+    // This function only *draws* what's already recorded.
 
     canvas.fillScreen(CLR_BG);
 

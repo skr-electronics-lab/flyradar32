@@ -33,7 +33,6 @@ static unsigned long lastPeriodicRefreshMs = 0;
 static unsigned long lastDrawMs = 0;
 static unsigned long wifiConnectedScreenShownAt = 0;
 
-static const float ZOOM_KM[3] = {50.0f, 100.0f, 150.0f};
 static const char* THEME_NAMES[THEME_COUNT] = {"GREEN", "CYAN", "AMBER"};
 
 // ---------------------------------------------------------------
@@ -43,7 +42,7 @@ static const char* THEME_NAMES[THEME_COUNT] = {"GREEN", "CYAN", "AMBER"};
 // labels/icon/providers/aircraft list). Item 11 is a one-shot action
 // (force a data refresh). Items 2,5,6,7,8 are single-press direct
 // toggles/cycles handled right here in the main list, exactly like
-// the original "Animation" entry — this keeps the menu tree flat
+// the original "Animation" entry â€” this keeps the menu tree flat
 // and avoids adding a pile of near-identical new AppScreen states
 // just to flip one boolean each. Items 12,13,14 are info/reset/back.
 // ---------------------------------------------------------------
@@ -120,7 +119,7 @@ static int calcScrollOffset(int selected, int total, int visible) {
 static void clampSelection() {
     if (planeCount == 0) { selectedPlaneIndex = -1; return; }
     
-    float maxVisibleDist = ZOOM_KM[Storage::settings().zoomLevel];
+    float maxVisibleDist = ApiProviders::ZOOM_KM[Storage::settings().zoomLevel];
 
     if (selectedPlaneIndex >= 0 && selectedPlaneIndex < planeCount) {
         if (!planes[selectedPlaneIndex].valid || planes[selectedPlaneIndex].distanceKm > maxVisibleDist) {
@@ -141,7 +140,7 @@ static void clampSelection() {
 static void moveSelection(int delta) {
     if (planeCount == 0) { selectedPlaneIndex = -1; return; }
     
-    float maxVisibleDist = ZOOM_KM[Storage::settings().zoomLevel];
+    float maxVisibleDist = ApiProviders::ZOOM_KM[Storage::settings().zoomLevel];
     int startIdx = selectedPlaneIndex;
     if (startIdx < 0) startIdx = 0; // If nothing selected, start from 0
 
@@ -516,6 +515,7 @@ void loop() {
         lastDrawMs = millis();
 
         ApiProviders::getLatest(planes, planeCount);
+        RadarDisplay::sampleTrailHistory(planes, planeCount);
         clampSelection();
         if (listSelectedIndex >= planeCount) listSelectedIndex = planeCount > 0 ? planeCount - 1 : 0;
 
@@ -534,7 +534,7 @@ void loop() {
         switch (currentScreen) {
             case SCR_RADAR: {
                 RadarDisplay::renderRadar(planes, planeCount, sweepAngle, selectedPlaneIndex,
-                                           ZOOM_KM[s.zoomLevel], s.labelsMode, s.showSweepAnim,
+                                           ApiProviders::ZOOM_KM[s.zoomLevel], s.labelsMode, s.showSweepAnim,
                                            ApiProviders::getStatus());
                 if (s.showSweepAnim) sweepAngle = (sweepAngle + 4) % 360;
                 break;
@@ -553,7 +553,7 @@ void loop() {
                 char labels[SETTINGS_MAIN_COUNT][24];
                 const char* ptrs[SETTINGS_MAIN_COUNT];
                 for (int i = 0; i < SETTINGS_MAIN_COUNT; i++) ptrs[i] = settingsMainLabels[i];
-                snprintf(labels[0], 24, "Range: %d km", (int)ZOOM_KM[s.zoomLevel]);
+                snprintf(labels[0], 24, "Range: %d km", (int)ApiProviders::ZOOM_KM[s.zoomLevel]);
                 snprintf(labels[1], 24, "Brightness: %d%%", (int)((s.brightness * 100) / 255));
                 snprintf(labels[2], 24, "Anim: %s", s.showSweepAnim ? "ON" : "OFF");
                 const char* lm = s.labelsMode == 0 ? "OFF" : (s.labelsMode == 1 ? "SELECTED" : "ALL");

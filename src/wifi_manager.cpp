@@ -99,11 +99,21 @@ void WifiManager::loop() {
             if (!apActive) startApMode();
         }
     } else if (state == WIFI_STATE_CONNECTED) {
+        static unsigned long downSinceMs = 0;
         if (WiFi.status() != WL_CONNECTED) {
-            Serial.println("[WiFi] Lost connection, attempting reconnect...");
-            state = WIFI_STATE_CONNECTING;
-            connectStartedMs = millis();
-            WiFi.reconnect();
+            // WiFi.status() can briefly report non-CONNECTED during roaming
+            // scans — require ~5 s of continuous down before a real reconnect
+            // so we don't spam WiFi.reconnect() on blips.
+            if (downSinceMs == 0) downSinceMs = millis();
+            else if (millis() - downSinceMs > 5000UL) {
+                downSinceMs = 0;
+                Serial.println("[WiFi] Lost connection, attempting reconnect...");
+                state = WIFI_STATE_CONNECTING;
+                connectStartedMs = millis();
+                WiFi.reconnect();
+            }
+        } else {
+            downSinceMs = 0;
         }
     } else if (state == WIFI_STATE_FAILED || state == WIFI_STATE_AP_MODE) {
         static unsigned long nextStaRetryMs = 0;

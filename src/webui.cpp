@@ -12,18 +12,20 @@
 
 static AsyncWebServer server(WEB_CONFIG_PORT);
 
-static bool pinOk(AsyncWebServerRequest* request) {
-    // Local web UI on local Wi-Fi never requires a PIN lock
-    return true;
-}
+#define JSON_BODY_MAX 4096   // cap request bodies; larger payloads are rejected
 
 typedef std::function<void(AsyncWebServerRequest*, JsonDocument&)> JsonHandler;
 
 static ArBodyHandlerFunction jsonBody() {
     return [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+        if (total > JSON_BODY_MAX) {
+            // Too large â€” mark as rejected so handleJsonRequest() refuses it.
+            if (index == 0 && !request->_tempObject) request->_tempObject = nullptr;
+            return;
+        }
         if (index == 0) request->_tempObject = new String();
         String* body = (String*)request->_tempObject;
-        body->concat((const char*)data, len);
+        if (body) body->concat((const char*)data, len);
     };
 }
 
@@ -97,10 +99,16 @@ static void registerStatusRoutes() {
         int count = 0;
         ApiProviders::getLatest(planes, count);
         ApiProviders::Status pst = ApiProviders::getStatus();
-        AppSettings& s = Storage::settings();
 
-        const float ZOOM_KM[3] = {50.0f, 100.0f, 150.0f};
-        float curRangeKm = ZOOM_KM[s.zoomLevel < 3 ? s.zoomLevel : 1];
+        // Snapshot settings under the lock — lat/lon are 64-bit and a torn
+        // read would emit garbage coordinates.
+        Storage::lock();
+        AppSettings& s = Storage::settings();
+        int zoomLevel = s.zoomLevel;
+        double lat = s.lat, lon = s.lon;
+        Storage::unlock();
+
+        float curRangeKm = ApiProviders::ZOOM_KM[zoomLevel >= 0 && zoomLevel < 3 ? zoomLevel : 1];
 
         String out;
         out.reserve(4096);
@@ -110,8 +118,8 @@ static void registerStatusRoutes() {
         out += ",\"fetchInProgress\":"; out += (pst.fetchInProgress ? "true" : "false");
         out += ",\"lastSuccessMs\":"; out += (int)pst.lastSuccessMs;
         out += ",\"rangeKm\":"; out += (int)curRangeKm;
-        out += ",\"lat\":"; out += String(s.lat, 6);
-        out += ",\"lon\":"; out += String(s.lon, 6);
+        out += ",\"lat\":"; out += String(lat, 6);
+        out += ",\"lon\":"; out += String(lon, 6);
         out += ",\"aircraft\":[";
 
         bool first = true;
@@ -175,7 +183,6 @@ static void connectDeferred(const String& ssid, const String& pass, uint32_t del
 
 static void registerWifiRoutes() {
     auto handleWifiClear = [](AsyncWebServerRequest* request) {
-        if (!pinOk(request)) return;
         Storage::clearWifi();
         sendOk(request);
         rebootDeferred(400);
@@ -185,7 +192,6 @@ static void registerWifiRoutes() {
 
     server.on("/api/wifi/connect", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
-            if (!pinOk(request)) return;
             String ssid = doc["ssid"] | "";
             String pass = doc["password"] | "";
             if (ssid.isEmpty()) {
@@ -201,7 +207,6 @@ static void registerWifiRoutes() {
 
 static void registerSettingsRoutes() {
     server.on("/api/settings", HTTP_GET, [](AsyncWebServerRequest* request) {
-        if (!pinOk(request)) return;
         Storage::lock();
         AppSettings& s = Storage::settings();
         DynamicJsonDocument doc(1024);
@@ -228,7 +233,6 @@ static void registerSettingsRoutes() {
         doc["primaryProvider"] = primIdx;
         doc["refreshInterval"] = s.refreshInterval;
         doc["openSkyClientId"] = s.openSkyClientId;
-        doc["pinSet"] = !s.configPin.isEmpty();
         Storage::unlock();
 
         String out;
@@ -238,7 +242,6 @@ static void registerSettingsRoutes() {
 
     server.on("/api/settings/opensky", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
-            if (!pinOk(request)) return;
             String clientId = doc["clientId"] | "";
             String clientSecret = doc["clientSecret"] | "";
             Storage::saveOpenSkyCredentials(clientId, clientSecret);
@@ -249,7 +252,6 @@ static void registerSettingsRoutes() {
 
     server.on("/api/settings/location", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
-            if (!pinOk(request)) return;
             if (!doc.containsKey("lat") || !doc.containsKey("lon")) {
                 request->send(400, "application/json", "{\"error\":\"lat and lon required\"}");
                 return;
@@ -268,7 +270,6 @@ static void registerSettingsRoutes() {
 
     server.on("/api/settings/providers", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
-            if (!pinOk(request)) return;
             if (doc.containsKey("clientId") && doc.containsKey("clientSecret")) {
                 Storage::saveOpenSkyCredentials(doc["clientId"], doc["clientSecret"]);
             }
@@ -276,7 +277,13 @@ static void registerSettingsRoutes() {
                 int p = doc["primaryProvider"].as<int>();
                 if (p >= 0 && p < PROVIDER_COUNT) {
                     uint8_t pr[PROVIDER_COUNT];
-                    bool en[PROVIDER_COUNT] = {true, true, true};
+                    bool en[PROVIDER_COUNT];
+                    // Preserve the user's per-provider enable/disable choices —
+                    // switching the primary must not silently re-enable everything.
+                    Storage::lock();
+                    AppSettings& s = Storage::settings();
+                    for (int i = 0; i < PROVIDER_COUNT; i++) en[i] = s.providerEnabled[i];
+                    Storage::unlock();
                     pr[p] = 0;
                     int nextRank = 1;
                     for (int i = 0; i < PROVIDER_COUNT; i++) {
@@ -305,6 +312,10 @@ static void registerSettingsRoutes() {
 
     server.on("/api/settings/display", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
+            // Snapshot current values under the lock, merge the provided keys,
+            // then save — saveDisplay takes the mutex itself, so we must not
+            // hold it here (non-recursive mutex would self-deadlock).
+            Storage::lock();
             AppSettings& s = Storage::settings();
             int zl = doc.containsKey("zoomLevel") ? doc["zoomLevel"].as<int>() : s.zoomLevel;
             uint8_t lm = doc.containsKey("labelsMode") ? doc["labelsMode"].as<uint8_t>() : s.labelsMode;
@@ -315,23 +326,14 @@ static void registerSettingsRoutes() {
             bool cmp = doc.containsKey("showCompass") ? doc["showCompass"].as<bool>() : s.showCompass;
             bool rlbl = doc.containsKey("showRangeLabels") ? doc["showRangeLabels"].as<bool>() : s.showRangeLabels;
             bool trl = doc.containsKey("showTrail") ? doc["showTrail"].as<bool>() : s.showTrail;
+            Storage::unlock();
             Storage::saveDisplay(zl, lm, ai, sw, br, th, cmp, rlbl, trl);
             RadarDisplay::applyBrightness();
             sendOk(request);
         });
     }, nullptr, jsonBody());
 
-    server.on("/api/settings/pin", HTTP_POST, [](AsyncWebServerRequest* request) {
-        handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
-            if (!pinOk(request)) return;
-            String pin = doc["pin"] | "";
-            Storage::saveConfigPin(pin);
-            sendOk(request);
-        });
-    }, nullptr, jsonBody());
-
     server.on("/api/factory-reset", HTTP_POST, [](AsyncWebServerRequest* request) {
-        if (!pinOk(request)) return;
         sendOk(request);
         Storage::factoryReset();
         rebootDeferred(400);

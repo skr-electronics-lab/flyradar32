@@ -26,6 +26,11 @@ static int failStreak[PROVIDER_COUNT] = {0, 0, 0};
 static int skipCyclesRemaining[PROVIDER_COUNT] = {0, 0, 0};
 
 // ---------------------------------------------------------------
+// Shared zoom table (km) — indexed by settings zoomLevel 0..2
+// ---------------------------------------------------------------
+const float ApiProviders::ZOOM_KM[3] = {50.0f, 100.0f, 150.0f};
+
+// ---------------------------------------------------------------
 // Geo helpers
 // ---------------------------------------------------------------
 static float distanceKm(double lat1, double lon1, double lat2, double lon2) {
@@ -274,9 +279,11 @@ static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
 
 // ---------------------------------------------------------------
 // Provider: ADS-B Exchange v2-compatible schema (adsb.lol / airplanes.live)
+// providerIdx is needed so a 429 back-off hits the provider that was
+// actually rate-limited, not a hardcoded one.
 // ---------------------------------------------------------------
-static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLANES], int& tempCount,
-                                     double homeLat, double homeLon, float maxRangeKm) {
+static bool fetchAdsbSchemaProvider(int providerIdx, const char* host, AircraftPoint temp[MAX_PLANES], int& tempCount,
+                                    double homeLat, double homeLon, float maxRangeKm) {
     tempCount = 0;
     int radiusNm = (int)(maxRangeKm / 1.852) + 1;
     String url = String("https://") + host + "/v2/point/" + String(homeLat, 4) + "/" +
@@ -320,7 +327,7 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
             filterInit = true;
         }
 
-        DynamicJsonDocument doc(4096);
+        DynamicJsonDocument doc(6144);
         DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
         http.end();
         client.stop();
@@ -391,8 +398,8 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
         }
     } else {
         if (code == 429) {
-            Serial.printf("[fetch] %s rate-limited (429), backing off for 30s\n", host);
-            skipCyclesRemaining[2] = 6; // airplanes.live
+            Serial.printf("[fetch] %s rate-limited (429), backing off\n", host);
+            skipCyclesRemaining[providerIdx] = 6;
         }
         http.end();
         client.stop();
@@ -401,128 +408,13 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
 }
 
 static bool fetchAirplanesLive(AircraftPoint temp[MAX_PLANES], int& tempCount, double lat, double lon, float rangeKm) {
-    return fetchAdsbSchemaProvider("api.airplanes.live", temp, tempCount, lat, lon, rangeKm);
+    return fetchAdsbSchemaProvider(PROVIDER_AIRPLANES_LIVE, "api.airplanes.live", temp, tempCount, lat, lon, rangeKm);
 }
 
+// adsb.lol speaks the same v2 schema and supports HTTPS â€” one shared
+// implementation, ~120 duplicated lines deleted.
 static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double lat, double lon, float rangeKm) {
-    tempCount = 0;
-    int radiusNm = (int)(rangeKm / 1.852) + 1;
-    String url = "http://api.adsb.lol/v2/point/" + String(lat, 4) + "/" +
-                 String(lon, 4) + "/" + String(radiusNm);
-
-    Serial.printf("[fetch] adsb.lol heap: free=%u maxAlloc=%u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
-
-    WiFiClient client;
-    HTTPClient http;
-
-    http.setTimeout(8000);
-    http.setConnectTimeout(6000);
-    http.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36");
-    if (!http.begin(client, url)) {
-        client.stop();
-        return false;
-    }
-
-    int code = http.GET();
-    Serial.printf("[fetch] adsb.lol url=%s code=%d\n", url.c_str(), code);
-    bool ok = false;
-    if (code == HTTP_CODE_OK) {
-        static StaticJsonDocument<384> filter;
-        static bool filterInit = false;
-        if (!filterInit) {
-            filter["ac"][0]["lat"] = true;
-            filter["ac"][0]["lon"] = true;
-            filter["ac"][0]["flight"] = true;
-            filter["ac"][0]["alt_baro"] = true;
-            filter["ac"][0]["gs"] = true;
-            filter["ac"][0]["track"] = true;
-            filter["ac"][0]["hex"] = true;
-            filter["ac"][0]["t"] = true;
-            filter["ac"][0]["type"] = true;
-            filter["ac"][0]["desc"] = true;
-            filter["ac"][0]["squawk"] = true;
-            filter["ac"][0]["r"] = true;
-            filter["ac"][0]["ownOp"] = true;
-            filterInit = true;
-        }
-
-        DynamicJsonDocument doc(4096);
-        DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
-        http.end();
-        client.stop();
-
-        if (!err) {
-            JsonArray arr = doc["ac"].as<JsonArray>();
-            for (JsonObject ac : arr) {
-                if (tempCount >= MAX_PLANES) break;
-                if (!ac["lat"].is<float>() || !ac["lon"].is<float>()) continue;
-
-                double plat = ac["lat"];
-                double plon = ac["lon"];
-                float d = distanceKm(lat, lon, plat, plon);
-                if (d > rangeKm) continue;
-
-                AircraftPoint& p = temp[tempCount];
-                p.valid = true;
-                p.distanceKm = d;
-                p.bearingDeg = bearingDeg(lat, lon, plat, plon);
-                p.speedKt = ac["gs"] | 0.0f;
-                p.trackDeg = ac["track"] | 0.0f;
-                p.onGround = false;
-
-                if (ac["alt_baro"].is<float>()) {
-                    p.altitudeFt = (int)ac["alt_baro"].as<float>();
-                } else if (ac["alt_baro"].is<int>()) {
-                    p.altitudeFt = ac["alt_baro"].as<int>();
-                } else if (strncmp(ac["alt_baro"] | "", "ground", 6) == 0) {
-                    p.altitudeFt = 0;
-                    p.onGround = true;
-                } else {
-                    p.altitudeFt = 0;
-                }
-
-                String flightStr = ac["flight"] | "";
-                flightStr.trim();
-                strncpy(p.flight, flightStr.c_str(), 9); p.flight[9] = '\0';
-                String hexStr = ac["hex"] | "";
-                strncpy(p.icaoHex, hexStr.c_str(), 7); p.icaoHex[7] = '\0';
-
-                String modelStr = ac["t"] | "";
-                if (modelStr.isEmpty()) {
-                    String rawType = ac["type"] | "";
-                    if (rawType != "adsb_icao" && rawType != "mlat" && rawType != "tisb") {
-                        modelStr = rawType;
-                    }
-                }
-                strncpy(p.aircraftType, modelStr.c_str(), 7); p.aircraftType[7] = '\0';
-                
-                String descStr = ac["desc"] | "";
-                descStr.trim();
-                strncpy(p.desc, descStr.c_str(), 31); p.desc[31] = '\0';
-
-                const char* sq = ac["squawk"] | "";
-                strncpy(p.squawk, sq, 4); p.squawk[4] = '\0';
-                
-                String regStr = ac["r"] | "";
-                regStr.trim();
-                strncpy(p.registration, regStr.c_str(), 11); p.registration[11] = '\0';
-                String opStr = ac["ownOp"] | "";
-                opStr.trim();
-                strncpy(p.operatorName, opStr.c_str(), 31); p.operatorName[31] = '\0';
-
-                tempCount++;
-            }
-            ok = true;
-        }
-    } else {
-        if (code == 429) {
-            Serial.println("[fetch] adsb.lol rate-limited (429), backing off for 30s");
-            skipCyclesRemaining[1] = 6;
-        }
-        http.end();
-        client.stop();
-    }
-    return ok;
+    return fetchAdsbSchemaProvider(PROVIDER_ADSB_LOL, "api.adsb.lol", temp, tempCount, lat, lon, rangeKm);
 }
 
 // ---------------------------------------------------------------
@@ -536,14 +428,16 @@ static const char* providerNames[PROVIDER_COUNT] = {"OpenSky", "adsb.lol", "airp
 // Background task
 // ---------------------------------------------------------------
 static unsigned long lastCycleDoneMs = 0;
+static bool cycleStartedOnce = false; // false => first cycle after boot runs immediately
 
 static void runFetchCycle() {
-    if (millis() - lastCycleDoneMs < 5000) {
+    if (cycleStartedOnce && millis() - lastCycleDoneMs < 5000) {
         xSemaphoreTake(dataMutex, portMAX_DELAY);
         status.fetchInProgress = false;
         xSemaphoreGive(dataMutex);
         return;
     }
+    cycleStartedOnce = true;
 
     Storage::lock();
     AppSettings& s = Storage::settings();
@@ -628,14 +522,16 @@ static void runFetchCycle() {
 
 static void apiTask(void* param) {
     for (;;) {
-        if (refreshRequested) {
+        bool run = false;
+        xSemaphoreTake(dataMutex, portMAX_DELAY);
+        if (refreshRequested && !status.fetchInProgress) {
             refreshRequested = false;
-            xSemaphoreTake(dataMutex, portMAX_DELAY);
             status.fetchInProgress = true;
-            xSemaphoreGive(dataMutex);
-
-            runFetchCycle();
+            run = true;
         }
+        xSemaphoreGive(dataMutex);
+
+        if (run) runFetchCycle();
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }

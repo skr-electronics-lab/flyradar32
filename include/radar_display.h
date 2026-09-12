@@ -37,6 +37,11 @@ namespace RadarDisplay {
     void renderPlaneList(const AircraftPoint planes[], int count, int selectedIndex);
     void renderPlaneDetail(const AircraftPoint& p, int scrollY = 0);
 
+    // Feed the breadcrumb-trail history from the current snapshot. Call from
+    // the main loop on every new fetch so trails keep recording while the
+    // user sits in menus (renderRadar only draws what's already recorded).
+    void sampleTrailHistory(const AircraftPoint planes[], int count);
+
     void renderScrollMenu(const char* title, const char* items[], int itemCount, int selectedIndex, int scrollOffset);
 
     void renderSystemInfo(const String& ip, const String& wifiSsid);

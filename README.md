@@ -89,13 +89,15 @@ This is a PlatformIO project.
 
 ```bash
 pio run                 # compile
-pio run -t upload       # flash firmware
-pio run -t uploadfs     # flash web UI (data/) to LittleFS
+pio run -t upload       # flash firmware (web UI is embedded in the binary)
 pio device monitor      # serial log @ 115200
 ```
 
-First flash needs **both** `upload` and `uploadfs` — firmware and web UI are
-flashed separately.
+The web dashboard is gzip-compressed into the firmware itself
+(`scripts/compress_web.py` regenerates `include/web_assets_gz.h` on every
+build), so a plain `pio run -t upload` ships everything at once.
+`pio run -t uploadfs` (LittleFS) is only needed if you want to serve the
+files from the filesystem instead.
 
 ## 🚀 First boot
 
@@ -160,15 +162,17 @@ network, and settings persist across power cycles via NVS.
 platformio.ini        pins, flags, library pins (LVGL 8.3.x pinned —
                        8.4 changed dark-theme greys)
 include/              headers for every module + config.h (all tunables)
+scripts/
+  compress_web.py     pre-build: gzips data/ into include/web_assets_gz.h
 src/
   main.cpp            screen state machine, button routing, render loop
-  storage.cpp          NVS-backed settings (Preferences)
+  storage.cpp         NVS-backed settings (Preferences)
   buttons.cpp         debounced short/long press for 3 buttons
-  wifi_manager.cpp    AP fallback + captive portal + non-blocking connect
-  webui.cpp           ESPAsyncWebServer REST API + static file serving
+  wifi_manager.cpp    AP fallback + captive portal + drop-detection reconnect
+  webui.cpp           ESPAsyncWebServer REST API + embedded web UI
   api_providers.cpp   background fetch task, multi-provider failover, OAuth2
-  radar_display.cpp   canvas-based double-buffered rendering
-data/                 files uploaded to LittleFS (the web UI)
+  radar_display.cpp   canvas-based double-buffered rendering + trails
+data/                 web UI source (compiled into the firmware at build time)
   index.html, style.css, app.js
 ```
 
@@ -176,9 +180,9 @@ data/                 files uploaded to LittleFS (the web UI)
 
 | Provider | Auth | Status |
 |----------|------|--------|
-| [airplanes.live](https://api.airplanes.live/v2/point/{lat}/{lon}/{radius_nm}) | none | ✅ working |
-| [adsb.lol](https://api.adsb.lol/v2/point/{lat}/{lon}/{radius_nm}) | none | ✅ working |
-| OpenSky Network | OAuth2 client-credentials | 🚧 roadmap (basic-auth retired March 2026) |
+| [airplanes.live](https://api.airplanes.live/v2/point/{lat}/{lon}/{radius_nm}) | none | ✅ working (HTTPS) |
+| [adsb.lol](https://api.adsb.lol/v2/point/{lat}/{lon}/{radius_nm}) | none | ✅ working (HTTPS) |
+| OpenSky Network | OAuth2 client-credentials (optional; works anonymously too) | ✅ working — paste credentials in the web UI |
 
 Providers are tried in your configured priority order each cycle. A
 provider failing 3× in a row is skipped for the next 5 cycles — the radar
@@ -187,7 +191,6 @@ never starves because one API is having a bad day.
 ## 🗺 Roadmap
 
 - [ ] Sort radar cursor by bearing — UP/DOWN walks clockwise around the compass
-- [ ] OpenSky provider (OAuth2 client-credentials flow)
 - [ ] TLS certificate pinning (replace `setInsecure()`)
 - [ ] Async Wi-Fi scan (`WiFi.scanNetworks(true)` + poll endpoint)
 - [ ] NTP time sync (needed for real cert validation / timestamps)
@@ -198,10 +201,12 @@ never starves because one API is having a bad day.
 
 - **TLS validation is off** (`setInsecure()`) on all HTTPS clients — fine for
   a home gadget; pin real certificates before shipping to others.
+- **No auth on the config API** — the web UI is trusted-LAN only; don't
+  port-forward the device. (The old half-built PIN lock was removed.)
+- **Default AP password** (`radar1234`) — change `AP_PASSWORD` in
+  `config.h` before deploying.
 - **Wi-Fi scan blocks** the request thread ~2-4 s (occasional settings
   action only; async scan is roadmap).
-- **Plain-HTTP config server + default AP password** — fine for home/hobby
-  deployment; harden both before giving this to strangers.
 - Cursor walks aircraft in provider response order — bearing-sort is the
   cheap fix (roadmap #1).
 

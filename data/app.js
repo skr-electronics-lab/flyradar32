@@ -1,7 +1,6 @@
 (() => {
   "use strict";
 
-  let sessionPin = "";
   let currentPlanes = [];
   let selectedPlane = null;
   let radarRangeKm = 100;
@@ -20,10 +19,10 @@
   const planeTrails = new Map();
 
   // -------------------------------------------------------------
-  // API Helpers (No PIN block for local LAN access)
+  // API Helpers
   // -------------------------------------------------------------
   async function apiGet(url) {
-    const res = await fetch(url, { headers: pinHeaders() });
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   }
@@ -31,15 +30,19 @@
   async function apiPost(url, body) {
     const res = await fetch(url, {
       method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" }, pinHeaders()),
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body || {})
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   }
 
-  function pinHeaders() {
-    return sessionPin ? { "X-Config-Pin": sessionPin } : {};
+  // HTML-escape anything rendered into innerHTML (callsigns, SSIDs, aircraft
+  // fields) so hostile data can't inject script into the page.
+  function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
   }
 
   // -------------------------------------------------------------
@@ -620,7 +623,12 @@
 
       lastDataUpdateMs = Date.now();
 
-      // Record Breadcrumb Trails
+      // Record Breadcrumb Trails + prune entries for aircraft no longer
+      // in the feed so the Map can't grow unbounded over long sessions.
+      const liveHexes = new Set(currentPlanes.map(p => p.hex));
+      for (const hex of planeTrails.keys()) {
+        if (!liveHexes.has(hex)) planeTrails.delete(hex);
+      }
       currentPlanes.forEach(p => {
         if (!planeTrails.has(p.hex)) planeTrails.set(p.hex, []);
         const tr = planeTrails.get(p.hex);
@@ -703,18 +711,18 @@
     filtered.sort((a, b) => a.dst - b.dst);
 
     tbody.innerHTML = filtered.map(p => `
-      <tr class="${selectedPlane && selectedPlane.hex === p.hex ? "selected-row" : ""}" data-hex="${p.hex}">
-        <td class="font-bold font-mono">${p.flight}</td>
-        <td class="font-mono text-dim">${p.hex}</td>
-        <td>${p.type || "---"}</td>
+      <tr class="${selectedPlane && selectedPlane.hex === p.hex ? "selected-row" : ""}" data-hex="${esc(p.hex)}">
+        <td class="font-bold font-mono">${esc(p.flight)}</td>
+        <td class="font-mono text-dim">${esc(p.hex)}</td>
+        <td>${esc(p.type || "---")}</td>
         <td class="font-mono">${p.alt.toLocaleString()} ft</td>
         <td class="font-mono">${p.spd} kt</td>
-        <td class="font-mono">${p.track}°</td>
+        <td class="font-mono">${p.track}&deg;</td>
         <td class="font-mono font-bold">${p.dst} km</td>
-        <td class="font-mono">${p.brg}°</td>
-        <td class="font-mono squawk-badge">${p.squawk}</td>
+        <td class="font-mono">${p.brg}&deg;</td>
+        <td class="font-mono squawk-badge">${esc(p.squawk)}</td>
         <td>
-          <button class="btn btn-secondary btn-sm track-row-btn" data-hex="${p.hex}">Inspect</button>
+          <button class="btn btn-secondary btn-sm track-row-btn" data-hex="${esc(p.hex)}">Inspect</button>
         </td>
       </tr>
     `).join("");
@@ -1217,8 +1225,8 @@
           if (netList) netList.innerHTML = "<p class='text-dim' style='padding:8px'>No networks found.</p>";
         } else {
           netList.innerHTML = nets.sort((a, b) => b.rssi - a.rssi).map(n => `
-            <div class="net-item" data-ssid="${n.ssid}">
-              <span class="net-name">${n.ssid}</span>
+            <div class="net-item" data-ssid="${esc(n.ssid)}">
+              <span class="net-name">${esc(n.ssid)}</span>
               <span class="net-rssi">${n.rssi} dBm ${n.secure ? '🔒' : ''}</span>
             </div>`).join("");
           netList.querySelectorAll(".net-item").forEach(item => {
@@ -1351,12 +1359,7 @@
 
     // Tile size in pixels on the map (256px/tile at zoom)
     const TILE_PX = 256;
-    // Degrees per tile at this zoom
     const n = Math.pow(2, zoom);
-    const degPerTileX = 360 / n;
-    const latRad = lat * Math.PI / 180;
-    const degPerTileY = (Math.atan(Math.sinh(Math.PI * (1 - 2 * (Math.floor((1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad))/Math.PI)/2*n))/n))) -
-                        Math.atan(Math.sinh(Math.PI * (1 - 2 * (Math.floor((1 - Math.log(Math.tan(latRad) + 1/Math.cos(latRad))/Math.PI)/2*n) + 1)/n)))) * 180 / Math.PI;
 
     // Pixels per degree at our canvas scale (maxR covers rangeLatDeg degrees)
     const pxPerDegLat = maxR / rangeLatDeg;
@@ -1395,6 +1398,9 @@
         const url = `https://tile.openstreetmap.org/${zoom}/${tx}/${ty}.png`;
         if (mapTileCache[url] === undefined) {
           mapTileCache[url] = 'loading';
+          // FIFO cap so the cache can't grow unbounded when panning/zooming
+          const keys = Object.keys(mapTileCache);
+          if (keys.length > 80) { delete mapTileCache[keys[0]]; }
           const img = new Image();
           img.crossOrigin = 'anonymous';
           img.onload = () => { mapTileCache[url] = img; };

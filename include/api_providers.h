@@ -2,12 +2,17 @@
 #include <Arduino.h>
 #include "config.h"
 
-// Runs a background FreeRTOS task (pinned to core 0) that periodically
+// Runs a background FreeRTOS task (pinned to core 1, the Arduino app
+// core — keeps TLS off the async_tcp core 0) that periodically
 // fetches nearby aircraft from whichever provider is configured, trying
 // providers in priority order and falling back on failure. Results are
 // copied out through a mutex - never touch the internal buffer directly.
 namespace ApiProviders {
     void begin();
+
+    // Radar zoom ranges (km), indexed by zoomLevel 0..2. Single source of
+    // truth shared by the render loop, the web UI and the REST API.
+    extern const float ZOOM_KM[3];
 
     // Ask the background task to fetch as soon as possible (e.g. after a
     // long-press "refresh" or a location change). Non-blocking, safe to

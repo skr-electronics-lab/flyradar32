@@ -40,16 +40,15 @@ static void loadAll() {
         cache.providerPriority[PROVIDER_OPENSKY] = 1;
     }
 
-    // Open READ-WRITE so prefs.remove("pin") is valid (read-only mode silently
-    // ignores or aborts on writes — was the root cause of the fresh-flash reboot loop).
+    // Open READ-WRITE so stale keys can be removed (read-only mode
+    // silently ignores writes — was the root cause of a reboot loop).
     prefs.begin(NVS_NS_DISPLAY, false);
     cache.zoomLevel      = prefs.getInt("zoom", 1);
     cache.labelsMode     = prefs.getUChar("lblMode", 2);
     cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_DOT);
     cache.showSweepAnim  = prefs.getBool("swpAnim", true);
     cache.brightness     = prefs.getUChar("bright", 255);
-    prefs.remove("pin"); // clear any stale config-lock pin on every boot
-    cache.configPin      = "";
+    prefs.remove("pin"); // clear config-lock pin from older firmware
     cache.theme          = prefs.getUChar("theme", 0);
     cache.showCompass    = prefs.getBool("cmp", true);
     cache.showRangeLabels= prefs.getBool("rlbl", true);
@@ -57,9 +56,8 @@ static void loadAll() {
     prefs.end();
 
     // Defensive clamping in case NVS holds stale/out-of-range values
-    // from a previous firmware version (e.g. aircraftIcon used to max
-    // out at 1, theme is brand new, etc).
-    if (cache.aircraftIcon > AIRCRAFT_ICON_ARROW) cache.aircraftIcon = AIRCRAFT_ICON_DOT;
+    // from a previous firmware version.
+    if (cache.aircraftIcon >= AIRCRAFT_ICON_COUNT) cache.aircraftIcon = AIRCRAFT_ICON_DOT;
     if (cache.theme >= THEME_COUNT) cache.theme = 0;
     if (cache.zoomLevel < 0 || cache.zoomLevel > 2) cache.zoomLevel = 1;
     if (cache.labelsMode > 2) cache.labelsMode = 2;
@@ -155,7 +153,7 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
                            uint8_t theme, bool showCompass, bool showRangeLabels, bool showTrail) {
     if (zoomLevel < 0 || zoomLevel > 2) zoomLevel = 1;
     if (labelsMode > 2) labelsMode = 2;
-    if (aircraftIcon > AIRCRAFT_ICON_ARROW) aircraftIcon = AIRCRAFT_ICON_DOT;
+    if (aircraftIcon >= AIRCRAFT_ICON_COUNT) aircraftIcon = AIRCRAFT_ICON_DOT;
     if (theme >= THEME_COUNT) theme = 0;
 
     lock();
@@ -183,16 +181,8 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     unlock();
 }
 
-void Storage::saveConfigPin(const String& pin) {
-    lock();
-    prefs.begin(NVS_NS_DISPLAY, false);
-    prefs.putString("pin", pin);
-    prefs.end();
-    cache.configPin = pin;
-    unlock();
-}
-
 void Storage::factoryReset() {
+    lock();
     const char* namespaces[] = {NVS_NS_WIFI, NVS_NS_LOC, NVS_NS_API, NVS_NS_DISPLAY};
     for (auto ns : namespaces) {
         prefs.begin(ns, false);
@@ -200,4 +190,5 @@ void Storage::factoryReset() {
         prefs.end();
     }
     loadAll();
+    unlock();
 }

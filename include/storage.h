@@ -15,7 +15,6 @@ struct AppSettings {
     uint8_t aircraftIcon;
     bool showSweepAnim;
     uint8_t brightness;
-    String configPin;
     uint8_t theme;
     bool showCompass;
     bool showRangeLabels;
@@ -41,8 +40,7 @@ public:
     static void saveRefreshInterval(int seconds);
     
     static void saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim, uint8_t brightness,
-                           uint8_t theme = 0, bool showCompass = true, bool showRangeLabels = true, bool showTrail = true);
-                           
-    static void saveConfigPin(const String& pin);
+                            uint8_t theme = 0, bool showCompass = true, bool showRangeLabels = true, bool showTrail = true);
+
     static void factoryReset();
 };
