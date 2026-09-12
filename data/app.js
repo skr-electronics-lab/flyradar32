@@ -1212,13 +1212,15 @@
   const scanCount = document.getElementById("scanCount");
 
   if (scanBtn) {
-    scanBtn.addEventListener("click", async () => {
-      scanBtn.disabled = true;
-      scanBtn.textContent = "Scanning...";
-      if (scanCard) scanCard.style.display = "none";
-      if (netList) netList.innerHTML = "";
+    let scanActive = false;
+    const pollScan = async () => {
       try {
         const res = await apiGet("/api/scan");
+        if (res.scanning) {
+          if (scanCount) scanCount.textContent = "(scanning...)";
+          setTimeout(pollScan, 800);
+          return;
+        }
         const nets = Array.isArray(res) ? res : [];
         if (scanCount) scanCount.textContent = `(${nets.length})`;
         if (nets.length === 0) {
@@ -1240,9 +1242,29 @@
         if (scanCard) scanCard.style.display = "block";
       } catch (e) {
         showToast("Wi-Fi scan failed: " + e.message, true);
+        if (scanCard) scanCard.style.display = "block";
       } finally {
         scanBtn.disabled = false;
         scanBtn.textContent = "Scan";
+      }
+    };
+
+    scanBtn.addEventListener("click", async () => {
+      if (scanActive) return;
+      scanActive = true;
+      scanBtn.disabled = true;
+      scanBtn.textContent = "Scanning...";
+      if (scanCard) scanCard.style.display = "none";
+      if (netList) netList.innerHTML = "";
+      try {
+        await apiGet("/api/scan");   // kick off the async scan
+        setTimeout(pollScan, 800);   // then poll until done
+      } catch (e) {
+        showToast("Wi-Fi scan failed: " + e.message, true);
+        scanBtn.disabled = false;
+        scanBtn.textContent = "Scan";
+      } finally {
+        scanActive = false;
       }
     });
   }

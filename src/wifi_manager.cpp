@@ -141,6 +141,29 @@ int WifiManager::scanNetworks(ScannedNetwork out[], int maxResults) {
     return count;
 }
 
+// ---- Async scan (never blocks the async_tcp request thread) ----
+int WifiManager::startScanAsync() {
+    if (WiFi.scanComplete() == WIFI_SCAN_RUNNING) return SCAN_RUNNING;
+    WiFi.scanNetworks(true, false);   // async = start in background
+    return SCAN_STARTED;
+}
+
+int WifiManager::pollScan(ScannedNetwork out[], int maxResults) {
+    int n = WiFi.scanComplete();
+    if (n == WIFI_SCAN_RUNNING) return SCAN_RUNNING;
+    if (n < 0) return SCAN_FAILED;   // -1 running handled above, other <0 = failed
+    // n >= 0: scan finished, harvest results and free
+    int count = 0;
+    for (int i = 0; i < n && count < maxResults; i++) {
+        out[count].ssid = WiFi.SSID(i);
+        out[count].rssi = WiFi.RSSI(i);
+        out[count].secure = (WiFi.encryptionType(i) != WIFI_AUTH_OPEN);
+        count++;
+    }
+    WiFi.scanDelete();
+    return count;
+}
+
 WifiState WifiManager::getState() { return state; }
 String WifiManager::getApSsid() { return apSsid; }
 String WifiManager::getApIp() { return WiFi.softAPIP().toString(); }

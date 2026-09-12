@@ -78,9 +78,23 @@ static void registerStatusRoutes() {
         request->send(200, "application/json", out);
     });
 
+    // Async Wi-Fi scan: 1st request starts it (returns scanning:true),
+    // subsequent requests poll until done. Never blocks this thread.
+    // ponytail: scan state lives in WifiManager via WiFi.scanComplete();
+    // no extra server-side session state.
     server.on("/api/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
-        ScannedNetwork nets[20];
-        int n = WifiManager::scanNetworks(nets, 20);
+        static ScannedNetwork nets[20];
+        int n = WifiManager::pollScan(nets, 20);
+        if (n == WifiManager::SCAN_RUNNING || n == WifiManager::SCAN_STARTED) {
+            request->send(200, "application/json", "{\"scanning\":true}");
+            return;
+        }
+        if (n == WifiManager::SCAN_FAILED) {
+            // (re)start for the next poll — failure also covers "never started"
+            WifiManager::startScanAsync();
+            request->send(200, "application/json", "{\"scanning\":true}");
+            return;
+        }
         DynamicJsonDocument doc(3072);
         JsonArray arr = doc.to<JsonArray>();
         for (int i = 0; i < n; i++) {
@@ -92,6 +106,8 @@ static void registerStatusRoutes() {
         String out;
         serializeJson(doc, out);
         request->send(200, "application/json", out);
+        // auto-arm the next scan so a fresh Scan click starts immediately
+        WifiManager::startScanAsync();
     });
 
     server.on("/api/aircraft", HTTP_GET, [](AsyncWebServerRequest* request) {
