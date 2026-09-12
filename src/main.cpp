@@ -439,6 +439,11 @@ void setup() {
     WebUI::begin();
     ApiProviders::begin();
 
+    Serial.printf("[WiFi] State: %d, STA IP: %s, AP IP: %s\n",
+        (int)WifiManager::getState(),
+        WifiManager::getStaIp().c_str(),
+        WifiManager::getApIp().c_str());
+
     if (WifiManager::getState() == WIFI_STATE_CONNECTED) {
         RadarDisplay::showConnectedScreen(WifiManager::getStaIp());
         for(int i=0; i<100; i++) { lv_timer_handler(); delay(15); } // wait 1.5s
@@ -499,24 +504,6 @@ void loop() {
         }
     }
 
-    ApiProviders::getLatest(planes, planeCount);
-    clampSelection();
-    if (listSelectedIndex >= planeCount) listSelectedIndex = planeCount > 0 ? planeCount - 1 : 0;
-
-    // Re-anchor the detail view by ICAO hex: the planes array is rebuilt in
-    // provider order on every refresh, so a raw index silently starts
-    // pointing at a different aircraft after each fetch cycle.
-    if (currentScreen == SCR_PLANE_DETAIL && detailPlaneHex[0] != '\0') {
-        int idx = -1;
-        for (int i = 0; i < planeCount; i++) {
-            if (planes[i].valid && strncmp(planes[i].icaoHex, detailPlaneHex, 7) == 0) { idx = i; break; }
-        }
-        if (idx < 0) currentScreen = SCR_RADAR; // aircraft dropped out of range
-        else detailPlaneIndex = idx;
-    } else if (detailPlaneIndex >= planeCount) {
-        detailPlaneIndex = planeCount > 0 ? planeCount - 1 : -1;
-    }
-
     AppSettings& s = Storage::settings();
 
     uint32_t intervalMs = (s.refreshInterval < 10 ? 10 : s.refreshInterval) * 1000UL;
@@ -527,6 +514,23 @@ void loop() {
 
     if (millis() - lastDrawMs >= 30) {
         lastDrawMs = millis();
+
+        ApiProviders::getLatest(planes, planeCount);
+        clampSelection();
+        if (listSelectedIndex >= planeCount) listSelectedIndex = planeCount > 0 ? planeCount - 1 : 0;
+
+        // Re-anchor the detail view by ICAO hex
+        if (currentScreen == SCR_PLANE_DETAIL && detailPlaneHex[0] != '\0') {
+            int idx = -1;
+            for (int i = 0; i < planeCount; i++) {
+                if (planes[i].valid && strncmp(planes[i].icaoHex, detailPlaneHex, 7) == 0) { idx = i; break; }
+            }
+            if (idx < 0) currentScreen = SCR_RADAR;
+            else detailPlaneIndex = idx;
+        } else if (detailPlaneIndex >= planeCount) {
+            detailPlaneIndex = planeCount > 0 ? planeCount - 1 : -1;
+        }
+
         switch (currentScreen) {
             case SCR_RADAR: {
                 RadarDisplay::renderRadar(planes, planeCount, sweepAngle, selectedPlaneIndex,
@@ -603,5 +607,8 @@ void loop() {
         }
     }
 
-    lv_timer_handler();
+    if (currentScreen != SCR_RADAR) {
+        lv_timer_handler();
+    }
+    delay(5);
 }

@@ -179,6 +179,7 @@ static bool backlightInit = false;
 static void setBacklight(uint8_t brightness) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     if (!backlightInit) {
+        pinMode(TFT_BLK, OUTPUT);
         ledcAttach(TFT_BLK, 5000, 8);
         backlightInit = true;
     }
@@ -186,6 +187,7 @@ static void setBacklight(uint8_t brightness) {
     ledcWrite(TFT_BLK, val);
 #else
     if (!backlightInit) {
+        pinMode(TFT_BLK, OUTPUT);
         ledcSetup(0, 5000, 8);
         ledcAttachPin(TFT_BLK, 0);
         backlightInit = true;
@@ -763,6 +765,17 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
             canvas.setCursor(lx, ly);
             canvas.print(lbl);
         }
+    }
+
+    // --- Scanning pulse when no aircraft are visible ---
+    if (count == 0) {
+        int pulseR = 4 + (millis() % 2400) / 120; // 4..24px
+        uint16_t pulseColor = ((millis() % 2400) < 1200) ? th.grid : th.dim;
+        canvas.drawCircle(CX, CY, pulseR, pulseColor);
+        canvas.setTextColor(th.dim, CLR_BG);
+        canvas.setTextDatum(MC_DATUM);
+        canvas.drawString("SCANNING SKY...", CX, CY + (int)(RADAR_R * 0.42f));
+        canvas.setTextDatum(TL_DATUM);
     }
 
     // --- Sweep animation with phosphor wake (drawn under aircraft so targets stay sharp) ---

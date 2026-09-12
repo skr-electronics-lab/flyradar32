@@ -3,11 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FlyRadar32 Pro &mdash; SKR Electronics Lab</title>
-<link rel="stylesheet" href="style.css">
+<title>FlyRadar32 &mdash; SKR Electronics Lab</title>
+<link rel="stylesheet" href="style.css?v=1.0.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Critical anti-FOUC & SVG containment to prevent giant unstyled icons */
+  svg { max-width: 24px; max-height: 24px; display: inline-block; vertical-align: middle; }
+  .radar-emblem svg { width: 24px; height: 24px; max-width: 24px; max-height: 24px; }
+  .tab-svg, .section-svg { width: 20px; height: 20px; min-width: 20px; max-width: 20px; min-height: 20px; max-height: 20px; }
+  .cockpit-panel:not(.active) { display: none !important; }
+</style>
 </head>
 <body class="theme-green">
 <div class="app-wrapper">
@@ -16,7 +23,7 @@
     <div class="header-left">
       <div class="radar-emblem">
         <div class="sweep-disc"></div>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10" stroke-dasharray="2 3"/>
           <circle cx="12" cy="12" r="6"/>
           <circle cx="12" cy="12" r="2" fill="currentColor"/>
@@ -27,7 +34,7 @@
       <div class="brand-group">
         <div class="brand-title">
           <h1>FlyRadar32</h1>
-          <span class="pro-badge">PRO v2.2</span>
+          <span class="version-badge">v1.0.0</span>
         </div>
         <div class="brand-sub">ADS-B Ground Station &bull; SKR Electronics Lab</div>
       </div>
@@ -37,7 +44,7 @@
     <div class="header-hud">
       <div class="hud-pill" id="statusPill">
         <span class="pulse-dot"></span>
-        <span class="pill-label" id="liveStatusText">CONNECTING</span>
+        <span class="pill-label" id="liveStatusText">SCANNING</span>
       </div>
 
       <div class="hud-pill" id="targetPill">
@@ -78,7 +85,7 @@
   <!-- Clean 3-Tab Avionics Navigation -->
   <nav class="cockpit-nav">
     <button class="nav-tab active" data-tab="radar">
-      <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="tab-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="9"/>
         <circle cx="12" cy="12" r="5"/>
         <line x1="12" y1="3" x2="12" y2="21"/>
@@ -87,14 +94,14 @@
       <span>Live Scope</span>
     </button>
     <button class="nav-tab" data-tab="traffic">
-      <svg class="tab-svg" viewBox="0 0 24 24" fill="currentColor">
+      <svg class="tab-svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
         <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
       </svg>
       <span>Flight Board</span>
       <span class="badge" id="trafficBadge">0</span>
     </button>
     <button class="nav-tab" data-tab="settings">
-      <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <svg class="tab-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
@@ -302,7 +309,7 @@
       <!-- Card 1: ADS-B Telemetry & Station Location -->
       <div class="card glass-card" id="telemetryCard">
         <div class="card-title-row">
-          <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4.93 19.07A10 10 0 0 1 12 2a10 10 0 0 1 7.07 17.07M12 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
             <line x1="12" y1="12" x2="12" y2="22"/>
           </svg>
@@ -382,7 +389,7 @@
       <!-- Card 2: Hardware Display & Themes -->
       <div class="card glass-card">
         <div class="card-title-row">
-          <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
             <line x1="8" y1="21" x2="16" y2="21"/>
             <line x1="12" y1="17" x2="12" y2="21"/>
@@ -491,7 +498,7 @@
       <!-- Card 3b: OpenSky Network API Credentials & JSON Import -->
       <div class="card glass-card" id="openSkyCredentialsCard">
         <div class="card-title-row">
-          <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
@@ -528,7 +535,7 @@
       <!-- Card 4: Wi-Fi & System Utilities -->
       <div class="card glass-card" id="wifiSetupCard">
         <div class="card-title-row">
-          <svg class="section-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
           </svg>
           <h3>Wi-Fi & System Control</h3>
@@ -550,7 +557,7 @@
           </div>
           <div class="status-item">
             <div class="status-label">Firmware</div>
-            <div class="status-value" id="fwVersion">2.2.0 PRO</div>
+            <div class="status-value" id="fwVersion">v1.0.0</div>
           </div>
         </div>
 
@@ -590,6 +597,6 @@
 <!-- Floating Toast Notification -->
 <div id="toast" class="toast">Settings updated successfully</div>
 
-<script src="app.js"></script>
+<script src="app.js?v=1.0.0"></script>
 </body>
 </html>

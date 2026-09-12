@@ -661,7 +661,10 @@ void ApiProviders::requestRefresh() {
 
 bool ApiProviders::getLatest(AircraftPoint out[MAX_PLANES], int& count) {
     if (!dataMutex) { count = 0; return false; }
-    xSemaphoreTake(dataMutex, portMAX_DELAY);
+    if (xSemaphoreTake(dataMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        count = 0;
+        return false;
+    }
     count = sharedCount;
     for (int i = 0; i < sharedCount; i++) out[i] = sharedPlanes[i];
     bool ret = everSucceeded;
@@ -671,7 +674,9 @@ bool ApiProviders::getLatest(AircraftPoint out[MAX_PLANES], int& count) {
 
 ApiProviders::Status ApiProviders::getStatus() {
     if (!dataMutex) return status;
-    xSemaphoreTake(dataMutex, portMAX_DELAY);
+    if (xSemaphoreTake(dataMutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+        return status;
+    }
     Status copy = status;
     xSemaphoreGive(dataMutex);
     return copy;

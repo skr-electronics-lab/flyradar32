@@ -167,7 +167,7 @@ struct AircraftPoint {
 //  FIRMWARE INFO
 // ============================================================
 #define FW_NAME     "FlyRadar32"
-#define FW_VERSION  "2.0.0"
+#define FW_VERSION  "1.0.0"
 #define FW_BRAND    "by SKR Electronics Lab"
 #define MDNS_NAME   "flyradar32"
 

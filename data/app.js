@@ -111,9 +111,11 @@
   // -------------------------------------------------------------
   // Cockpit Navigation Tabs (3 Tabs)
   // -------------------------------------------------------------
+  let activeCockpitTab = "radar";
   document.querySelectorAll(".nav-tab").forEach(tab => {
     tab.addEventListener("click", () => {
       const targetTab = tab.dataset.tab;
+      activeCockpitTab = targetTab;
       document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
       document.querySelectorAll(".cockpit-panel").forEach(p => p.classList.remove("active"));
 
@@ -124,6 +126,8 @@
       // Resize radar canvas if entering radar view
       if (targetTab === "radar") {
         resizeRadarCanvas();
+      } else if (targetTab === "traffic") {
+        renderTrafficTable();
       }
     });
   });
@@ -149,252 +153,294 @@
   setTimeout(resizeRadarCanvas, 100);
 
   function renderRadar() {
-    if (!ctx || !canvas) return;
+    try {
+      if (!ctx || !canvas) return;
 
-    const w = canvas.width;
-    const h = canvas.height;
-    if (w === 0 || h === 0) {
-      requestAnimationFrame(renderRadar);
-      return;
-    }
+      const w = canvas.width;
+      const h = canvas.height;
+      if (w === 0 || h === 0) return;
 
-    const cx = w / 2;
-    const cy = h / 2;
-    const maxR = Math.min(cx, cy) * 0.90; // scope radius leaving outer margin for compass labels
+      const cx = w / 2;
+      const cy = h / 2;
+      const maxR = Math.min(cx, cy) * 0.90; // scope radius leaving outer margin for compass labels
 
-    const colors = THEME_PALETTES[activeTheme] || THEME_PALETTES[0];
+      const colors = THEME_PALETTES[activeTheme] || THEME_PALETTES[0];
 
-    // Clear Canvas
-    ctx.clearRect(0, 0, w, h);
+      // Clear Canvas
+      ctx.clearRect(0, 0, w, h);
 
-    // Deep radar scope circle with sleek radial glass depth
-    const scopeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-    scopeGrad.addColorStop(0, "#081624");
-    scopeGrad.addColorStop(0.55, "#040e17");
-    scopeGrad.addColorStop(1, "#020508");
-    ctx.fillStyle = scopeGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Outer boundary glowing rim
-    ctx.save();
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 1.8;
-    ctx.shadowColor = colors.accent;
-    ctx.shadowBlur = 8;
-    ctx.beginPath();
-    ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-
-    // Map tile overlay (optional, underneath all radar elements)
-    drawMapOverlay(ctx, cx, cy, maxR, mapCenter.lat, mapCenter.lon, radarRangeKm);
-
-    // Concentric Range Rings (3 rings: 33%, 66%, 100%)
-    [0.333, 0.666, 1.0].forEach((ratio, idx) => {
-      const r = maxR * ratio;
-      ctx.save();
-      ctx.lineWidth = (idx === 2) ? 1.8 : 1.2;
-      ctx.strokeStyle = (idx === 2) ? colors.accent : colors.grid;
-      if (idx === 2) {
-        ctx.shadowColor = colors.accent;
-        ctx.shadowBlur = 6;
-      }
+      // Deep radar scope circle with sleek radial glass depth
+      const scopeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+      scopeGrad.addColorStop(0, "#081624");
+      scopeGrad.addColorStop(0.55, "#040e17");
+      scopeGrad.addColorStop(1, "#020508");
+      ctx.fillStyle = scopeGrad;
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-
-      // Range text badge on vertical axis with subtle dark backing for crisp readability
-      const dist = Math.round(radarRangeKm * ratio);
-      const textStr = `${dist}km`;
-      const fontSize = Math.max(9, Math.round(w * 0.021));
-      ctx.font = `600 ${fontSize}px 'JetBrains Mono', monospace`;
-      const txtMetrics = ctx.measureText(textStr);
-      const tx = cx + 6;
-      const ty = cy - r + 12;
-
-      ctx.fillStyle = "rgba(4, 10, 18, 0.75)";
-      ctx.fillRect(tx - 2, ty - fontSize + 2, txtMetrics.width + 4, fontSize + 2);
-
-      ctx.fillStyle = colors.accent;
-      ctx.textAlign = "left";
-      ctx.fillText(textStr, tx, ty);
-    });
-
-    // Crosshair Lines
-    ctx.save();
-    ctx.strokeStyle = colors.gridSub;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(cx - maxR, cy);
-    ctx.lineTo(cx + maxR, cy);
-    ctx.moveTo(cx, cy - maxR);
-    ctx.lineTo(cx, cy + maxR);
-    ctx.stroke();
-    ctx.restore();
-
-    // Compass Radial Ticks & Degree Labels
-    for (let deg = 0; deg < 360; deg += 30) {
-      const rad = (deg - 90) * Math.PI / 180;
-      const x1 = cx + Math.cos(rad) * (maxR - 6);
-      const y1 = cy + Math.sin(rad) * (maxR - 6);
-      const x2 = cx + Math.cos(rad) * maxR;
-      const y2 = cy + Math.sin(rad) * maxR;
-
-      ctx.strokeStyle = colors.grid;
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-
-      const tx = cx + Math.cos(rad) * (maxR + 15);
-      const ty = cy + Math.sin(rad) * (maxR + 15) + 4;
-      ctx.font = `bold ${Math.max(10, Math.round(w * 0.023))}px 'JetBrains Mono', monospace`;
-      ctx.fillStyle = colors.accent;
-      ctx.textAlign = "center";
-      let lbl = `${deg}°`;
-      if (deg === 0) lbl = "N";
-      else if (deg === 90) lbl = "E";
-      else if (deg === 180) lbl = "S";
-      else if (deg === 270) lbl = "W";
-      ctx.fillText(lbl, tx, ty);
-    }
-
-    // Rotating Radar Sweep Beam with Authentic CRT Phosphor Fade Trail
-    if (showSweepAnim) {
-      const sweepRad = (sweepAngle - 90) * Math.PI / 180;
-      const trailSpan = (48 * Math.PI) / 180; // ~48° glowing wake
-      const tailRad = sweepRad - trailSpan;
-
-      const sweepGrad = ctx.createConicGradient(tailRad, cx, cy);
-      const spanRatio = trailSpan / (Math.PI * 2);
-
-      // Ethereal luminous phosphor wake: no muddy dark green!
-      sweepGrad.addColorStop(0, "transparent");
-      sweepGrad.addColorStop(spanRatio * 0.20, "rgba(0, 255, 0, 0.02)");
-      sweepGrad.addColorStop(spanRatio * 0.50, "rgba(0, 255, 0, 0.09)");
-      sweepGrad.addColorStop(spanRatio * 0.80, "rgba(0, 255, 0, 0.22)");
-      sweepGrad.addColorStop(spanRatio, "rgba(0, 255, 0, 0.40)");
-      sweepGrad.addColorStop(spanRatio + 0.001, "transparent");
-      sweepGrad.addColorStop(1, "transparent");
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.arc(cx, cy, maxR, tailRad, sweepRad, false);
-      ctx.closePath();
-      ctx.fillStyle = sweepGrad;
+      ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
       ctx.fill();
 
-      // Sharp luminous glowing leading sweep line
-      ctx.strokeStyle = colors.beam || "#99FF99";
-      ctx.lineWidth = 2.0;
+      // Outer boundary glowing rim
+      ctx.save();
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 1.8;
       ctx.shadowColor = colors.accent;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(sweepRad) * maxR, cy + Math.sin(sweepRad) * maxR);
+      ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
       ctx.stroke();
       ctx.restore();
 
-      // Advance sweep angle clockwise
-      sweepAngle = (sweepAngle + 1.2) % 360;
-    }
+      // Map tile overlay (optional, underneath all radar elements)
+      drawMapOverlay(ctx, cx, cy, maxR, mapCenter.lat, mapCenter.lon, radarRangeKm);
 
-    // Central Ground Station Emitter with subtle radar ping
-    const pingR = 4 + Math.sin(Date.now() / 250) * 2;
-    ctx.save();
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, pingR + 4, 0, Math.PI * 2);
-    ctx.stroke();
+      // Concentric Range Rings (3 rings: 33%, 66%, 100%)
+      [0.333, 0.666, 1.0].forEach((ratio, idx) => {
+        const r = maxR * ratio;
+        ctx.save();
+        ctx.lineWidth = (idx === 2) ? 1.8 : 1.2;
+        ctx.strokeStyle = (idx === 2) ? colors.accent : colors.grid;
+        if (idx === 2) {
+          ctx.shadowColor = colors.accent;
+          ctx.shadowBlur = 6;
+        }
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
 
-    ctx.fillStyle = colors.accent;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+        // Range text badge on vertical axis with subtle dark backing for crisp readability
+        const dist = Math.round(radarRangeKm * ratio);
+        const textStr = `${dist}km`;
+        const fontSize = Math.max(9, Math.round(w * 0.021));
+        ctx.font = `600 ${fontSize}px 'JetBrains Mono', monospace`;
+        const txtMetrics = ctx.measureText(textStr);
+        const tx = cx + 6;
+        const ty = cy - r + 12;
 
-    // Breadcrumb Trails
-    if (showTrails) {
+        ctx.fillStyle = "rgba(4, 10, 18, 0.75)";
+        ctx.fillRect(tx - 2, ty - fontSize + 2, txtMetrics.width + 4, fontSize + 2);
+
+        ctx.fillStyle = colors.accent;
+        ctx.textAlign = "left";
+        ctx.fillText(textStr, tx, ty);
+      });
+
+      // Crosshair Lines
+      ctx.save();
+      ctx.strokeStyle = colors.gridSub;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(cx - maxR, cy);
+      ctx.lineTo(cx + maxR, cy);
+      ctx.moveTo(cx, cy - maxR);
+      ctx.lineTo(cx, cy + maxR);
+      ctx.stroke();
+      ctx.restore();
+
+      // Compass Radial Ticks & Degree Labels
+      for (let deg = 0; deg < 360; deg += 30) {
+        const rad = (deg - 90) * Math.PI / 180;
+        const x1 = cx + Math.cos(rad) * (maxR - 6);
+        const y1 = cy + Math.sin(rad) * (maxR - 6);
+        const x2 = cx + Math.cos(rad) * maxR;
+        const y2 = cy + Math.sin(rad) * maxR;
+
+        ctx.strokeStyle = colors.grid;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        const tx = cx + Math.cos(rad) * (maxR + 15);
+        const ty = cy + Math.sin(rad) * (maxR + 15) + 4;
+        ctx.font = `bold ${Math.max(10, Math.round(w * 0.023))}px 'JetBrains Mono', monospace`;
+        ctx.fillStyle = colors.accent;
+        ctx.textAlign = "center";
+        let lbl = `${deg}°`;
+        if (deg === 0) lbl = "N";
+        else if (deg === 90) lbl = "E";
+        else if (deg === 180) lbl = "S";
+        else if (deg === 270) lbl = "W";
+        ctx.fillText(lbl, tx, ty);
+      }
+
+      // Smooth scanning pulse and HUD text when no targets in range
+      if (currentPlanes.length === 0) {
+        const scanPhase = (Date.now() % 2400) / 2400;
+        const pulseR = 8 + (maxR - 8) * scanPhase;
+        const pulseAlpha = Math.max(0, 1 - scanPhase) * 0.45;
+
+        ctx.save();
+        ctx.strokeStyle = colors.accent;
+        ctx.globalAlpha = pulseAlpha;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = 0.85;
+        ctx.fillStyle = colors.accent;
+        ctx.font = `600 ${Math.max(10, Math.round(w * 0.022))}px 'JetBrains Mono', monospace`;
+        ctx.textAlign = "center";
+        ctx.fillText("SCANNING AIRSPACE...", cx, cy + maxR * 0.42);
+        ctx.restore();
+      }
+
+      // Rotating Radar Sweep Beam with Authentic CRT Phosphor Fade Trail
+      if (showSweepAnim) {
+        const sweepRad = (sweepAngle - 90) * Math.PI / 180;
+        const trailSpan = (48 * Math.PI) / 180; // ~48° glowing wake
+        const tailRad = sweepRad - trailSpan;
+
+        if (typeof ctx.createConicGradient === "function") {
+          try {
+            const sweepGrad = ctx.createConicGradient(tailRad, cx, cy);
+            const spanRatio = trailSpan / (Math.PI * 2);
+
+            sweepGrad.addColorStop(0, "transparent");
+            sweepGrad.addColorStop(Math.min(1, spanRatio * 0.20), "rgba(0, 255, 0, 0.02)");
+            sweepGrad.addColorStop(Math.min(1, spanRatio * 0.50), "rgba(0, 255, 0, 0.09)");
+            sweepGrad.addColorStop(Math.min(1, spanRatio * 0.80), "rgba(0, 255, 0, 0.22)");
+            sweepGrad.addColorStop(Math.min(1, spanRatio), "rgba(0, 255, 0, 0.40)");
+            sweepGrad.addColorStop(Math.min(1, spanRatio + 0.002), "transparent");
+            sweepGrad.addColorStop(1, "transparent");
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.arc(cx, cy, maxR, tailRad, sweepRad, false);
+            ctx.closePath();
+            ctx.fillStyle = sweepGrad;
+            ctx.fill();
+            ctx.restore();
+          } catch (gradErr) {
+            // fallback gracefully
+          }
+        }
+
+        // Sharp luminous glowing leading sweep line
+        ctx.save();
+        ctx.strokeStyle = colors.beam || "#99FF99";
+        ctx.lineWidth = 2.0;
+        ctx.shadowColor = colors.accent;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + Math.cos(sweepRad) * maxR, cy + Math.sin(sweepRad) * maxR);
+        ctx.stroke();
+        ctx.restore();
+
+        // Advance sweep angle clockwise
+        sweepAngle = (sweepAngle + 1.2) % 360;
+      }
+
+      // Central Ground Station Emitter with subtle radar ping
+      const pingR = 4 + Math.sin(Date.now() / 250) * 2;
+      ctx.save();
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, pingR + 4, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = colors.accent;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // Breadcrumb Trails
+      if (showTrails) {
+        currentPlanes.forEach(p => {
+          const trail = planeTrails.get(p.hex);
+          if (trail && trail.length > 1) {
+            ctx.strokeStyle = colors.grid;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            trail.forEach((pt, i) => {
+              if (pt.dst > radarRangeKm) return;
+              const r = (pt.dst / radarRangeKm) * maxR;
+              const rad = (pt.brg - 90) * Math.PI / 180;
+              const x = cx + Math.cos(rad) * r;
+              const y = cy + Math.sin(rad) * r;
+              if (i === 0) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+          }
+        });
+      }
+
+      // Aircraft Blips & Labels
       currentPlanes.forEach(p => {
-        const trail = planeTrails.get(p.hex);
-        if (trail && trail.length > 1) {
-          ctx.strokeStyle = colors.grid;
+        if (p.dst > radarRangeKm) return;
+
+        const r = (p.dst / radarRangeKm) * maxR;
+        const rad = (p.brg - 90) * Math.PI / 180;
+        const px = cx + Math.cos(rad) * r;
+        const py = cy + Math.sin(rad) * r;
+
+        const isSelected = selectedPlane && selectedPlane.hex === p.hex;
+        const color = getAltColor(p.alt, p.gnd);
+
+        // Heading Vector line
+        if (showVectors && p.spd > 20) {
+          const vecLen = Math.min(35, (p.spd / 500) * 35);
+          const trkRad = (p.track - 90) * Math.PI / 180;
+          ctx.strokeStyle = color;
           ctx.lineWidth = 1.2;
           ctx.beginPath();
-          trail.forEach((pt, i) => {
-            if (pt.dst > radarRangeKm) return;
-            const r = (pt.dst / radarRangeKm) * maxR;
-            const rad = (pt.brg - 90) * Math.PI / 180;
-            const x = cx + Math.cos(rad) * r;
-            const y = cy + Math.sin(rad) * r;
-            if (i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          });
+          ctx.moveTo(px, py);
+          ctx.lineTo(px + Math.cos(trkRad) * vecLen, py + Math.sin(trkRad) * vecLen);
           ctx.stroke();
         }
+
+        // Draw Authentic Silhouette
+        drawAircraftGlyph(ctx, px, py, p.track, color);
+
+        // Target Selection Ring
+        if (isSelected) {
+          ctx.save();
+          ctx.strokeStyle = "#FFFFFF";
+          ctx.lineWidth = 1.8;
+          ctx.shadowColor = "#FFFFFF";
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(px, py, 10, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+
+          // Reticle Stems
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+          ctx.lineWidth = 1;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.moveTo(px, py - 14); ctx.lineTo(px, py + 14);
+          ctx.moveTo(px - 14, py); ctx.lineTo(px + 14, py);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Callsign Tag
+        ctx.font = `bold ${Math.max(9, Math.round(w * 0.02))}px 'JetBrains Mono', monospace`;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "left";
+        ctx.fillText(p.flight || p.hex, px + 9, py - 4);
       });
+    } catch (err) {
+      console.error("renderRadar error:", err);
+    } finally {
+      requestAnimationFrame(renderRadar);
     }
+  }
 
-    // Aircraft Blips & Labels
-    currentPlanes.forEach(p => {
-      if (p.dst > radarRangeKm) return;
-
-      const r = (p.dst / radarRangeKm) * maxR;
-      const rad = (p.brg - 90) * Math.PI / 180;
-      const px = cx + Math.cos(rad) * r;
-      const py = cy + Math.sin(rad) * r;
-
-      // Color based on altitude
-      let altColor = "#00FF00"; // Cruise (>28k ft) - Pure Green
-      if (p.alt < 10000) altColor = "#FF453A"; // Low approach (<10k ft)
-      else if (p.alt < 28000) altColor = "#FFB300"; // Mid transit
-
-      // Draw Heading Vector
-      if (showVectors && p.spd > 15) {
-        const trkRad = (p.track - 90) * Math.PI / 180;
-        const vecLen = Math.min(26, Math.max(10, p.spd * 0.05));
-        ctx.strokeStyle = altColor;
-        ctx.lineWidth = 1.4;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + Math.cos(trkRad) * vecLen, py + Math.sin(trkRad) * vecLen);
-        ctx.stroke();
-      }
-
-      // Draw tactical blip (diamond + heading tick)
-      drawAircraftGlyph(ctx, px, py, p.track, altColor);
-
-      // Highlight if selected
-      if (selectedPlane && selectedPlane.hex === p.hex) {
-        ctx.strokeStyle = colors.accent;
-        ctx.lineWidth = 2;
-        const pulse = 9 + Math.sin(Date.now() / 150) * 3;
-        ctx.beginPath();
-        ctx.arc(px, py, pulse, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.setLineDash([3, 3]);
-        ctx.beginPath();
-        ctx.arc(px, py, pulse + 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // Callsign Tag
-      ctx.font = `bold ${Math.max(9, Math.round(w * 0.02))}px 'JetBrains Mono', monospace`;
-      ctx.fillStyle = "#FFFFFF";
-      ctx.textAlign = "left";
-      ctx.fillText(p.flight || p.hex, px + 9, py - 4);
-    });
-
-    requestAnimationFrame(renderRadar);
+  function getAltColor(alt, gnd) {
+    if (gnd) return "#00E5FF";
+    if (alt < 10000) return "#FF453A";
+    if (alt < 28000) return "#FFB300";
+    return "#00FF00";
   }
 
   function drawAircraftGlyph(ctx, x, y, trackDeg, color) {
@@ -539,7 +585,21 @@
   // -------------------------------------------------------------
   // Realtime Data Ingestion & Live Feeds
   // -------------------------------------------------------------
+  let isFetchingAircraft = false;
+  let isFetchingStatus = false;
+  let isPageVisible = !document.hidden;
+
+  document.addEventListener("visibilitychange", () => {
+    isPageVisible = !document.hidden;
+    if (isPageVisible) {
+      fetchAircraft();
+      fetchStatus();
+    }
+  });
+
   async function fetchAircraft() {
+    if (!isPageVisible || isFetchingAircraft) return;
+    isFetchingAircraft = true;
     try {
       const data = await apiGet("/api/aircraft");
       const list = data.aircraft || [];
@@ -584,7 +644,9 @@
       }
 
       updateAirspaceStats();
-      renderTrafficTable();
+      if (activeCockpitTab === "traffic") {
+        renderTrafficTable();
+      }
 
       // Refresh selected aircraft telemetry
       if (selectedPlane) {
@@ -593,6 +655,8 @@
       }
     } catch (e) {
       console.warn("Realtime fetch error:", e);
+    } finally {
+      isFetchingAircraft = false;
     }
   }
 
@@ -709,6 +773,8 @@
   // Background Status Ingestion
   // -------------------------------------------------------------
   async function fetchStatus() {
+    if (!isPageVisible || isFetchingStatus) return;
+    isFetchingStatus = true;
     try {
       const s = await apiGet("/api/status");
       const statusPill = document.getElementById("statusPill");
@@ -763,6 +829,8 @@
       }
     } catch (e) {
       console.warn("Status fetch error:", e);
+    } finally {
+      isFetchingStatus = false;
     }
   }
 
@@ -1268,6 +1336,8 @@
 
   function drawMapOverlay(ctx, cx, cy, maxR, lat, lon, rangeKm) {
     if (!mapTilesEnabled) return;
+    if (!lat || !lon || isNaN(lat) || isNaN(lon) || !rangeKm || rangeKm <= 0) return;
+    try {
 
     // Calculate zoom level from range
     // rangeKm => zoom: 50=>10, 100=>9, 150=>8
@@ -1338,6 +1408,9 @@
 
     ctx.globalAlpha = 1;
     ctx.restore();
+    } catch (err) {
+      console.warn("Map overlay render error:", err);
+    }
   }
 
   // -------------------------------------------------------------

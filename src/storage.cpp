@@ -64,6 +64,7 @@ static void loadAll() {
     if (cache.zoomLevel < 0 || cache.zoomLevel > 2) cache.zoomLevel = 1;
     if (cache.labelsMode > 2) cache.labelsMode = 2;
     if (cache.refreshInterval < 5 || cache.refreshInterval > 300) cache.refreshInterval = 10;
+    if (cache.brightness < 100) cache.brightness = 255;
 }
 
 void Storage::begin() {

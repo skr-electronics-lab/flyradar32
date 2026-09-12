@@ -49,7 +49,7 @@ static void stopApMode() {
 
 void WifiManager::begin() {
     WiFi.persistent(false);
-    WiFi.setAutoReconnect(false);
+    WiFi.setAutoReconnect(true);
     WiFi.disconnect(true);
 
     AppSettings& s = Storage::settings();
@@ -97,6 +97,13 @@ void WifiManager::loop() {
             state = WIFI_STATE_FAILED;
             lastError = "Connection failed or timed out";
             if (!apActive) startApMode();
+        }
+    } else if (state == WIFI_STATE_CONNECTED) {
+        if (WiFi.status() != WL_CONNECTED) {
+            Serial.println("[WiFi] Lost connection, attempting reconnect...");
+            state = WIFI_STATE_CONNECTING;
+            connectStartedMs = millis();
+            WiFi.reconnect();
         }
     } else if (state == WIFI_STATE_FAILED || state == WIFI_STATE_AP_MODE) {
         static unsigned long nextStaRetryMs = 0;
