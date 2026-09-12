@@ -21,20 +21,21 @@ static void loadAll() {
     for (int i = 0; i < PROVIDER_COUNT; i++) {
         String enKey = "en" + String(i);
         String prKey = "pr" + String(i);
-        bool defEnabled = (i == PROVIDER_AIRPLANES_LIVE || i == PROVIDER_ADSB_LOL);
+        bool defEnabled = (i == PROVIDER_OPENSKY || i == PROVIDER_ADSB_LOL);
         cache.providerEnabled[i]  = prefs.getBool(enKey.c_str(), defEnabled);
         cache.providerPriority[i] = prefs.getUChar(prKey.c_str(), i);
     }
     cache.refreshInterval     = prefs.getInt("refInt", 10);
     prefs.end();
 
-    prefs.begin(NVS_NS_DISPLAY, true);
+    prefs.begin(NVS_NS_DISPLAY, false);
     cache.zoomLevel      = prefs.getInt("zoom", 1);
     cache.labelsMode     = prefs.getUChar("lblMode", 2);
-    cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_PLANE);
+    cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_DOT);
     cache.showSweepAnim  = prefs.getBool("swpAnim", true);
     cache.brightness     = prefs.getUChar("bright", 255);
-    cache.configPin      = prefs.getString("pin", "");
+    prefs.remove("pin"); // clear any stale lock
+    cache.configPin      = "";
     cache.theme          = prefs.getUChar("theme", 0);
     cache.showCompass    = prefs.getBool("cmp", true);
     cache.showRangeLabels= prefs.getBool("rlbl", true);
@@ -44,7 +45,7 @@ static void loadAll() {
     // Defensive clamping in case NVS holds stale/out-of-range values
     // from a previous firmware version (e.g. aircraftIcon used to max
     // out at 1, theme is brand new, etc).
-    if (cache.aircraftIcon >= AIRCRAFT_ICON_COUNT) cache.aircraftIcon = AIRCRAFT_ICON_PLANE;
+    if (cache.aircraftIcon > AIRCRAFT_ICON_ARROW) cache.aircraftIcon = AIRCRAFT_ICON_DOT;
     if (cache.theme >= THEME_COUNT) cache.theme = 0;
     if (cache.zoomLevel < 0 || cache.zoomLevel > 2) cache.zoomLevel = 1;
     if (cache.labelsMode > 2) cache.labelsMode = 2;
@@ -118,7 +119,7 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
                            uint8_t theme, bool showCompass, bool showRangeLabels, bool showTrail) {
     if (zoomLevel < 0 || zoomLevel > 2) zoomLevel = 1;
     if (labelsMode > 2) labelsMode = 2;
-    if (aircraftIcon >= AIRCRAFT_ICON_COUNT) aircraftIcon = AIRCRAFT_ICON_PLANE;
+    if (aircraftIcon > AIRCRAFT_ICON_ARROW) aircraftIcon = AIRCRAFT_ICON_DOT;
     if (theme >= THEME_COUNT) theme = 0;
 
     prefs.begin(NVS_NS_DISPLAY, false);

@@ -99,10 +99,11 @@ static const char* settingsIconLabels[SETTINGS_ICON_COUNT] = {
     "Back"
 };
 
-#define SETTINGS_PROVIDERS_COUNT 3
+#define SETTINGS_PROVIDERS_COUNT 4
 static const char* settingsProvidersLabels[SETTINGS_PROVIDERS_COUNT] = {
-    "airplanes.live",
+    "OpenSky",
     "adsb.lol",
+    "airplanes.live",
     "Back"
 };
 
@@ -381,7 +382,7 @@ static void handleSettingsButtons(ButtonEvent ev, ButtonId which) {
                 settingsProvidersIndex = (settingsProvidersIndex + 1) % SETTINGS_PROVIDERS_COUNT;
                 settingsProvidersScroll = calcScrollOffset(settingsProvidersIndex, SETTINGS_PROVIDERS_COUNT, 7);
             } else if (which == BTN_ID_SELECT && ev == BTN_EVENT_SHORT_PRESS) {
-                if (settingsProvidersIndex < 2) {
+                if (settingsProvidersIndex < PROVIDER_COUNT) {
                     s.providerEnabled[settingsProvidersIndex] = !s.providerEnabled[settingsProvidersIndex];
                     Storage::saveProviderConfig(s.providerEnabled, s.providerPriority);
                     RadarDisplay::forceLVGLRefresh();

@@ -1,4 +1,4 @@
-﻿#include "radar_display.h"
+#include "radar_display.h"
 #include "storage.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
@@ -172,7 +172,7 @@ static uint16_t altitudeColor(int altFt, bool onGround, const ThemePalette& th) 
 #define BACKLIGHT_ACTIVE_LOW  true
 
 static void setBacklight(uint8_t brightness) {
-    ledcWrite(0, BACKLIGHT_ACTIVE_LOW ? (255 - brightness) : brightness);
+    ledcWrite(TFT_BLK, BACKLIGHT_ACTIVE_LOW ? (255 - brightness) : brightness);
 }
 
 // ---------------------------------------------------------------------
@@ -248,6 +248,7 @@ static inline void rotatePt(float fwd, float right, float rad, int& dx, int& dy)
 static void drawAircraftIcon(int px, int py, float trackDeg, uint16_t color, uint8_t iconType) {
     if (iconType == AIRCRAFT_ICON_DOT) {
         canvas.fillCircle(px, py, 2, color);
+        canvas.drawPixel(px, py, CLR_TEXT);
         return;
     }
 
@@ -255,31 +256,37 @@ static void drawAircraftIcon(int px, int py, float trackDeg, uint16_t color, uin
     int nx, ny, wlx, wly, wrx, wry, tx, ty;
 
     if (iconType == AIRCRAFT_ICON_ARROW) {
-        rotatePt(4, 0, rad, nx, ny);
-        rotatePt(-2, -2.5f, rad, wlx, wly);
-        rotatePt(-2, 2.5f, rad, wrx, wry);
+        rotatePt(5, 0, rad, nx, ny);
+        rotatePt(-3, -3.0f, rad, wlx, wly);
+        rotatePt(-3, 3.0f, rad, wrx, wry);
         rotatePt(-1, 0, rad, tx, ty);
         canvas.fillTriangle(px + nx, py + ny, px + wlx, py + wly, px + tx, py + ty, color);
         canvas.fillTriangle(px + nx, py + ny, px + wrx, py + wry, px + tx, py + ty, color);
+        canvas.drawPixel(px, py, CLR_TEXT);
         return;
     }
 
-    // AIRCRAFT_ICON_PLANE: a slightly larger, more detailed silhouette â€”
-    // fuselage line, delta wings and a small tail fin.
-    int fx, fy, tlx, tly, trx, try_, tclx, tcly;
-    rotatePt(5, 0, rad, nx, ny);          // nose
-    rotatePt(-4, 0, rad, fx, fy);         // tail
-    rotatePt(-1, -4.5f, rad, wlx, wly);   // left wingtip
-    rotatePt(-1, 4.5f, rad, wrx, wry);    // right wingtip
-    rotatePt(-3, -2, rad, tlx, tly);      // left tailplane tip
-    rotatePt(-3, 2, rad, trx, try_);      // right tailplane tip
-    rotatePt(-1, 0, rad, tclx, tcly);     // wing root (shared apex)
+    // AIRCRAFT_ICON_PLANE: Sleek supersonic tactical delta jet silhouette
+    // Crisp symmetrical geometry with delta wings, tail stabilizers, and pinpoint center beacon
+    int fx, fy, tlx, tly, trx, try_;
+    rotatePt(6, 0, rad, nx, ny);          // Sharp nose cone
+    rotatePt(-1, -5.5f, rad, wlx, wly);   // Left wingtip
+    rotatePt(-1, 5.5f, rad, wrx, wry);    // Right wingtip
+    rotatePt(-4, -2.5f, rad, tlx, tly);   // Left tail stabilizer
+    rotatePt(-4, 2.5f, rad, trx, try_);   // Right tail stabilizer
+    rotatePt(-4, 0, rad, tx, ty);         // Fuselage tail end
+    rotatePt(-1, 0, rad, fx, fy);         // Mid-body wing root
 
-    canvas.drawLine(px + nx, py + ny, px + fx, py + fy, color);          // fuselage
-    canvas.fillTriangle(px + nx, py + ny, px + wlx, py + wly, px + tclx, py + tcly, color);
-    canvas.fillTriangle(px + nx, py + ny, px + wrx, py + wry, px + tclx, py + tcly, color);
-    canvas.fillTriangle(px + tlx, py + tly, px + fx, py + fy, px + tclx, py + tcly, color);
-    canvas.fillTriangle(px + fx, py + fy, px + trx, py + try_, px + tclx, py + tcly, color);
+    // Delta main wings
+    canvas.fillTriangle(px + nx, py + ny, px + wlx, py + wly, px + fx, py + fy, color);
+    canvas.fillTriangle(px + nx, py + ny, px + wrx, py + wry, px + fx, py + fy, color);
+    // Tail stabilizers
+    canvas.fillTriangle(px + fx, py + fy, px + tlx, py + tly, px + tx, py + ty, color);
+    canvas.fillTriangle(px + fx, py + fy, px + trx, py + try_, px + tx, py + ty, color);
+    // Fuselage center spine
+    canvas.drawLine(px + nx, py + ny, px + tx, py + ty, color);
+    // White transponder beacon center dot (GPS fix accuracy)
+    canvas.drawPixel(px, py, CLR_TEXT);
 }
 
 void RadarDisplay::begin() {
@@ -289,8 +296,7 @@ void RadarDisplay::begin() {
     canvas.setColorDepth(16);
     canvas.createSprite(SCREEN_W, SCREEN_H);
 
-    ledcSetup(0, 5000, 8);
-    ledcAttachPin(TFT_BLK, 0);
+    ledcAttach(TFT_BLK, 5000, 8);
     setBacklight(Storage::settings().brightness);
 
     lv_init();
@@ -639,38 +645,38 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
     canvas.drawLine(CX, CY - RADAR_R, CX, CY + RADAR_R, th.grid);
     canvas.drawLine(CX - RADAR_R, CY, CX + RADAR_R, CY, th.grid);
 
+    // Always draw range labels and compass if enabled, providing immediate scope visibility
+    if (s.showRangeLabels) {
+        canvas.setTextColor(th.dim, CLR_BG);
+        canvas.setCursor(CX + 2, CY - (int)(RADAR_R * 0.33f) - 7);
+        canvas.print((int)(rangeKm * 0.33f));
+        canvas.setCursor(CX + 2, CY - (int)(RADAR_R * 0.66f) - 7);
+        canvas.print((int)(rangeKm * 0.66f));
+        canvas.setCursor(CX + 2, CY - RADAR_R - 7);
+        canvas.print((int)rangeKm);
+    }
+
+    if (s.showCompass) {
+        canvas.setTextColor(th.dim, CLR_BG);
+        canvas.setCursor(CX - 3, CY - RADAR_R + 2);
+        canvas.print("N");
+        canvas.setCursor(CX + RADAR_R - 9, CY - 4);
+        canvas.print("E");
+        canvas.setCursor(CX - 3, CY + RADAR_R - 10);
+        canvas.print("S");
+        canvas.setCursor(CX - RADAR_R + 2, CY - 4);
+        canvas.print("W");
+    }
+
     if (status.lastSuccessMs == 0 && count == 0) {
-        // --- Loading / Connecting Animation ---
-        int pulseR = 2 + (millis() % 1000) / 200;
+        // --- Searching sky initial pulse ---
+        int pulseR = 3 + (millis() % 1200) / 200;
         canvas.fillCircle(CX, CY, pulseR, th.accent);
-        
         canvas.setTextColor(th.text, CLR_BG);
         canvas.setTextDatum(MC_DATUM);
-        canvas.drawString("SCANNING...", CX, CY + RADAR_R / 2);
+        canvas.drawString("SCANNING SKY...", CX, CY + RADAR_R / 2);
         canvas.setTextDatum(TL_DATUM);
     } else {
-        if (s.showRangeLabels) {
-            canvas.setTextColor(th.dim, CLR_BG);
-            canvas.setCursor(CX + 2, CY - (int)(RADAR_R * 0.33f) - 7);
-            canvas.print((int)(rangeKm * 0.33f));
-            canvas.setCursor(CX + 2, CY - (int)(RADAR_R * 0.66f) - 7);
-            canvas.print((int)(rangeKm * 0.66f));
-            canvas.setCursor(CX + 2, CY - RADAR_R - 7);
-            canvas.print((int)rangeKm);
-        }
-
-        if (s.showCompass) {
-            canvas.setTextColor(th.dim, CLR_BG);
-            canvas.setCursor(CX - 3, CY - RADAR_R + 2);
-            canvas.print("N");
-            canvas.setCursor(CX + RADAR_R - 9, CY - 4);
-            canvas.print("E");
-            canvas.setCursor(CX - 3, CY + RADAR_R - 10);
-            canvas.print("S");
-            canvas.setCursor(CX - RADAR_R + 2, CY - 4);
-            canvas.print("W");
-        }
-
         // --- Breadcrumb trails (drawn first so aircraft icons sit on top) ---
         if (s.showTrail) {
             for (int i = 0; i < count; i++) {
@@ -680,7 +686,6 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
                     if (trails[j].used && strncmp(trails[j].hex, planes[i].icaoHex, 7) == 0) { slot = &trails[j]; break; }
                 }
                 if (!slot) continue;
-                uint16_t baseColor = altitudeColor(planes[i].altitudeFt, planes[i].onGround, th);
                 for (uint8_t k = 1; k < slot->count; k++) {
                     if (slot->distKm[k] > rangeKm || slot->distKm[k-1] > rangeKm) continue;
                     
@@ -737,41 +742,71 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
         }
     }
 
-    // --- Sweep animation ---
+    // --- Sweep animation with phosphor wake (drawn under aircraft so targets stay sharp) ---
     if (showSweepAnim) {
+        // 3-tier phosphor wake trailing behind clockwise sweep
+        const int wakeAngles[3] = {6, 4, 2};
+        const uint16_t wakeColors[3] = {th.grid, th.dim, th.sweep};
+        for (int w = 0; w < 3; w++) {
+            float wRad = (sweepAngle - wakeAngles[w] - 90) * DEG_TO_RAD;
+            int wx = CX + (int)(cos(wRad) * RADAR_R);
+            int wy = CY + (int)(sin(wRad) * RADAR_R);
+            canvas.drawLine(CX, CY, wx, wy, wakeColors[w]);
+        }
+        // Bright leading beam
         float rad = (sweepAngle - 90) * DEG_TO_RAD;
         int ex = CX + (int)(cos(rad) * RADAR_R);
         int ey = CY + (int)(sin(rad) * RADAR_R);
-        canvas.drawLine(CX, CY, ex, ey, th.sweep);
+        canvas.drawLine(CX, CY, ex, ey, th.accent);
     }
 
     // -----------------------------------------------------------------
-    // Sidebar: dedicated status column, fully clear of the scope, so
-    // text never overlaps aircraft or overflows the panel.
+    // Sidebar: Dedicated instrument column (X: 112..160, W: 48)
     // -----------------------------------------------------------------
-    canvas.drawLine(SIDEBAR_X - 1, 0, SIDEBAR_X - 1, SCREEN_H - 1, th.dim);
-    int sx = SIDEBAR_X + 4;
+    // Elevated dark panel background + dividing graticule line
+    canvas.fillRect(SIDEBAR_X, 0, SIDEBAR_W, SCREEN_H, 0x0821);
+    canvas.drawLine(SIDEBAR_X, 0, SIDEBAR_X, SCREEN_H - 1, th.grid);
 
-    // Vertical rhythm: consistent 11px row pitch, laid out top to bottom
-    // so nothing can ever collide or run past the 128px bottom edge.
-    canvas.setTextColor(th.accent, CLR_BG);
-    canvas.setCursor(sx, 3);
-    canvas.print("AC ");
+    int sx = SIDEBAR_X + 3;
+    int sw = SIDEBAR_W - 6;
+
+    // 1. Top Status Pill (Y: 2..14)
+    const char* stStr = "IDLE";
+    uint16_t stColor = th.dim;
+    if (status.fetchInProgress) {
+        stStr = "SYNC";
+        stColor = th.planeHi;
+    } else if (status.lastFetchOk) {
+        stStr = "LIVE";
+        stColor = th.sweep;
+    } else if (status.lastAttemptMs > 0) {
+        stStr = "NO SIG";
+        stColor = th.err;
+    }
+    canvas.drawRoundRect(sx, 2, sw, 12, 3, stColor);
+    canvas.fillCircle(sx + 5, 8, 2, stColor);
+    canvas.setTextColor(stColor, 0x0821);
+    canvas.setCursor(sx + 10, 4);
+    canvas.print(stStr);
+
+    // 2. Targets & Range Cards (Y: 16..41)
+    canvas.setTextColor(th.dim, 0x0821);
+    canvas.setCursor(sx, 17);
+    canvas.print("TGT:");
+    canvas.setTextColor(th.accent, 0x0821);
     canvas.print(count);
 
-    canvas.setTextColor(status.fetchInProgress ? th.planeHi : (status.lastFetchOk ? th.sweep : th.err), CLR_BG);
-    canvas.setCursor(sx, 14);
-    canvas.print(status.fetchInProgress ? "SYNC" : (status.lastFetchOk ? "LIVE" : "NO SIG"));
-
-    canvas.setTextColor(th.text, CLR_BG);
-    canvas.setCursor(sx, 28);
-    canvas.print("RNG");
-    canvas.setCursor(sx, 39);
+    canvas.setTextColor(th.dim, 0x0821);
+    canvas.setCursor(sx, 29);
+    canvas.print("RNG:");
+    canvas.setTextColor(th.text, 0x0821);
     canvas.print((int)rangeKm);
-    canvas.print("km");
+    canvas.print("k");
 
-    // Selected-aircraft quick facts
-    canvas.drawLine(sx - 2, 52, SCREEN_W - 4, 52, th.dim);
+    // Divider line
+    canvas.drawLine(sx, 42, sx + sw, 42, th.grid);
+
+    // 3. Target Telemetry Box (Y: 44..126)
     if (selectedIndex >= 0 && selectedIndex < count && planes[selectedIndex].valid) {
         const AircraftPoint& sp = planes[selectedIndex];
         const char* rawSel = sp.flight[0] ? sp.flight : sp.icaoHex;
@@ -779,30 +814,50 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
         strncpy(selLbl, rawSel, 7); selLbl[7] = '\0';
         for (int c = strlen(selLbl) - 1; c >= 0 && selLbl[c] == ' '; c--) selLbl[c] = '\0';
 
-        canvas.setTextColor(th.sel, CLR_BG);
-        canvas.setCursor(sx, 56);
+        // Callsign header
+        canvas.fillRoundRect(sx, 44, sw, 12, 2, th.grid);
+        canvas.setTextColor(th.sel, th.grid);
+        canvas.setCursor(sx + 2, 46);
         canvas.print(selLbl);
-        canvas.setTextColor(th.text, CLR_BG);
-        canvas.setCursor(sx, 67);
-        canvas.print(sp.altitudeFt);
-        canvas.print("ft");
-        canvas.setCursor(sx, 78);
+
+        canvas.setTextColor(th.text, 0x0821);
+        canvas.setCursor(sx, 58);
+        canvas.print((int)(sp.altitudeFt / 1000.0f));
+        canvas.print(".");
+        canvas.print((int)((sp.altitudeFt % 1000) / 100));
+        canvas.print("kft");
+
+        canvas.setCursor(sx, 70);
         canvas.print((int)sp.speedKt);
         canvas.print("kt");
-        canvas.setCursor(sx, 89);
+
+        canvas.setCursor(sx, 82);
         canvas.print((int)sp.distanceKm);
         canvas.print("km");
-        canvas.setCursor(sx, 100);
-        char typeLbl[8];
-        strncpy(typeLbl, sp.aircraftType, 7); typeLbl[7] = '\0';
-        canvas.print(typeLbl[0] ? typeLbl : "---");
-        canvas.setCursor(sx, 111);
-        canvas.print("SQ:");
-        canvas.print(sp.squawk);
+
+        canvas.setCursor(sx, 94);
+        canvas.print((int)sp.trackDeg);
+        canvas.print((char)247); // degree symbol
+
+        canvas.setTextColor(th.dim, 0x0821);
+        canvas.setCursor(sx, 106);
+        if (sp.aircraftType[0]) {
+            char tBuf[7]; strncpy(tBuf, sp.aircraftType, 6); tBuf[6] = '\0';
+            canvas.print(tBuf);
+        } else if (sp.squawk[0]) {
+            canvas.print("SQ:");
+            canvas.print(sp.squawk);
+        } else {
+            canvas.print(sp.icaoHex);
+        }
     } else {
-        canvas.setTextColor(th.dim, CLR_BG);
-        canvas.setCursor(sx, 56);
-        canvas.print("(none)");
+        canvas.setTextColor(th.dim, 0x0821);
+        canvas.setCursor(sx, 48);
+        canvas.print("TARGET");
+        canvas.setCursor(sx, 60);
+        canvas.print("SELECT");
+        canvas.setCursor(sx, 72);
+        canvas.print("AUTO");
     }
 
     canvas.pushSprite(0, 0);

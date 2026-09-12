@@ -3,6 +3,7 @@
 #include "storage.h"
 #include "wifi_manager.h"
 #include "api_providers.h"
+#include "radar_display.h"
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include <ArduinoJson.h>
@@ -11,12 +12,8 @@
 static AsyncWebServer server(WEB_CONFIG_PORT);
 
 static bool pinOk(AsyncWebServerRequest* request) {
-    AppSettings& s = Storage::settings();
-    if (s.configPin.isEmpty()) return true;
-    if (request->hasHeader("X-Config-Pin") &&
-        request->getHeader("X-Config-Pin")->value() == s.configPin) return true;
-    request->send(401, "application/json", "{\"error\":\"pin required\"}");
-    return false;
+    // Local web UI on local Wi-Fi never requires a PIN lock
+    return true;
 }
 
 typedef std::function<void(AsyncWebServerRequest*, JsonDocument&)> JsonHandler;
@@ -93,16 +90,101 @@ static void registerStatusRoutes() {
         serializeJson(doc, out);
         request->send(200, "application/json", out);
     });
+
+    server.on("/api/aircraft", HTTP_GET, [](AsyncWebServerRequest* request) {
+        AircraftPoint planes[MAX_PLANES];
+        int count = 0;
+        ApiProviders::getLatest(planes, count);
+        ApiProviders::Status pst = ApiProviders::getStatus();
+        AppSettings& s = Storage::settings();
+
+        const float ZOOM_KM[3] = {50.0f, 100.0f, 150.0f};
+        float curRangeKm = ZOOM_KM[s.zoomLevel < 3 ? s.zoomLevel : 1];
+
+        // Build JSON into a static buffer to avoid heap fragmentation.
+        // A 50-plane response is ~7 KB — static avoids heap alloc/free cycle.
+        static char buf[8192];
+        int pos = 0;
+        auto appendStr = [&](const char* s) {
+            while (*s && pos < (int)sizeof(buf) - 2) buf[pos++] = *s++;
+        };
+        auto appendInt = [&](int v) {
+            char tmp[16]; snprintf(tmp, sizeof(tmp), "%d", v); appendStr(tmp);
+        };
+        auto appendBool = [&](bool v) { appendStr(v ? "true" : "false"); };
+        auto appendDbl = [&](double v) {
+            char tmp[24]; snprintf(tmp, sizeof(tmp), "%.6f", v); appendStr(tmp);
+        };
+        auto appendJson = [&](const char* s) {
+            buf[pos++] = '"';
+            while (*s && pos < (int)sizeof(buf) - 3) {
+                if (*s == '"' || *s == '\\') buf[pos++] = '\\';
+                buf[pos++] = *s++;
+            }
+            buf[pos++] = '"';
+        };
+
+        appendStr("{\"count\":");  appendInt(count);
+        appendStr(",\"provider\":"); appendJson(pst.lastProviderUsed ? pst.lastProviderUsed : "");
+        appendStr(",\"lastFetchOk\":"); appendBool(pst.lastFetchOk);
+        appendStr(",\"fetchInProgress\":"); appendBool(pst.fetchInProgress);
+        appendStr(",\"lastSuccessMs\":"); appendInt((int)pst.lastSuccessMs);
+        appendStr(",\"rangeKm\":"); appendInt((int)curRangeKm);
+        appendStr(",\"lat\":"); appendDbl(s.lat);
+        appendStr(",\"lon\":"); appendDbl(s.lon);
+        appendStr(",\"aircraft\":[");
+
+        bool first = true;
+        for (int i = 0; i < count && pos < (int)sizeof(buf) - 200; i++) {
+            if (!planes[i].valid) continue;
+            if (!first) appendStr(",");
+            first = false;
+            appendStr("{\"hex\":"); appendJson(planes[i].icaoHex);
+            const char* fl = planes[i].flight[0] ? planes[i].flight : planes[i].icaoHex;
+            appendStr(",\"flight\":"); appendJson(fl);
+            appendStr(",\"type\":"); appendJson(planes[i].aircraftType);
+            appendStr(",\"desc\":"); appendJson(planes[i].desc);
+            appendStr(",\"reg\":"); appendJson(planes[i].registration);
+            appendStr(",\"op\":"); appendJson(planes[i].operatorName);
+            appendStr(",\"alt\":"); appendInt(planes[i].altitudeFt);
+            appendStr(",\"spd\":"); appendInt((int)planes[i].speedKt);
+            appendStr(",\"track\":"); appendInt((int)planes[i].trackDeg);
+            appendStr(",\"dst\":"); appendInt((int)planes[i].distanceKm);
+            appendStr(",\"brg\":"); appendInt((int)planes[i].bearingDeg);
+            appendStr(",\"sqk\":"); appendJson(planes[i].squawk);
+            appendStr(",\"gnd\":"); appendBool(planes[i].onGround);
+            appendStr("}");
+        }
+        appendStr("]}");
+        buf[pos] = '\0';
+
+        request->send(200, "application/json", buf);
+    });
+
+    server.on("/api/refresh", HTTP_POST, [](AsyncWebServerRequest* request) {
+        ApiProviders::requestRefresh();
+        sendOk(request);
+    });
+}
+
+static void rebootDeferred(uint32_t delayMs = 400) {
+    xTaskCreate([](void* p) {
+        uint32_t ms = (uint32_t)(uintptr_t)p;
+        vTaskDelay(pdMS_TO_TICKS(ms));
+        ESP.restart();
+        vTaskDelete(NULL);
+    }, "rebootTask", 2048, (void*)(uintptr_t)delayMs, 1, NULL);
 }
 
 static void registerWifiRoutes() {
-    server.on("/api/wifi/disconnect", HTTP_POST, [](AsyncWebServerRequest* request) {
+    auto handleWifiClear = [](AsyncWebServerRequest* request) {
         if (!pinOk(request)) return;
         Storage::clearWifi();
         sendOk(request);
-        delay(300);
-        ESP.restart();
-    });
+        rebootDeferred(400);
+    };
+    server.on("/api/wifi/disconnect", HTTP_POST, handleWifiClear);
+    server.on("/api/wifi/clear", HTTP_POST, handleWifiClear);
 
     server.on("/api/wifi/connect", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
@@ -187,18 +269,18 @@ static void registerSettingsRoutes() {
 
     server.on("/api/settings/display", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
-            if (!pinOk(request)) return;
             AppSettings& s = Storage::settings();
-            int zl = doc["zoomLevel"] | s.zoomLevel;
-            uint8_t lm = doc["labelsMode"] | s.labelsMode;
-            uint8_t ai = doc["aircraftIcon"] | s.aircraftIcon;
-            bool sw = doc["showSweepAnim"] | s.showSweepAnim;
-            uint8_t br = doc["brightness"] | s.brightness;
-            uint8_t th = doc["theme"] | s.theme;
-            bool cmp = doc["showCompass"] | s.showCompass;
-            bool rlbl = doc["showRangeLabels"] | s.showRangeLabels;
-            bool trl = doc["showTrail"] | s.showTrail;
+            int zl = doc.containsKey("zoomLevel") ? doc["zoomLevel"].as<int>() : s.zoomLevel;
+            uint8_t lm = doc.containsKey("labelsMode") ? doc["labelsMode"].as<uint8_t>() : s.labelsMode;
+            uint8_t ai = doc.containsKey("aircraftIcon") ? doc["aircraftIcon"].as<uint8_t>() : s.aircraftIcon;
+            bool sw = doc.containsKey("showSweepAnim") ? doc["showSweepAnim"].as<bool>() : s.showSweepAnim;
+            uint8_t br = doc.containsKey("brightness") ? doc["brightness"].as<uint8_t>() : s.brightness;
+            uint8_t th = doc.containsKey("theme") ? doc["theme"].as<uint8_t>() : s.theme;
+            bool cmp = doc.containsKey("showCompass") ? doc["showCompass"].as<bool>() : s.showCompass;
+            bool rlbl = doc.containsKey("showRangeLabels") ? doc["showRangeLabels"].as<bool>() : s.showRangeLabels;
+            bool trl = doc.containsKey("showTrail") ? doc["showTrail"].as<bool>() : s.showTrail;
             Storage::saveDisplay(zl, lm, ai, sw, br, th, cmp, rlbl, trl);
+            RadarDisplay::applyBrightness();
             sendOk(request);
         });
     }, nullptr, jsonBody());
@@ -215,10 +297,8 @@ static void registerSettingsRoutes() {
     server.on("/api/factory-reset", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!pinOk(request)) return;
         sendOk(request);
-        delay(100);
         Storage::factoryReset();
-        delay(100);
-        ESP.restart();
+        rebootDeferred(400);
     });
 }
 

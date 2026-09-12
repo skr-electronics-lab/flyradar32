@@ -119,14 +119,15 @@
 // ============================================================
 //  API PROVIDERS
 // ============================================================
-#define PROVIDER_AIRPLANES_LIVE 0
+#define PROVIDER_OPENSKY        0
 #define PROVIDER_ADSB_LOL       1
-#define PROVIDER_COUNT          2
+#define PROVIDER_AIRPLANES_LIVE 2
+#define PROVIDER_COUNT          3
 
 // ============================================================
 //  AIRCRAFT DATA
 // ============================================================
-#define MAX_PLANES 15
+#define MAX_PLANES 25
 
 // Trail (breadcrumb) history — cheap: 15 * 3 * 4 bytes ≈ 180 B
 #define TRAIL_LEN 5

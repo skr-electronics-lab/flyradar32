@@ -19,11 +19,11 @@ static bool refreshRequested = true;
 static ApiProviders::Status status = {false, false, "", 0, 0};
 
 // Per-provider consecutive-failure counters for simple backoff.
-static int failStreak[PROVIDER_COUNT] = {0, 0};
+static int failStreak[PROVIDER_COUNT] = {0, 0, 0};
 #define BACKOFF_SKIP_THRESHOLD 3   // after this many fails in a row, skip provider for a while
 #define BACKOFF_SKIP_CYCLES    5
 
-static int skipCyclesRemaining[PROVIDER_COUNT] = {0, 0};
+static int skipCyclesRemaining[PROVIDER_COUNT] = {0, 0, 0};
 
 // ---------------------------------------------------------------
 // Geo helpers
@@ -49,8 +49,157 @@ static float bearingDeg(double lat1, double lon1, double lat2, double lon2) {
     return brng;
 }
 
+// True zero-heap token parser for OpenSky state vectors
+static bool parseOpenSkyFallback(const String& payload, AircraftPoint temp[MAX_PLANES], int& tempCount,
+                                 double homeLat, double homeLon, float maxRangeKm) {
+    int statesIdx = payload.indexOf("\"states\":");
+    if (statesIdx < 0) return false;
+    int p = payload.indexOf('[', statesIdx);
+    if (p < 0) return false;
+    p++; // skip outer '['
+
+    const char* str = payload.c_str();
+    int len = payload.length();
+
+    while (p < len && tempCount < MAX_PLANES) {
+        while (p < len && str[p] != '[' && str[p] != ']') p++;
+        if (p >= len || str[p] == ']') break;
+        p++; // skip '['
+
+        char fields[17][36];
+        for (int i = 0; i < 17; i++) fields[i][0] = '\0';
+        int fCount = 0;
+
+        while (p < len && str[p] != ']' && fCount < 17) {
+            while (p < len && (str[p] == ' ' || str[p] == '\t' || str[p] == '\r' || str[p] == '\n')) p++;
+            if (p >= len || str[p] == ']') break;
+
+            int tLen = 0;
+            if (str[p] == '"') {
+                p++; // skip open quote
+                while (p < len && str[p] != '"') {
+                    if (str[p] == '\\' && p + 1 < len) p++;
+                    if (tLen < 35) fields[fCount][tLen++] = str[p];
+                    p++;
+                }
+                if (p < len && str[p] == '"') p++;
+            } else {
+                while (p < len && str[p] != ',' && str[p] != ']' && str[p] != ' ' && str[p] != '\r' && str[p] != '\n') {
+                    if (tLen < 35) fields[fCount][tLen++] = str[p];
+                    p++;
+                }
+            }
+            fields[fCount][tLen] = '\0';
+            fCount++;
+            while (p < len && (str[p] == ' ' || str[p] == ',')) p++;
+        }
+        while (p < len && str[p] != ']') p++;
+        if (p < len && str[p] == ']') p++;
+
+        if (fCount >= 7 && fields[5][0] != '\0' && strcmp(fields[5], "null") != 0 &&
+            fields[6][0] != '\0' && strcmp(fields[6], "null") != 0) {
+            double lon = atof(fields[5]);
+            double lat = atof(fields[6]);
+            if (lat != 0.0 || lon != 0.0) {
+                float d = distanceKm(homeLat, homeLon, lat, lon);
+                if (d <= maxRangeKm) {
+                    AircraftPoint& pt = temp[tempCount];
+                    pt.valid = true;
+                    pt.distanceKm = d;
+                    pt.bearingDeg = bearingDeg(homeLat, homeLon, lat, lon);
+                    strncpy(pt.icaoHex, fields[0], 7); pt.icaoHex[7] = '\0';
+
+                    char callsign[10];
+                    strncpy(callsign, fields[1], 9); callsign[9] = '\0';
+                    int cLen = strlen(callsign);
+                    while (cLen > 0 && callsign[cLen - 1] == ' ') callsign[--cLen] = '\0';
+                    if (cLen == 0) strncpy(callsign, fields[0], 9);
+                    strncpy(pt.flight, callsign, 9); pt.flight[9] = '\0';
+                    strncpy(pt.desc, fields[2], 31); pt.desc[31] = '\0';
+
+                    double altM = 0;
+                    if (fields[7][0] != '\0' && strcmp(fields[7], "null") != 0) altM = atof(fields[7]);
+                    else if (fCount > 13 && fields[13][0] != '\0' && strcmp(fields[13], "null") != 0) altM = atof(fields[13]);
+                    pt.altitudeFt = (int)(altM * 3.28084);
+
+                    pt.onGround = (fCount > 8 && strcmp(fields[8], "true") == 0);
+
+                    float spdMps = (fCount > 9 && fields[9][0] != '\0' && strcmp(fields[9], "null") != 0) ? atof(fields[9]) : 0.0f;
+                    pt.speedKt = spdMps * 1.94384f;
+
+                    pt.trackDeg = (fCount > 10 && fields[10][0] != '\0' && strcmp(fields[10], "null") != 0) ? atof(fields[10]) : 0.0f;
+
+                    const char* sq = (fCount > 14 && fields[14][0] != '\0' && strcmp(fields[14], "null") != 0) ? fields[14] : "";
+                    strncpy(pt.squawk, sq, 4); pt.squawk[4] = '\0';
+
+                    pt.aircraftType[0] = '\0';
+                    pt.registration[0] = '\0';
+                    strncpy(pt.operatorName, fields[2], 31); pt.operatorName[31] = '\0';
+
+                    tempCount++;
+                }
+            }
+        }
+    }
+    return (tempCount > 0);
+}
+
 // ---------------------------------------------------------------
-// Provider: airplanes.live  (no auth, ADS-B Exchange v2-compatible schema)
+// Provider: OpenSky Network (https://opensky-network.org)
+// High-reliability open REST API returning state vectors in bounding box
+// ---------------------------------------------------------------
+static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
+                         double homeLat, double homeLon, float maxRangeKm) {
+    tempCount = 0;
+    double dLat = (double)maxRangeKm / 111.0;
+    double cosLat = cos(homeLat * DEG_TO_RAD);
+    if (cosLat < 0.05) cosLat = 0.05;
+    double dLon = (double)maxRangeKm / (111.0 * cosLat);
+
+    double lamin = homeLat - dLat;
+    double lamax = homeLat + dLat;
+    double lomin = homeLon - dLon;
+    double lomax = homeLon + dLon;
+
+    String url = "https://opensky-network.org/api/states/all?lamin=" + String(lamin, 4) +
+                 "&lomin=" + String(lomin, 4) +
+                 "&lamax=" + String(lamax, 4) +
+                 "&lomax=" + String(lomax, 4);
+
+    Serial.printf("[fetch] OpenSky heap: free=%u maxAlloc=%u\n", ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+
+    WiFiClientSecure client;
+    client.setInsecure();
+    client.setHandshakeTimeout(10);
+    HTTPClient http;
+    http.setTimeout(8000);
+    http.setConnectTimeout(6000);
+    http.setUserAgent("Mozilla/5.0 (ESP32 ADS-B Ground Station)");
+
+    bool ok = false;
+    if (http.begin(client, url)) {
+        int code = http.GET();
+        Serial.printf("[fetch] OpenSky url=%s code=%d\n", url.c_str(), code);
+        if (code == HTTP_CODE_OK) {
+            String payload = http.getString();
+            // Immediately terminate connection & free TLS buffers before parsing
+            http.end();
+            client.stop();
+
+            ok = parseOpenSkyFallback(payload, temp, tempCount, homeLat, homeLon, maxRangeKm);
+            Serial.printf("[fetch] OpenSky parsed %d planes (ok=%d)\n", tempCount, ok);
+        } else {
+            http.end();
+            client.stop();
+        }
+    } else {
+        client.stop();
+    }
+    return ok;
+}
+
+// ---------------------------------------------------------------
+// Provider: ADS-B Exchange v2-compatible schema (adsb.lol / airplanes.live)
 // ---------------------------------------------------------------
 static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLANES], int& tempCount,
                                      double homeLat, double homeLon, float maxRangeKm) {
@@ -59,18 +208,31 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
     String url = String("https://") + host + "/v2/point/" + String(homeLat, 4) + "/" +
                  String(homeLon, 4) + "/" + String(radiusNm);
 
+    Serial.printf("[fetch] %s heap: free=%u maxAlloc=%u\n", host, ESP.getFreeHeap(), ESP.getMaxAllocHeap());
+
     WiFiClientSecure client;
     client.setInsecure();
+    client.setHandshakeTimeout(10);
     HTTPClient http;
 
-    http.setTimeout(10000);
-    http.setConnectTimeout(8000);
-    if (!http.begin(client, url)) return false;
+    http.setTimeout(8000);
+    http.setConnectTimeout(6000);
+    http.setUserAgent("Mozilla/5.0 (ESP32 ADS-B Ground Station)");
+    if (!http.begin(client, url)) {
+        client.stop();
+        return false;
+    }
 
     int code = http.GET();
+    Serial.printf("[fetch] %s url=%s code=%d\n", host, url.c_str(), code);
     bool ok = false;
     if (code == HTTP_CODE_OK) {
-        static StaticJsonDocument<256> filter;
+        String payload = http.getString();
+        // Immediately terminate connection & free TLS buffers before JSON parsing
+        http.end();
+        client.stop();
+
+        static StaticJsonDocument<384> filter;
         static bool filterInit = false;
         if (!filterInit) {
             filter["ac"][0]["lat"] = true;
@@ -80,6 +242,7 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
             filter["ac"][0]["gs"] = true;
             filter["ac"][0]["track"] = true;
             filter["ac"][0]["hex"] = true;
+            filter["ac"][0]["t"] = true;
             filter["ac"][0]["type"] = true;
             filter["ac"][0]["desc"] = true;
             filter["ac"][0]["squawk"] = true;
@@ -88,11 +251,10 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
             filterInit = true;
         }
 
-        // 12KB comfortably holds 15 filtered aircraft records (which include
-        // long strings like desc/ownOp); 6KB was silently truncating busy skies.
-        static DynamicJsonDocument doc(12288);
-        doc.clear();
-        DeserializationError err = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
+        DynamicJsonDocument doc(4096);
+        DeserializationError err = deserializeJson(doc, payload, DeserializationOption::Filter(filter));
+        Serial.printf("[fetch] %s parse err=%s docSize=%u payloadLen=%u\n",
+                      host, err.c_str(), (unsigned)doc.size(), (unsigned)payload.length());
         if (!err) {
             JsonArray arr = doc["ac"].as<JsonArray>();
             for (JsonObject ac : arr) {
@@ -113,14 +275,14 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
                 p.onGround = false;
 
                 if (ac["alt_baro"].is<float>()) {
-                    p.altitudeFt = (int)ac["alt_baro"].as<float>(); // can be fractional, e.g. 3475.25
+                    p.altitudeFt = (int)ac["alt_baro"].as<float>();
                 } else if (ac["alt_baro"].is<int>()) {
                     p.altitudeFt = ac["alt_baro"].as<int>();
-                } else if (strncmp(ac["alt_baro"], "ground", 6) == 0) {
+                } else if (strncmp(ac["alt_baro"] | "", "ground", 6) == 0) {
                     p.altitudeFt = 0;
                     p.onGround = true;
                 } else {
-                    p.altitudeFt = 0; // missing
+                    p.altitudeFt = 0;
                 }
 
                 String flightStr = ac["flight"] | "";
@@ -128,14 +290,22 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
                 strncpy(p.flight, flightStr.c_str(), 9); p.flight[9] = '\0';
                 String hexStr = ac["hex"] | "";
                 strncpy(p.icaoHex, hexStr.c_str(), 7); p.icaoHex[7] = '\0';
-                String typeStr = ac["type"] | "";
-                strncpy(p.aircraftType, typeStr.c_str(), 7); p.aircraftType[7] = '\0';
+
+                // In adsb.lol, "t" is the aircraft model (e.g. A20N, B77L). "type" is the transponder mode ("adsb_icao")
+                String modelStr = ac["t"] | "";
+                if (modelStr.isEmpty()) {
+                    String rawType = ac["type"] | "";
+                    if (rawType != "adsb_icao" && rawType != "mlat" && rawType != "tisb") {
+                        modelStr = rawType;
+                    }
+                }
+                strncpy(p.aircraftType, modelStr.c_str(), 7); p.aircraftType[7] = '\0';
                 
                 String descStr = ac["desc"] | "";
                 descStr.trim();
                 strncpy(p.desc, descStr.c_str(), 31); p.desc[31] = '\0';
 
-                const char* sq = ac["squawk"] | "";   // API sends a string like "7700"
+                const char* sq = ac["squawk"] | "";
                 strncpy(p.squawk, sq, 4); p.squawk[4] = '\0';
                 
                 String regStr = ac["r"] | "";
@@ -149,8 +319,10 @@ static bool fetchAdsbSchemaProvider(const char* host, AircraftPoint temp[MAX_PLA
             }
             ok = true;
         }
+    } else {
+        http.end();
+        client.stop();
     }
-    http.end();
     return ok;
 }
 
@@ -166,8 +338,8 @@ static bool fetchAdsbLol(AircraftPoint temp[MAX_PLANES], int& tempCount, double 
 // Provider dispatch table
 // ---------------------------------------------------------------
 typedef bool (*ProviderFn)(AircraftPoint[MAX_PLANES], int&, double, double, float);
-static ProviderFn providerFns[PROVIDER_COUNT] = {fetchAirplanesLive, fetchAdsbLol};
-static const char* providerNames[PROVIDER_COUNT] = {"airplanes.live", "adsb.lol"};
+static ProviderFn providerFns[PROVIDER_COUNT] = {fetchOpenSky, fetchAdsbLol, fetchAirplanesLive};
+static const char* providerNames[PROVIDER_COUNT] = {"OpenSky", "adsb.lol", "airplanes.live"};
 
 // ---------------------------------------------------------------
 // Background task
@@ -176,9 +348,6 @@ static void runFetchCycle() {
     Storage::lock();
     AppSettings& s = Storage::settings();
 
-    // Copy what we need, then release the settings lock BEFORE the slow
-    // network I/O — previously the lock was held for the whole fetch
-    // (up to ~18s with both providers), freezing every settings save.
     bool wifiUp = (WiFi.status() == WL_CONNECTED);
     double homeLat = s.lat;
     double homeLon = s.lon;
@@ -191,6 +360,7 @@ static void runFetchCycle() {
     Storage::unlock();
 
     if (!wifiUp) {
+        Serial.println("[fetch] Wi-Fi down, skipping cycle");
         xSemaphoreTake(dataMutex, portMAX_DELAY);
         status.fetchInProgress = false;
         status.lastFetchOk = false;
@@ -212,7 +382,7 @@ static void runFetchCycle() {
         }
     }
 
-    AircraftPoint temp[MAX_PLANES];
+    static AircraftPoint tempPlanes[MAX_PLANES];
     int tempCount = 0;
     bool success = false;
     const char* usedName = "";
@@ -221,19 +391,23 @@ static void runFetchCycle() {
         int idx = order[oi];
         if (skipCyclesRemaining[idx] > 0) { skipCyclesRemaining[idx]--; continue; }
 
-        for (int i = 0; i < MAX_PLANES; i++) temp[i].valid = false;
-        bool ok = providerFns[idx](temp, tempCount, homeLat, homeLon, maxRangeKm);
+        for (int i = 0; i < MAX_PLANES; i++) tempPlanes[i].valid = false;
+        bool ok = providerFns[idx](tempPlanes, tempCount, homeLat, homeLon, maxRangeKm);
 
         if (ok) {
             success = true;
             usedName = providerNames[idx];
             failStreak[idx] = 0;
+            Serial.printf("[fetch] %s OK, %d aircraft\n", providerNames[idx], tempCount);
         } else {
+            Serial.printf("[fetch] %s FAILED (streak %d, skip %d)\n", providerNames[idx], failStreak[idx] + 1, skipCyclesRemaining[idx]);
             failStreak[idx]++;
             if (failStreak[idx] >= BACKOFF_SKIP_THRESHOLD) {
                 skipCyclesRemaining[idx] = BACKOFF_SKIP_CYCLES;
                 failStreak[idx] = 0;
             }
+            // Small pause between providers so MbedTLS memory is cleanly released
+            vTaskDelay(pdMS_TO_TICKS(800));
         }
     }
 
@@ -243,7 +417,7 @@ static void runFetchCycle() {
     status.lastFetchOk = success;
     if (success) {
         sharedCount = tempCount;
-        for (int i = 0; i < tempCount; i++) sharedPlanes[i] = temp[i];
+        for (int i = 0; i < tempCount; i++) sharedPlanes[i] = tempPlanes[i];
         status.lastProviderUsed = usedName;
         status.lastSuccessMs = millis();
         everSucceeded = true;
@@ -271,7 +445,8 @@ static void apiTask(void* param) {
 void ApiProviders::begin() {
     dataMutex = xSemaphoreCreateMutex();
     sharedCount = 0;
-    xTaskCreatePinnedToCore(apiTask, "apiTask", 20480, nullptr, 1, nullptr, 0);
+    // Stack: 16KB on Core 1 (Application core) so Core 0 network IDLE task is never starved
+    xTaskCreatePinnedToCore(apiTask, "apiTask", 16384, nullptr, 1, nullptr, 1);
 }
 
 void ApiProviders::requestRefresh() {
