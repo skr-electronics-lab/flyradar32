@@ -256,6 +256,8 @@ static void handleRadarButtons(ButtonEvent ev, ButtonId which) {
             settingsMainIndex = 0; settingsMainScroll = 0;
             currentScreen = SCR_SETTINGS_MAIN;
         }
+    } else if (ev == BTN_EVENT_DUAL_LONG_PRESS) {
+        currentScreen = SCR_WEATHER;   // UP+DOWN held together
     }
 }
 
@@ -577,6 +579,10 @@ void loop() {
             case SCR_RADAR:                handleRadarButtons(ev, which); break;
             case SCR_PLANE_DETAIL:         handleDetailButtons(ev, which); break;
             case SCR_PLANE_LIST:           handleListButtons(ev, which); break;
+            case SCR_WEATHER:
+                // any SELECT press (short or long) returns to the radar
+                if (which == BTN_ID_SELECT) currentScreen = SCR_RADAR;
+                break;
             case SCR_SETTINGS_MAIN:
             case SCR_SETTINGS_DISPLAY:
             case SCR_SETTINGS_BRIGHTNESS:
@@ -696,6 +702,9 @@ void loop() {
                     s.staSsid.length() > 0 ? s.staSsid : "(setup mode)"
                 );
                 break;
+            case SCR_WEATHER:
+                RadarDisplay::renderWeatherScreen();
+                break;
             case SCR_FACTORY_RESET_CONFIRM:
                 RadarDisplay::renderFactoryResetConfirm();
                 break;
@@ -703,8 +712,8 @@ void loop() {
         }
     }
 
-    if (currentScreen != SCR_RADAR) {
-        lv_timer_handler();
-    }
+    // LVGL must always run on the radar screen too — the sidebar card is
+    // an LVGL object updated per frame.
+    lv_timer_handler();
     delay(5);
 }

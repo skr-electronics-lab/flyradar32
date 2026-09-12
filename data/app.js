@@ -809,6 +809,18 @@
       if (providerVal) providerVal.textContent = s.lastProvider || "OpenSky";
       const clockEl = document.getElementById("stationClock");
       if (clockEl) clockEl.textContent = s.time || "";
+
+      // Weather strip (compact: temp + wind)
+      const wxEl = document.getElementById("wxText");
+      if (wxEl) {
+        if (s.tempC !== undefined) {
+          const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+          const d = dirs[Math.round(((s.windDeg % 360) / 22.5)) % 16] || "N";
+          wxEl.textContent = `${Math.round(s.tempC)}\u00B0C ${d} ${Math.round(s.windKt)}kt`;
+        } else {
+          wxEl.textContent = "--";
+        }
+      }
       if (wifiSsid) wifiSsid.textContent = s.staIp ? "Connected" : "AP Mode";
       if (wifiIpHeader) wifiIpHeader.textContent = s.staIp ? `(${s.staIp})` : "";
       if (wifiStateEl) wifiStateEl.textContent = s.wifiState || "Connected";

@@ -16,6 +16,7 @@ enum AppScreen {
     SCR_SETTINGS_ICON,
     SCR_SETTINGS_PROVIDERS,
     SCR_SYSTEM_INFO,
+    SCR_WEATHER,
     SCR_FACTORY_RESET_CONFIRM
 };
 
@@ -46,6 +47,9 @@ namespace RadarDisplay {
 
     void renderSystemInfo(const String& ip, const String& wifiSsid);
     void renderFactoryResetConfirm();
+
+    // Full weather card screen (entered via UP+DOWN long-press).
+    void renderWeatherScreen();
 
     void forceLVGLRefresh();
 }

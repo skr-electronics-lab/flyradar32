@@ -529,6 +529,97 @@ void RadarDisplay::renderFactoryResetConfirm() {
     }
 }
 
+// WMO weather code -> short human text (only the common ranges)
+static const char* wmoText(int code) {
+    if (code == 0) return "Clear sky";
+    if (code <= 3) return "Partly cloudy";
+    if (code <= 48) return "Fog";
+    if (code <= 57) return "Drizzle";
+    if (code <= 67) return "Rain";
+    if (code <= 77) return "Snow";
+    if (code <= 82) return "Rain showers";
+    if (code <= 86) return "Snow showers";
+    if (code == 95) return "Thunderstorm";
+    if (code <= 99) return "Thunderstorm + hail";
+    return "Unknown";
+}
+
+// 16-point compass text for wind direction
+static const char* compass16(int deg) {
+    static const char* pts[] = {"N","NNE","NE","ENE","E","ESE","SE","SSE",
+                                "S","SSW","SW","WSW","W","WNW","NW","NNW"};
+    return pts[(deg % 360) / 23];
+}
+
+void RadarDisplay::renderWeatherScreen() {
+    if (is_radar_active) { is_radar_active = false; }
+    if (current_menu_title != "WEATHER") {
+        lv_obj_t * card = buildCard("STATION WEATHER", getLVThemeColor());
+
+        ApiProviders::Weather w = ApiProviders::getWeather();
+        lv_obj_t * cont = lv_obj_create(card);
+        lv_obj_set_size(cont, LIST_W, MENU_LIST_H);
+        lv_obj_align(cont, LV_ALIGN_BOTTOM_MID, 0, 0);
+        lv_obj_set_style_bg_color(cont, lv_color_hex(UI_ROW_BG), 0);
+        lv_obj_set_style_radius(cont, 4, 0);
+        lv_obj_set_style_border_width(cont, 0, 0);
+        lv_obj_set_style_pad_all(cont, 2, 0);
+        lv_obj_set_scrollbar_mode(cont, LV_SCROLLBAR_MODE_OFF);
+
+        uint32_t thx = theme().accent_hex;
+        int y = 0;
+        auto addRow = [&](const char* title, String data) {
+            lv_obj_t* lblTitle = lv_label_create(cont);
+            lv_label_set_text(lblTitle, title);
+            lv_obj_set_style_text_font(lblTitle, &lv_font_montserrat_12, 0);
+            lv_obj_set_style_text_color(lblTitle, lv_color_hex(UI_TEXT_DIM), 0);
+            lv_obj_set_pos(lblTitle, 0, y);
+
+            lv_obj_t* lblData = lv_label_create(cont);
+            lv_label_set_text(lblData, data.c_str());
+            lv_obj_set_style_text_font(lblData, &lv_font_montserrat_12, 0);
+            lv_obj_set_style_text_color(lblData, lv_color_hex(thx), 0);
+            lv_obj_set_width(lblData, LIST_W - 45);
+            lv_obj_set_pos(lblData, 45, y);
+            lv_label_set_long_mode(lblData, LV_LABEL_LONG_SCROLL_CIRCULAR);
+            y += 14;
+        };
+
+        if (!w.valid) {
+            lv_obj_t* wait = lv_label_create(cont);
+            lv_label_set_text(wait, "Fetching weather...\nRequires Wi-Fi.");
+            lv_obj_set_style_text_font(wait, &lv_font_montserrat_12, 0);
+            lv_obj_set_style_text_color(wait, lv_color_hex(UI_TEXT_DIM), 0);
+            lv_obj_align(wait, LV_ALIGN_CENTER, 0, 0);
+        } else {
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%.1fC (feels %.0fC)", w.tempC, w.feelsC);
+            addRow("Temp:", buf);
+            addRow("Cond:", wmoText(w.wmoCode));
+            snprintf(buf, sizeof(buf), "%s %d/%03ddeg", compass16(w.windDirDeg), (int)w.windKt, w.windDirDeg);
+            addRow("Wind:", buf);
+            snprintf(buf, sizeof(buf), "%d kt", (int)w.gustKt);
+            addRow("Gust:", buf);
+            snprintf(buf, sizeof(buf), "%d %%", w.humidityPct);
+            addRow("Hum:", buf);
+            snprintf(buf, sizeof(buf), "%d hPa", w.pressureHpa);
+            addRow("QNH:", buf);
+            snprintf(buf, sizeof(buf), "%d %%", w.cloudPct);
+            addRow("Cloud:", buf);
+            snprintf(buf, sizeof(buf), "%.1f mm", w.precipMm);
+            addRow("Rain:", buf);
+        }
+
+        lv_obj_t * hint = lv_label_create(card);
+        lv_label_set_text(hint, "SELECT to return");
+        lv_obj_set_style_text_color(hint, lv_color_hex(UI_TEXT_DIM), 0);
+        lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, 0);
+        lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -2);
+
+        current_menu_title = "WEATHER";
+    }
+}
+
 // Display callsign, falling back to the ICAO hex when the flight field
 // is empty/blank (some providers send spaces).
 static String fNameSafe(const AircraftPoint& p) {

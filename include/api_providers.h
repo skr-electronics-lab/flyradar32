@@ -32,4 +32,21 @@ namespace ApiProviders {
         unsigned long lastAttemptMs;
     };
     Status getStatus();
+
+    // Station weather from Open-Meteo (cached ~10 min, no API key).
+    struct Weather {
+        bool     valid;        // false until first successful fetch
+        time_t   fetchedAt;    // epoch, 0 = never
+        float    tempC;
+        float    feelsC;
+        float    windKt;
+        float    gustKt;
+        int      windDirDeg;
+        int      humidityPct;
+        int      pressureHpa;
+        int      cloudPct;
+        float    precipMm;
+        int      wmoCode;      // raw weather code (0=clear, 61=light rain...)
+    };
+    Weather getWeather();
 }

@@ -19,19 +19,52 @@ void Buttons::begin() {
     for (auto& b : btns) pinMode(b.pin, INPUT_PULLUP);
 }
 
+// UP+DOWN held together >= LONG_PRESS_MS -> BTN_EVENT_DUAL_LONG_PRESS
+// (used for the weather screen). While the combo is held, individual
+// UP/DOWN long/repeat events are suppressed so it can't misfire.
+static bool dualArmed = false;
+
 ButtonEvent Buttons::poll(ButtonId& outWhich) {
     unsigned long now = millis();
+    bool down[BTN_ID_COUNT];
+    for (int i = 0; i < BTN_ID_COUNT; i++) down[i] = (digitalRead(btns[i].pin) == LOW);
+
+    if (down[BTN_ID_UP] && down[BTN_ID_DOWN]) {
+        if (!dualArmed) {
+            dualArmed = true;
+            // treat combo start as the shared press moment
+            if (!btns[BTN_ID_UP].pressed)   { btns[BTN_ID_UP].pressed = true;   btns[BTN_ID_UP].pressStart = now; }
+            if (!btns[BTN_ID_DOWN].pressed) { btns[BTN_ID_DOWN].pressed = true; btns[BTN_ID_DOWN].pressStart = now; }
+            btns[BTN_ID_UP].longHandled = btns[BTN_ID_DOWN].longHandled = false;
+            btns[BTN_ID_UP].repeatFired = btns[BTN_ID_DOWN].repeatFired = true;
+        }
+        unsigned long held = now - btns[BTN_ID_UP].pressStart;
+        if (!btns[BTN_ID_UP].longHandled && held > LONG_PRESS_MS) {
+            btns[BTN_ID_UP].longHandled = btns[BTN_ID_DOWN].longHandled = true;
+            outWhich = BTN_ID_UP;
+            return BTN_EVENT_DUAL_LONG_PRESS;
+        }
+        return BTN_EVENT_NONE;
+    }
+    if (dualArmed) {
+        // combo released: swallow the release events
+        dualArmed = false;
+        btns[BTN_ID_UP].pressed = btns[BTN_ID_DOWN].pressed = false;
+        btns[BTN_ID_UP].longHandled = btns[BTN_ID_DOWN].longHandled = true;
+        return BTN_EVENT_NONE;
+    }
+
     for (int i = 0; i < BTN_ID_COUNT; i++) {
         BtnState& b = btns[i];
-        bool down = (digitalRead(b.pin) == LOW);
+        bool isDown = down[i];
 
-        if (down && !b.pressed) {
+        if (isDown && !b.pressed) {
             b.pressed = true;
             b.pressStart = now;
             b.longHandled = false;
             b.repeatFired = false;
             b.lastRepeatMs = now;
-        } else if (down && b.pressed) {
+        } else if (isDown && b.pressed) {
             unsigned long held = now - b.pressStart;
             if (!b.longHandled && held > LONG_PRESS_MS) {
                 b.longHandled = true;
@@ -45,7 +78,7 @@ ButtonEvent Buttons::poll(ButtonId& outWhich) {
                 outWhich = (ButtonId)i;
                 return BTN_EVENT_REPEAT;
             }
-        } else if (!down && b.pressed) {
+        } else if (!isDown && b.pressed) {
             b.pressed = false;
             unsigned long held = now - b.pressStart;
             if (!b.longHandled && held > DEBOUNCE_MS) {

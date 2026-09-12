@@ -68,6 +68,20 @@ static void registerStatusRoutes() {
         doc["fwVersion"] = FW_VERSION;
         doc["time"] = WifiManager::getClockDateTime();
 
+        ApiProviders::Weather wx = ApiProviders::getWeather();
+        if (wx.valid) {
+            doc["tempC"] = wx.tempC;
+            doc["feelsC"] = wx.feelsC;
+            doc["windKt"] = wx.windKt;
+            doc["gustKt"] = wx.gustKt;
+            doc["windDeg"] = wx.windDirDeg;
+            doc["humidity"] = wx.humidityPct;
+            doc["pressure"] = wx.pressureHpa;
+            doc["cloud"] = wx.cloudPct;
+            doc["precip"] = wx.precipMm;
+            doc["wmo"] = wx.wmoCode;
+        }
+
         ApiProviders::Status pst = ApiProviders::getStatus();
         doc["fetchInProgress"] = pst.fetchInProgress;
         doc["lastFetchOk"] = pst.lastFetchOk;

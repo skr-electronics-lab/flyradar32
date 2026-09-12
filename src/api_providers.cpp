@@ -5,6 +5,7 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <math.h>
+#include <time.h>
 
 // ---------------------------------------------------------------
 // Shared state, protected by dataMutex. NEVER touch these fields
@@ -13,6 +14,7 @@
 static SemaphoreHandle_t dataMutex = nullptr;
 static AircraftPoint sharedPlanes[MAX_PLANES];
 static int sharedCount = 0;
+static ApiProviders::Weather sharedWeather = {false, 0};
 static bool everSucceeded = false;
 
 static bool refreshRequested = true;
@@ -520,7 +522,63 @@ static void runFetchCycle() {
     xSemaphoreGive(dataMutex);
 }
 
+// ---------------------------------------------------------------
+// Weather (Open-Meteo, free, no API key). Runs in apiTask every 10 min
+// and on first boot; keeps last good data on failure.
+// ---------------------------------------------------------------
+static void fetchWeather() {
+    Storage::lock();
+    double lat = Storage::settings().lat;
+    double lon = Storage::settings().lon;
+    Storage::unlock();
+
+    String url = String("https://api.open-meteo.com/v1/forecast?latitude=") +
+                 String(lat, 4) + "&longitude=" + String(lon, 4) +
+                 "&current=temperature_2m,relative_humidity_2m,apparent_temperature,"
+                 "precipitation,weather_code,cloud_cover,pressure_msl,wind_speed_10m,"
+                 "wind_direction_10m,wind_gusts_10m&wind_speed_unit=kn";
+
+    WiFiClientSecure client;
+    client.setInsecure();
+    client.setHandshakeTimeout(10);
+    HTTPClient http;
+    http.setTimeout(8000);
+    http.setConnectTimeout(6000);
+    if (!http.begin(client, url)) return;
+
+    int code = http.GET();
+    if (code != HTTP_CODE_OK) { http.end(); client.stop(); return; }
+    String payload = http.getString();
+    http.end();
+    client.stop();
+
+    StaticJsonDocument<1536> doc;
+    if (deserializeJson(doc, payload)) return;
+    JsonObject cur = doc["current"];
+    if (cur.isNull()) return;
+
+    ApiProviders::Weather w = {};
+    w.valid = true;
+    w.fetchedAt = time(nullptr);
+    w.tempC = cur["temperature_2m"] | 0.0f;
+    w.feelsC = cur["apparent_temperature"] | 0.0f;
+    w.windKt = cur["wind_speed_10m"] | 0.0f;
+    w.gustKt = cur["wind_gusts_10m"] | 0.0f;
+    w.windDirDeg = cur["wind_direction_10m"] | 0;
+    w.humidityPct = cur["relative_humidity_2m"] | 0;
+    w.pressureHpa = cur["pressure_msl"] | 0;
+    w.cloudPct = cur["cloud_cover"] | 0;
+    w.precipMm = cur["precipitation"] | 0.0f;
+    w.wmoCode = cur["weather_code"] | 0;
+
+    xSemaphoreTake(dataMutex, portMAX_DELAY);
+    sharedWeather = w;
+    xSemaphoreGive(dataMutex);
+    Serial.printf("[weather] %.1fC %dkt %ddeg code=%d\n", w.tempC, (int)w.windKt, w.windDirDeg, w.wmoCode);
+}
+
 static void apiTask(void* param) {
+    bool weatherDone = false;
     for (;;) {
         bool run = false;
         xSemaphoreTake(dataMutex, portMAX_DELAY);
@@ -532,6 +590,16 @@ static void apiTask(void* param) {
         xSemaphoreGive(dataMutex);
 
         if (run) runFetchCycle();
+
+        // Weather: first time once Wi-Fi is up, then every 10 minutes
+        static unsigned long lastWeatherMs = 0;
+        if (WiFi.status() == WL_CONNECTED) {
+            if (!weatherDone || millis() - lastWeatherMs > 10UL * 60UL * 1000UL) {
+                fetchWeather();
+                weatherDone = true;
+                lastWeatherMs = millis();
+            }
+        }
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -574,6 +642,14 @@ ApiProviders::Status ApiProviders::getStatus() {
         return status;
     }
     Status copy = status;
+    xSemaphoreGive(dataMutex);
+    return copy;
+}
+
+ApiProviders::Weather ApiProviders::getWeather() {
+    if (!dataMutex) return sharedWeather;
+    if (xSemaphoreTake(dataMutex, pdMS_TO_TICKS(100)) != pdTRUE) return sharedWeather;
+    Weather copy = sharedWeather;
     xSemaphoreGive(dataMutex);
     return copy;
 }
