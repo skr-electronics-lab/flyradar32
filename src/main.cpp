@@ -519,7 +519,8 @@ void loop() {
 
     AppSettings& s = Storage::settings();
 
-    if (millis() - lastPeriodicRefreshMs > (unsigned long)(s.refreshInterval * 1000UL)) {
+    uint32_t intervalMs = (s.refreshInterval < 10 ? 10 : s.refreshInterval) * 1000UL;
+    if (millis() - lastPeriodicRefreshMs > intervalMs) {
         lastPeriodicRefreshMs = millis();
         ApiProviders::requestRefresh();
     }

@@ -7,6 +7,7 @@
   let radarRangeKm = 100;
   let showTrails = true;
   let showVectors = true;
+  let showSweepAnim = true;
   let sweepAngle = 0;
   let activeTheme = 0; // 0: Green, 1: Cyan, 2: Amber
   let lastDataUpdateMs = Date.now();
@@ -78,28 +79,31 @@
   // Theme Palettes
   // -------------------------------------------------------------
   const THEME_PALETTES = {
-    0: { // Matrix Green (Pure Green)
-      bg: "#04070B",
-      grid: "rgba(0, 255, 0, 0.22)",
-      gridSub: "rgba(0, 255, 0, 0.09)",
+    0: { // Matrix Green (Pure Vibrant Phosphor Green)
+      bg: "#02070d",
+      grid: "rgba(0, 255, 0, 0.30)",
+      gridSub: "rgba(0, 255, 0, 0.12)",
       accent: "#00FF00",
-      glow: "rgba(0, 255, 0, 0.35)",
+      beam: "#99FF99",
+      glow: "rgba(0, 255, 0, 0.40)",
       text: "#E0FFE0"
     },
     1: { // Ice Cyan
-      bg: "#04080E",
-      grid: "rgba(0, 229, 255, 0.18)",
-      gridSub: "rgba(0, 229, 255, 0.08)",
+      bg: "#020812",
+      grid: "rgba(0, 229, 255, 0.28)",
+      gridSub: "rgba(0, 229, 255, 0.12)",
       accent: "#00E5FF",
-      glow: "rgba(0, 229, 255, 0.25)",
+      beam: "#88F5FF",
+      glow: "rgba(0, 229, 255, 0.38)",
       text: "#E0F7FA"
     },
     2: { // Amber Retro
-      bg: "#0B0703",
-      grid: "rgba(255, 179, 0, 0.20)",
-      gridSub: "rgba(255, 179, 0, 0.09)",
+      bg: "#0a0602",
+      grid: "rgba(255, 179, 0, 0.28)",
+      gridSub: "rgba(255, 179, 0, 0.12)",
       accent: "#FFB300",
-      glow: "rgba(255, 179, 0, 0.28)",
+      beam: "#FFE088",
+      glow: "rgba(255, 179, 0, 0.40)",
       text: "#FFF3E0"
     }
   };
@@ -163,42 +167,76 @@
     // Clear Canvas
     ctx.clearRect(0, 0, w, h);
 
-    // Deep radar scope circle
-    ctx.fillStyle = colors.bg;
+    // Deep radar scope circle with sleek radial glass depth
+    const scopeGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
+    scopeGrad.addColorStop(0, "#081624");
+    scopeGrad.addColorStop(0.55, "#040e17");
+    scopeGrad.addColorStop(1, "#020508");
+    ctx.fillStyle = scopeGrad;
     ctx.beginPath();
     ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
     ctx.fill();
+
+    // Outer boundary glowing rim
+    ctx.save();
+    ctx.strokeStyle = colors.accent;
+    ctx.lineWidth = 1.8;
+    ctx.shadowColor = colors.accent;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(cx, cy, maxR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
 
     // Map tile overlay (optional, underneath all radar elements)
     drawMapOverlay(ctx, cx, cy, maxR, mapCenter.lat, mapCenter.lon, radarRangeKm);
 
     // Concentric Range Rings (3 rings: 33%, 66%, 100%)
-    ctx.lineWidth = 1;
     [0.333, 0.666, 1.0].forEach((ratio, idx) => {
       const r = maxR * ratio;
+      ctx.save();
+      ctx.lineWidth = (idx === 2) ? 1.8 : 1.2;
       ctx.strokeStyle = (idx === 2) ? colors.accent : colors.grid;
+      if (idx === 2) {
+        ctx.shadowColor = colors.accent;
+        ctx.shadowBlur = 6;
+      }
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.restore();
 
-      // Range text on vertical axis
+      // Range text badge on vertical axis with subtle dark backing for crisp readability
       const dist = Math.round(radarRangeKm * ratio);
-      ctx.font = `${Math.max(9, Math.round(w * 0.02))}px 'JetBrains Mono', monospace`;
+      const textStr = `${dist}km`;
+      const fontSize = Math.max(9, Math.round(w * 0.021));
+      ctx.font = `600 ${fontSize}px 'JetBrains Mono', monospace`;
+      const txtMetrics = ctx.measureText(textStr);
+      const tx = cx + 6;
+      const ty = cy - r + 12;
+
+      ctx.fillStyle = "rgba(4, 10, 18, 0.75)";
+      ctx.fillRect(tx - 2, ty - fontSize + 2, txtMetrics.width + 4, fontSize + 2);
+
       ctx.fillStyle = colors.accent;
       ctx.textAlign = "left";
-      ctx.fillText(`${dist}km`, cx + 6, cy - r + 12);
+      ctx.fillText(textStr, tx, ty);
     });
 
     // Crosshair Lines
+    ctx.save();
     ctx.strokeStyle = colors.gridSub;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
     ctx.beginPath();
     ctx.moveTo(cx - maxR, cy);
     ctx.lineTo(cx + maxR, cy);
     ctx.moveTo(cx, cy - maxR);
     ctx.lineTo(cx, cy + maxR);
     ctx.stroke();
+    ctx.restore();
 
-    // Compass Radial Ticks & Degree Labels (Outside scope, so legend never collides)
+    // Compass Radial Ticks & Degree Labels
     for (let deg = 0; deg < 360; deg += 30) {
       const rad = (deg - 90) * Math.PI / 180;
       const x1 = cx + Math.cos(rad) * (maxR - 6);
@@ -207,15 +245,15 @@
       const y2 = cy + Math.sin(rad) * maxR;
 
       ctx.strokeStyle = colors.grid;
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
       ctx.stroke();
 
-      // Compass label
-      const tx = cx + Math.cos(rad) * (maxR + 14);
-      const ty = cy + Math.sin(rad) * (maxR + 14) + 4;
-      ctx.font = `bold ${Math.max(10, Math.round(w * 0.022))}px 'JetBrains Mono', monospace`;
+      const tx = cx + Math.cos(rad) * (maxR + 15);
+      const ty = cy + Math.sin(rad) * (maxR + 15) + 4;
+      ctx.font = `bold ${Math.max(10, Math.round(w * 0.023))}px 'JetBrains Mono', monospace`;
       ctx.fillStyle = colors.accent;
       ctx.textAlign = "center";
       let lbl = `${deg}°`;
@@ -227,44 +265,60 @@
     }
 
     // Rotating Radar Sweep Beam with Authentic CRT Phosphor Fade Trail
-    // Layered under all targets, graticule, and labels so it NEVER blocks telemetry
-    const sweepRad = (sweepAngle - 90) * Math.PI / 180;
-    const trailSpan = (55 * Math.PI) / 180; // ~55° glowing wake
-    const tailRad = sweepRad - trailSpan;
+    if (showSweepAnim) {
+      const sweepRad = (sweepAngle - 90) * Math.PI / 180;
+      const trailSpan = (48 * Math.PI) / 180; // ~48° glowing wake
+      const tailRad = sweepRad - trailSpan;
 
-    // Conic gradient anchored at trailing edge (tailRad) fading smoothly forward to leading edge (sweepRad)
-    const sweepGrad = ctx.createConicGradient(tailRad, cx, cy);
-    const spanRatio = trailSpan / (Math.PI * 2);
+      const sweepGrad = ctx.createConicGradient(tailRad, cx, cy);
+      const spanRatio = trailSpan / (Math.PI * 2);
 
-    sweepGrad.addColorStop(0, "transparent");
-    sweepGrad.addColorStop(spanRatio * 0.25, "transparent");
-    sweepGrad.addColorStop(spanRatio * 0.55, colors.glow);
-    sweepGrad.addColorStop(spanRatio * 0.85, colors.accent + "44");
-    sweepGrad.addColorStop(spanRatio, colors.accent + "88");
-    sweepGrad.addColorStop(spanRatio + 0.001, "transparent");
-    sweepGrad.addColorStop(1, "transparent");
+      // Ethereal luminous phosphor wake: no muddy dark green!
+      sweepGrad.addColorStop(0, "transparent");
+      sweepGrad.addColorStop(spanRatio * 0.20, "rgba(0, 255, 0, 0.02)");
+      sweepGrad.addColorStop(spanRatio * 0.50, "rgba(0, 255, 0, 0.09)");
+      sweepGrad.addColorStop(spanRatio * 0.80, "rgba(0, 255, 0, 0.22)");
+      sweepGrad.addColorStop(spanRatio, "rgba(0, 255, 0, 0.40)");
+      sweepGrad.addColorStop(spanRatio + 0.001, "transparent");
+      sweepGrad.addColorStop(1, "transparent");
 
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.arc(cx, cy, maxR, tailRad, sweepRad, false);
+      ctx.closePath();
+      ctx.fillStyle = sweepGrad;
+      ctx.fill();
+
+      // Sharp luminous glowing leading sweep line
+      ctx.strokeStyle = colors.beam || "#99FF99";
+      ctx.lineWidth = 2.0;
+      ctx.shadowColor = colors.accent;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(sweepRad) * maxR, cy + Math.sin(sweepRad) * maxR);
+      ctx.stroke();
+      ctx.restore();
+
+      // Advance sweep angle clockwise
+      sweepAngle = (sweepAngle + 1.2) % 360;
+    }
+
+    // Central Ground Station Emitter with subtle radar ping
+    const pingR = 4 + Math.sin(Date.now() / 250) * 2;
     ctx.save();
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, maxR, tailRad, sweepRad, false);
-    ctx.closePath();
-    ctx.fillStyle = sweepGrad;
-    ctx.fill();
-
-    // Sharp glowing leading sweep line
     ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 1.8;
-    ctx.shadowColor = colors.accent;
-    ctx.shadowBlur = 4;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(sweepRad) * maxR, cy + Math.sin(sweepRad) * maxR);
+    ctx.arc(cx, cy, pingR + 4, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
 
-    // Advance sweep angle clockwise
-    sweepAngle = (sweepAngle + 1.2) % 360;
+    ctx.fillStyle = colors.accent;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
     // Breadcrumb Trails
     if (showTrails) {
@@ -871,7 +925,10 @@
       if (zoomSelect) zoomSelect.value = s.zoomLevel;
       if (labelsSelect) labelsSelect.value = s.labelsMode;
       if (iconSelect) iconSelect.value = s.aircraftIcon;
-      if (sweepToggle) sweepToggle.checked = s.showSweepAnim;
+      if (s.showSweepAnim !== undefined) {
+        showSweepAnim = Boolean(s.showSweepAnim);
+      }
+      if (sweepToggle) sweepToggle.checked = showSweepAnim;
       if (compassToggle) compassToggle.checked = s.showCompass;
       if (rangeLabelsToggle) rangeLabelsToggle.checked = s.showRangeLabels;
       if (trailToggle) trailToggle.checked = s.showTrail;
@@ -993,6 +1050,7 @@
   });
 
   document.getElementById("sweepToggle")?.addEventListener("change", (e) => {
+    showSweepAnim = e.target.checked;
     triggerAutoSaveDisplay({ showSweepAnim: e.target.checked });
   });
 

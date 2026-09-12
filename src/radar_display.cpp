@@ -701,77 +701,67 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
         canvas.print("W");
     }
 
-    if (status.lastSuccessMs == 0 && count == 0) {
-        // --- Searching sky initial pulse ---
-        int pulseR = 3 + (millis() % 1200) / 200;
-        canvas.fillCircle(CX, CY, pulseR, th.accent);
-        canvas.setTextColor(th.text, CLR_BG);
-        canvas.setTextDatum(MC_DATUM);
-        canvas.drawString("SCANNING SKY...", CX, CY + RADAR_R / 2);
-        canvas.setTextDatum(TL_DATUM);
-    } else {
-        // --- Breadcrumb trails (drawn first so aircraft icons sit on top) ---
-        if (s.showTrail) {
-            for (int i = 0; i < count; i++) {
-                if (!planes[i].valid) continue;
-                TrailSlot* slot = nullptr;
-                for (int j = 0; j < MAX_PLANES; j++) {
-                    if (trails[j].used && strncmp(trails[j].hex, planes[i].icaoHex, 7) == 0) { slot = &trails[j]; break; }
-                }
-                if (!slot) continue;
-                for (uint8_t k = 1; k < slot->count; k++) {
-                    if (slot->distKm[k] > rangeKm || slot->distKm[k-1] > rangeKm) continue;
-                    
-                    float r0 = (slot->distKm[k-1] / rangeKm) * RADAR_R;
-                    float rad0 = (slot->bearingDeg[k-1] - 90) * DEG_TO_RAD;
-                    int x0 = CX + (int)(cos(rad0) * r0);
-                    int y0 = CY + (int)(sin(rad0) * r0);
-                    
-                    float r1 = (slot->distKm[k] / rangeKm) * RADAR_R;
-                    float rad1 = (slot->bearingDeg[k] - 90) * DEG_TO_RAD;
-                    int x1 = CX + (int)(cos(rad1) * r1);
-                    int y1 = CY + (int)(sin(rad1) * r1);
-                    
-                    uint16_t color = (k == 1) ? th.dim : th.grid;
-                    canvas.drawLine(x0, y0, x1, y1, color);
-                }
-            }
-        }
-
-        // --- Aircraft ---
+    // --- Breadcrumb trails (drawn first so aircraft icons sit on top) ---
+    if (s.showTrail) {
         for (int i = 0; i < count; i++) {
             if (!planes[i].valid) continue;
-            if (planes[i].distanceKm > rangeKm) continue;
-
-            float screenRadius = (planes[i].distanceKm / rangeKm) * RADAR_R;
-            float planeRad = (planes[i].bearingDeg - 90) * DEG_TO_RAD;
-            int px = CX + (int)(cos(planeRad) * screenRadius);
-            int py = CY + (int)(sin(planeRad) * screenRadius);
-
-            uint16_t color = altitudeColor(planes[i].altitudeFt, planes[i].onGround, th);
-            drawAircraftIcon(px, py, planes[i].trackDeg, color, s.aircraftIcon);
-
-            if (i == selectedIndex) {
-                canvas.drawCircle(px, py, 7, th.sel);
+            TrailSlot* slot = nullptr;
+            for (int j = 0; j < MAX_PLANES; j++) {
+                if (trails[j].used && strncmp(trails[j].hex, planes[i].icaoHex, 7) == 0) { slot = &trails[j]; break; }
             }
-
-            if (labelsMode == 2 || (labelsMode == 1 && i == selectedIndex)) {
-                const char* raw = planes[i].flight[0] ? planes[i].flight : "UNK";
-                char lbl[8];
-                strncpy(lbl, raw, 7); lbl[7] = '\0';
-                for (int c = strlen(lbl) - 1; c >= 0 && lbl[c] == ' '; c--) lbl[c] = '\0';
-                int labelW = (int)strlen(lbl) * 6;
-
-                int lx = (px + 9 + labelW <= SIDEBAR_X - 2) ? (px + 9) : (px - 9 - labelW);
-                if (lx < 1) lx = 1;
-                int ly = py - 4;
-                if (ly < 1) ly = 1;
-                if (ly > SCREEN_H - 9) ly = SCREEN_H - 9;
-
-                canvas.setTextColor(th.text, CLR_BG);
-                canvas.setCursor(lx, ly);
-                canvas.print(lbl);
+            if (!slot) continue;
+            for (uint8_t k = 1; k < slot->count; k++) {
+                if (slot->distKm[k] > rangeKm || slot->distKm[k-1] > rangeKm) continue;
+                
+                float r0 = (slot->distKm[k-1] / rangeKm) * RADAR_R;
+                float rad0 = (slot->bearingDeg[k-1] - 90) * DEG_TO_RAD;
+                int x0 = CX + (int)(cos(rad0) * r0);
+                int y0 = CY + (int)(sin(rad0) * r0);
+                
+                float r1 = (slot->distKm[k] / rangeKm) * RADAR_R;
+                float rad1 = (slot->bearingDeg[k] - 90) * DEG_TO_RAD;
+                int x1 = CX + (int)(cos(rad1) * r1);
+                int y1 = CY + (int)(sin(rad1) * r1);
+                
+                uint16_t color = (k == 1) ? th.dim : th.grid;
+                canvas.drawLine(x0, y0, x1, y1, color);
             }
+        }
+    }
+
+    // --- Aircraft ---
+    for (int i = 0; i < count; i++) {
+        if (!planes[i].valid) continue;
+        if (planes[i].distanceKm > rangeKm) continue;
+
+        float screenRadius = (planes[i].distanceKm / rangeKm) * RADAR_R;
+        float planeRad = (planes[i].bearingDeg - 90) * DEG_TO_RAD;
+        int px = CX + (int)(cos(planeRad) * screenRadius);
+        int py = CY + (int)(sin(planeRad) * screenRadius);
+
+        uint16_t color = altitudeColor(planes[i].altitudeFt, planes[i].onGround, th);
+        drawAircraftIcon(px, py, planes[i].trackDeg, color, s.aircraftIcon);
+
+        if (i == selectedIndex) {
+            canvas.drawCircle(px, py, 7, th.sel);
+        }
+
+        if (labelsMode == 2 || (labelsMode == 1 && i == selectedIndex)) {
+            const char* raw = planes[i].flight[0] ? planes[i].flight : "UNK";
+            char lbl[8];
+            strncpy(lbl, raw, 7); lbl[7] = '\0';
+            for (int c = strlen(lbl) - 1; c >= 0 && lbl[c] == ' '; c--) lbl[c] = '\0';
+            int labelW = (int)strlen(lbl) * 6;
+
+            int lx = (px + 9 + labelW <= SIDEBAR_X - 2) ? (px + 9) : (px - 9 - labelW);
+            if (lx < 1) lx = 1;
+            int ly = py - 4;
+            if (ly < 1) ly = 1;
+            if (ly > SCREEN_H - 9) ly = SCREEN_H - 9;
+
+            canvas.setTextColor(th.text, CLR_BG);
+            canvas.setCursor(lx, ly);
+            canvas.print(lbl);
         }
     }
 
@@ -804,17 +794,17 @@ void RadarDisplay::renderRadar(const AircraftPoint planes[], int count, int swee
     int sw = SIDEBAR_W - 6;
 
     // 1. Top Status Pill (Y: 2..14)
-    const char* stStr = "IDLE";
+    const char* stStr = "STANDBY";
     uint16_t stColor = th.dim;
     if (status.fetchInProgress) {
         stStr = "SYNC";
         stColor = th.planeHi;
-    } else if (status.lastFetchOk) {
+    } else if (count > 0 || (status.lastSuccessMs > 0 && (millis() - status.lastSuccessMs < 45000))) {
         stStr = "LIVE";
         stColor = th.sweep;
     } else if (status.lastAttemptMs > 0) {
-        stStr = "NO SIG";
-        stColor = th.err;
+        stStr = "SEARCH";
+        stColor = th.dim;
     }
     canvas.drawRoundRect(sx, 2, sw, 12, 3, stColor);
     canvas.fillCircle(sx + 5, 8, 2, stColor);
