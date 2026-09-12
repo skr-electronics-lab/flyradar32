@@ -1010,6 +1010,8 @@
       if (compassToggle) compassToggle.checked = s.showCompass;
       if (rangeLabelsToggle) rangeLabelsToggle.checked = s.showRangeLabels;
       if (trailToggle) trailToggle.checked = s.showTrail;
+      const autoRangeToggle = document.getElementById("autoRangeToggle");
+      if (autoRangeToggle) autoRangeToggle.checked = Boolean(s.autoRange);
       if (refreshSelect) refreshSelect.value = s.refreshInterval;
 
       if (s.primaryProvider !== undefined) {
@@ -1101,9 +1103,17 @@
     });
   }
 
+  // Auto Range toggle (device-side auto zoom)
+  document.getElementById("autoRangeToggle")?.addEventListener("change", (e) => {
+    triggerAutoSaveDisplay({ autoRange: e.target.checked });
+  });
+
   // Dropdowns auto-save
   document.getElementById("zoomSelect")?.addEventListener("change", (e) => {
+    // Manual zoom pick disables auto-range on the device
     triggerAutoSaveDisplay({ zoomLevel: parseInt(e.target.value, 10) });
+    const autoRangeToggle = document.getElementById("autoRangeToggle");
+    if (autoRangeToggle) autoRangeToggle.checked = false;
   });
 
   document.getElementById("labelsSelect")?.addEventListener("change", (e) => {

@@ -55,6 +55,7 @@ static void loadAll() {
     cache.showCompass    = prefs.getBool("cmp", true);
     cache.showRangeLabels= prefs.getBool("rlbl", true);
     cache.showTrail      = prefs.getBool("trail", true);
+    cache.autoRange      = prefs.getBool("autoRng", false);
     prefs.end();
 
     // Defensive clamping in case NVS holds stale/out-of-range values
@@ -180,6 +181,15 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     cache.showCompass = showCompass;
     cache.showRangeLabels = showRangeLabels;
     cache.showTrail = showTrail;
+    unlock();
+}
+
+void Storage::saveAutoRange(bool on) {
+    lock();
+    prefs.begin(NVS_NS_DISPLAY, false);
+    prefs.putBool("autoRng", on);
+    prefs.end();
+    cache.autoRange = on;
     unlock();
 }
 

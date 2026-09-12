@@ -19,6 +19,7 @@ struct AppSettings {
     bool showCompass;
     bool showRangeLabels;
     bool showTrail;
+    bool autoRange;               // effective zoom computed from traffic
     String openSkyClientId;
     String openSkyClientSecret;
 };
@@ -41,6 +42,8 @@ public:
     
     static void saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim, uint8_t brightness,
                             uint8_t theme = 0, bool showCompass = true, bool showRangeLabels = true, bool showTrail = true);
+
+    static void saveAutoRange(bool on);   // separate key; doesn't touch other display settings
 
     static void factoryReset();
 };

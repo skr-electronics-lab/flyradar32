@@ -1,4 +1,4 @@
-#include <Arduino.h>
+﻿#include <Arduino.h>
 #include "config.h"
 #include "storage.h"
 #include "buttons.h"
@@ -39,17 +39,16 @@ static const char* THEME_NAMES[THEME_COUNT] = {"GREEN", "CYAN", "AMBER"};
 // ---------------------------------------------------------------
 // Settings menu layout.
 //
-// Items 0,1,3,4,9,10 open a dedicated sub-screen (range/brightness/
-// labels/icon/providers/aircraft list). Item 11 is a one-shot action
-// (force a data refresh). Items 2,5,6,7,8 are single-press direct
-// toggles/cycles handled right here in the main list, exactly like
-// the original "Animation" entry â€” this keeps the menu tree flat
-// and avoids adding a pile of near-identical new AppScreen states
-// just to flip one boolean each. Items 12,13,14 are info/reset/back.
+// Item 1 (Auto Range) is a direct toggle. Items 0,2,3,4,5,10,11 open a
+// dedicated sub-screen (range/brightness/labels/icon/theme/providers/
+// aircraft list). Item 12 is a one-shot action (force a data refresh).
+// Items 6,7,8,9 are single-press direct toggles handled in this list â€”
+// keeps the menu tree flat. Items 13,14,15 are info/reset/back.
 // ---------------------------------------------------------------
-#define SETTINGS_MAIN_COUNT 15
+#define SETTINGS_MAIN_COUNT 16
 static const char* settingsMainLabels[SETTINGS_MAIN_COUNT] = {
     "Radar Range",
+    "Auto Range",
     "Brightness",
     "Animation",
     "Labels",
@@ -117,10 +116,47 @@ static int calcScrollOffset(int selected, int total, int visible) {
     return offset;
 }
 
+// Effective display zoom index (0..2) for this cycle. When autoRange is on,
+// pick the smallest fixed zoom that contains the 10th-closest valid aircraft,
+// with 2-cycle hysteresis so traffic sitting near a boundary doesn't flap.
+// planes[] must already be valid-filled (not necessarily bearing-sorted).
+static int effectiveZoom() {
+    AppSettings& s = Storage::settings();
+    if (!s.autoRange) return s.zoomLevel;
+
+    // distances of valid planes (insertion sort, we only need order)
+    float d[MAX_PLANES];
+    int n = 0;
+    for (int i = 0; i < planeCount && n < MAX_PLANES; i++) {
+        if (planes[i].valid) {
+            int j = n++;
+            while (j > 0 && d[j-1] > planes[i].distanceKm) { d[j] = d[j-1]; j--; }
+            d[j] = planes[i].distanceKm;
+        }
+    }
+    if (n == 0) return s.zoomLevel;
+
+    float ref = d[n >= 10 ? 9 : n - 1];   // 10th closest, or closest if fewer
+    int want = 0;
+    while (want < 2 && ref > ApiProviders::ZOOM_KM[want]) want++;
+
+    static int lastWant = -1;
+    static int stableCount = 0;
+    static int applied = 1;
+    if (want == lastWant) {
+        if (stableCount < 2) stableCount++;
+        if (stableCount >= 2 && applied != want) applied = want;   // commit
+    } else {
+        stableCount = 0;
+        lastWant = want;
+    }
+    return applied;
+}
+
 static void clampSelection() {
     if (planeCount == 0) { selectedPlaneIndex = -1; return; }
 
-    float maxVisibleDist = ApiProviders::ZOOM_KM[Storage::settings().zoomLevel];
+    float maxVisibleDist = ApiProviders::ZOOM_KM[effectiveZoom()];
 
     if (selectedPlaneIndex >= 0 && selectedPlaneIndex < planeCount) {
         if (!planes[selectedPlaneIndex].valid || planes[selectedPlaneIndex].distanceKm > maxVisibleDist) {
@@ -172,7 +208,7 @@ static void sortByBearing() {
 static void moveSelection(int delta) {
     if (planeCount == 0) { selectedPlaneIndex = -1; return; }
     
-    float maxVisibleDist = ApiProviders::ZOOM_KM[Storage::settings().zoomLevel];
+    float maxVisibleDist = ApiProviders::ZOOM_KM[effectiveZoom()];
     int startIdx = selectedPlaneIndex;
     if (startIdx < 0) startIdx = 0; // If nothing selected, start from 0
 
@@ -272,52 +308,56 @@ static void handleSettingsButtons(ButtonEvent ev, ButtonId which) {
             } else if (which == BTN_ID_SELECT && ev == BTN_EVENT_SHORT_PRESS) {
                 switch (settingsMainIndex) {
                     case 0: settingsDisplayIndex = s.zoomLevel; currentScreen = SCR_SETTINGS_DISPLAY; break;
-                    case 1:
+                    case 1: // Auto Range direct toggle
+                        s.autoRange = !s.autoRange;
+                        Storage::saveAutoRange(s.autoRange);
+                        break;
+                    case 2:
                         if (s.brightness <= 64) settingsBrightnessIndex = 0;
                         else if (s.brightness <= 128) settingsBrightnessIndex = 1;
                         else if (s.brightness <= 192) settingsBrightnessIndex = 2;
                         else settingsBrightnessIndex = 3;
                         currentScreen = SCR_SETTINGS_BRIGHTNESS;
                         break;
-                    case 2:
+                    case 3:
                         s.showSweepAnim = !s.showSweepAnim;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 3:
+                    case 4:
                         settingsLabelsIndex = s.labelsMode;
                         currentScreen = SCR_SETTINGS_LABELS;
                         break;
-                    case 4:
+                    case 5:
                         settingsIconIndex = s.aircraftIcon;
                         currentScreen = SCR_SETTINGS_ICON;
                         break;
-                    case 5: // Theme: cycle 0 -> 1 -> 2 -> 0
+                    case 6: // Theme: cycle 0 -> 1 -> 2 -> 0
                         s.theme = (s.theme + 1) % THEME_COUNT;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 6: // Compass toggle
+                    case 7: // Compass toggle
                         s.showCompass = !s.showCompass;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 7: // Range labels toggle
+                    case 8: // Range labels toggle
                         s.showRangeLabels = !s.showRangeLabels;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 8: // Trail toggle
+                    case 9: // Trail toggle
                         s.showTrail = !s.showTrail;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 9: settingsProvidersIndex = 0; settingsProvidersScroll = 0; currentScreen = SCR_SETTINGS_PROVIDERS; break;
-                    case 10: listSelectedIndex = 0; currentScreen = SCR_PLANE_LIST; break;
-                    case 11: ApiProviders::requestRefresh(); currentScreen = SCR_RADAR; break;
-                    case 12: currentScreen = SCR_SYSTEM_INFO; break;
-                    case 13: currentScreen = SCR_FACTORY_RESET_CONFIRM; break;
-                    case 14: currentScreen = SCR_RADAR; break;
+                    case 10: settingsProvidersIndex = 0; settingsProvidersScroll = 0; currentScreen = SCR_SETTINGS_PROVIDERS; break;
+                    case 11: listSelectedIndex = 0; currentScreen = SCR_PLANE_LIST; break;
+                    case 12: ApiProviders::requestRefresh(); currentScreen = SCR_RADAR; break;
+                    case 13: currentScreen = SCR_SYSTEM_INFO; break;
+                    case 14: currentScreen = SCR_FACTORY_RESET_CONFIRM; break;
+                    case 15: currentScreen = SCR_RADAR; break;
                 }
             }
         } else if (ev == BTN_EVENT_LONG_PRESS && which == BTN_ID_SELECT) {
@@ -333,6 +373,8 @@ static void handleSettingsButtons(ButtonEvent ev, ButtonId which) {
             else if (which == BTN_ID_SELECT && ev == BTN_EVENT_SHORT_PRESS) {
                 if (settingsDisplayIndex < 3) {
                     s.zoomLevel = settingsDisplayIndex;
+                    // Manual pick overrides auto â€”switch it off
+                    if (s.autoRange) { s.autoRange = false; Storage::saveAutoRange(false); }
                     persistDisplay(s);
                     RadarDisplay::forceLVGLRefresh();
                 } else {
@@ -585,8 +627,9 @@ void loop() {
 
         switch (currentScreen) {
             case SCR_RADAR: {
+                int ez = effectiveZoom();
                 RadarDisplay::renderRadar(planes, planeCount, sweepAngle, selectedPlaneIndex,
-                                           ApiProviders::ZOOM_KM[s.zoomLevel], s.labelsMode, s.showSweepAnim,
+                                           ApiProviders::ZOOM_KM[ez], s.labelsMode, s.showSweepAnim,
                                            ApiProviders::getStatus());
                 if (s.showSweepAnim) sweepAngle = (sweepAngle + 4) % 360;
                 break;
@@ -605,18 +648,19 @@ void loop() {
                 char labels[SETTINGS_MAIN_COUNT][24];
                 const char* ptrs[SETTINGS_MAIN_COUNT];
                 for (int i = 0; i < SETTINGS_MAIN_COUNT; i++) ptrs[i] = settingsMainLabels[i];
-                snprintf(labels[0], 24, "Range: %d km", (int)ApiProviders::ZOOM_KM[s.zoomLevel]);
-                snprintf(labels[1], 24, "Brightness: %d%%", (int)((s.brightness * 100) / 255));
-                snprintf(labels[2], 24, "Anim: %s", s.showSweepAnim ? "ON" : "OFF");
+                snprintf(labels[0], 24, "Range: %d km%s", (int)ApiProviders::ZOOM_KM[s.zoomLevel], s.autoRange ? " A" : "");
+                snprintf(labels[1], 24, "Auto Range: %s", s.autoRange ? "ON" : "OFF");
+                snprintf(labels[2], 24, "Brightness: %d%%", (int)((s.brightness * 100) / 255));
+                snprintf(labels[3], 24, "Anim: %s", s.showSweepAnim ? "ON" : "OFF");
                 const char* lm = s.labelsMode == 0 ? "OFF" : (s.labelsMode == 1 ? "SELECTED" : "ALL");
-                snprintf(labels[3], 24, "Labels: %s", lm);
+                snprintf(labels[4], 24, "Labels: %s", lm);
                 const char* iconName = s.aircraftIcon == 0 ? "DOTS" : (s.aircraftIcon == 1 ? "ARROW" : "PLANE");
-                snprintf(labels[4], 24, "Icon: %s", iconName);
-                snprintf(labels[5], 24, "Theme: %s", THEME_NAMES[s.theme]);
-                snprintf(labels[6], 24, "Compass: %s", s.showCompass ? "ON" : "OFF");
-                snprintf(labels[7], 24, "Range Labels: %s", s.showRangeLabels ? "ON" : "OFF");
-                snprintf(labels[8], 24, "Trail: %s", s.showTrail ? "ON" : "OFF");
-                for (int i = 0; i <= 8; i++) ptrs[i] = labels[i];
+                snprintf(labels[5], 24, "Icon: %s", iconName);
+                snprintf(labels[6], 24, "Theme: %s", THEME_NAMES[s.theme]);
+                snprintf(labels[7], 24, "Compass: %s", s.showCompass ? "ON" : "OFF");
+                snprintf(labels[8], 24, "Range Labels: %s", s.showRangeLabels ? "ON" : "OFF");
+                snprintf(labels[9], 24, "Trail: %s", s.showTrail ? "ON" : "OFF");
+                for (int i = 0; i <= 9; i++) ptrs[i] = labels[i];
                 RadarDisplay::renderScrollMenu("SETTINGS", ptrs, SETTINGS_MAIN_COUNT, settingsMainIndex, settingsMainScroll);
                 break;
             }

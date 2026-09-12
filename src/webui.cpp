@@ -239,6 +239,7 @@ static void registerSettingsRoutes() {
         doc["showCompass"] = s.showCompass;
         doc["showRangeLabels"] = s.showRangeLabels;
         doc["showTrail"] = s.showTrail;
+        doc["autoRange"] = s.autoRange;
         JsonArray en = doc.createNestedArray("providerEnabled");
         JsonArray pr = doc.createNestedArray("providerPriority");
         int primIdx = 1;
@@ -343,8 +344,12 @@ static void registerSettingsRoutes() {
             bool cmp = doc.containsKey("showCompass") ? doc["showCompass"].as<bool>() : s.showCompass;
             bool rlbl = doc.containsKey("showRangeLabels") ? doc["showRangeLabels"].as<bool>() : s.showRangeLabels;
             bool trl = doc.containsKey("showTrail") ? doc["showTrail"].as<bool>() : s.showTrail;
+            bool ar = doc.containsKey("autoRange") ? doc["autoRange"].as<bool>() : s.autoRange;
+            // A manual zoom pick overrides auto-range
+            if (doc.containsKey("zoomLevel") && ar) ar = false;
             Storage::unlock();
             Storage::saveDisplay(zl, lm, ai, sw, br, th, cmp, rlbl, trl);
+            if (ar != s.autoRange) Storage::saveAutoRange(ar);
             RadarDisplay::applyBrightness();
             sendOk(request);
         });
