@@ -344,38 +344,32 @@
   }
 
   function drawAircraftGlyph(ctx, x, y, trackDeg, color) {
-    // Tactical radar blip: filled diamond + short heading tick
+    // Authentic ATC/ADSB radar blip — no plane shape, just a clean blip + heading tick
     ctx.save();
 
-    // Glow
     ctx.shadowColor = color;
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = 8;
 
-    // Diamond body
-    const d = 5;
+    // Filled blip circle
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(x, y - d);   // Top
-    ctx.lineTo(x + d, y);   // Right
-    ctx.lineTo(x, y + d);   // Bottom
-    ctx.lineTo(x - d, y);   // Left
-    ctx.closePath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
     ctx.fill();
 
-    // White center core
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    // White center dot (transponder position fix)
+    ctx.fillStyle = "rgba(255,255,255,0.95)";
     ctx.beginPath();
-    ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+    ctx.arc(x, y, 1.4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Heading tick line (pointing in flight direction)
+    // Short heading vector tick
     const trkRad = (trackDeg - 90) * Math.PI / 180;
     ctx.strokeStyle = color;
     ctx.lineWidth = 1.8;
-    ctx.shadowBlur = 4;
+    ctx.shadowBlur = 5;
     ctx.beginPath();
-    ctx.moveTo(x + Math.cos(trkRad) * d, y + Math.sin(trkRad) * d);
-    ctx.lineTo(x + Math.cos(trkRad) * (d + 9), y + Math.sin(trkRad) * (d + 9));
+    ctx.moveTo(x + Math.cos(trkRad) * 4, y + Math.sin(trkRad) * 4);
+    ctx.lineTo(x + Math.cos(trkRad) * 18, y + Math.sin(trkRad) * 18);
     ctx.stroke();
 
     ctx.restore();
