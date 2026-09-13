@@ -567,4 +567,11 @@ if (part == "assembly") {
         translate([0, -case_depth/2 - 12 + i * 12, 0])
             button_cap();
     }
+
+} else if (part == "esp32") {
+    mock_esp32();
+
+} else if (part == "switch") {
+    mock_tactile_switch();
 }
+
