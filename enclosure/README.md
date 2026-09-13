@@ -10,13 +10,14 @@ A custom, avionics-inspired desktop ATC radar console enclosure designed specifi
 
 | Component | Specification | Notes |
 |---|---|---|
-| **Microcontroller** | ESP32 DevKit V1 (30-pin or 38-pin) | Slotted cradle with side retention guides |
-| **Display** | 1.8" ST7735 128×160 SPI TFT (Red PCB) | 4-point corner mount with chamfered bezel |
-| **Buttons** | 3× 6×6mm tactile pushbuttons | UP, SELECT, DOWN with printable actuator caps |
-| **Fasteners** | 4× M3 × 16mm screws | Bottom countersunk (no visible screws on face) |
-| **Thread Inserts** | 4× M3 heat-set brass inserts (OD ~4.2mm) | *Optional* — screws can also self-tap directly |
-| **Display Screws**| 4× M2 × 4mm or M2 × 6mm self-tapping | For securing the ST7735 PCB to the bezel |
-| **Desk Feet** | 4× 8mm rubber adhesive bumpers | Recessed circular slots in bottom chassis |
+| **Microcontroller** | ESP32 DevKit V1 (30-pin CH340 / CP2102) | Snug friction cradle with side retention guides + rear USB port access |
+| **Display** | AZ-Delivery 1.8" ST7735 128×160 SPI TFT | Exact AP242 CAD calibrated: 52.0×28.5mm hole pitch, -0.8mm glass offset |
+| **Buttons** | 3× 6×6mm tactile pushbuttons (`push_switch_small`) | UP (▲), SELECT (SEL), DOWN (▼) with captive printable actuator caps |
+| **Button Carrier** | Dual M2 interior standoff bosses (17.5mm half-pitch) | For mounting button perfboard or carrier bracket behind bezel |
+| **Fasteners** | 4× M3 × 16mm screws | Bottom countersunk (no visible screws on front face) |
+| **Thread Inserts** | 4× M3 heat-set brass inserts (OD ~4.2mm) | *Optional* — screws can also self-tap directly into top bosses |
+| **Display Screws**| 4× M2 × 4mm or M2.5 × 6mm self-tapping | Secures ST7735 PCB into 5.8mm OD bosses |
+| **Desk Feet** | 4× 8mm rubber adhesive bumpers | Recessed circular slots in bottom chassis base |
 
 ---
 

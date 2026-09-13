@@ -19,18 +19,21 @@ wall_thickness    = 2.4;    // Sturdy wall thickness (6 perimeters with 0.4mm no
 corner_radius     = 5.0;    // Exterior smooth corner radius
 lip_height        = 2.0;    // Interlocking alignment lip between top & bottom
 
-/* [Display ST7735 Dimensions] */
-disp_pcb_w        = 58.5;   // ST7735 PCB width (X)
-disp_pcb_h        = 34.5;   // ST7735 PCB height (Y)
+/* [Display ST7735 AZ-Delivery Exact Dimensions] */
+disp_pcb_w        = 58.0;   // Exact ST7735 PCB width (X) from AP242 CAD
+disp_pcb_h        = 34.5;   // Exact ST7735 PCB height (Y) from AP242 CAD
 disp_pcb_th       = 1.6;    // PCB thickness
-disp_view_w       = 37.0;   // Visible screen aperture width (X)
-disp_view_h       = 30.0;   // Visible screen aperture height (Y)
-disp_glass_th     = 2.6;    // Glass + frame thickness
-disp_hole_dx      = 53.0;   // Corner mounting hole pitch (X)
-disp_hole_dy      = 29.5;   // Corner mounting hole pitch (Y)
-disp_hole_dia     = 2.2;    // Hole diameter for M2 screws
-disp_offset_x     = -11.5;  // Shift left to leave space for button column on right
-disp_offset_y     = 2.0;    // Slightly above center
+disp_glass_w      = 43.7;   // Outer glass/metal frame width
+disp_glass_h      = 34.5;   // Outer glass/metal frame height
+disp_glass_th     = 2.4;    // Glass thickness above PCB (8.9mm - 6.5mm)
+disp_glass_ox     = -0.8;   // Glass center X offset relative to PCB center
+disp_view_w       = 36.0;   // Active viewable TFT screen width
+disp_view_h       = 28.5;   // Active viewable TFT screen height
+disp_hole_dx      = 52.0;   // Exact corner mounting hole pitch X (±26.0mm from center)
+disp_hole_dy      = 28.5;   // Exact corner mounting hole pitch Y (±14.25mm from center)
+disp_hole_dia     = 2.4;    // Hole diameter for M2.5 / M2 self-tapping into bezel boss
+disp_offset_x     = -11.5;  // Shift left on bezel to leave room for button column
+disp_offset_y     = 2.0;    // Center vertically on bezel
 
 /* [Button Controls] */
 btn_hole_dia      = 7.2;    // Hole in bezel for button plunger
@@ -39,6 +42,7 @@ btn_flange_dia    = 9.6;    // Retention flange diameter (cannot fall out)
 btn_height        = 8.5;    // Total button height
 btn_spacing_y     = 11.5;   // Vertical spacing between buttons
 btn_col_x         = 31.0;   // X position of button column
+btn_boss_dy       = 17.5;   // Standoff spacing for button carrier board
 
 /* [ESP32 DevKit Mounting] */
 esp_pcb_w         = 28.5;   // ESP32 width
@@ -130,8 +134,16 @@ module top_bezel() {
                     for (sx = [-disp_hole_dx/2, disp_hole_dx/2]) {
                         for (sy = [-disp_hole_dy/2, disp_hole_dy/2]) {
                             translate([sx, sy, -5.5])
-                                cylinder(d=5.5, h=5.5);
+                                cylinder(d=5.8, h=5.5);
                         }
+                    }
+                }
+
+                // Button Carrier Board Mounting Bosses
+                translate([btn_col_x, 0, -wall_thickness]) {
+                    for (sy = [-btn_boss_dy, btn_boss_dy]) {
+                        translate([0, sy, -5.5])
+                            cylinder(d=5.0, h=5.5);
                     }
                 }
             }
@@ -166,26 +178,30 @@ module top_bezel() {
 
         // --- CUTOUTS ON TOP FACE ---
 
-        // 1. ST7735 Display Window
+        // 1. ST7735 Display Window & Internal Clearance Pockets
         on_top_face() {
             translate([disp_offset_x, disp_offset_y, 0]) {
-                // Viewport aperture through the front face
-                translate([0, 0, -10])
+                // Viewport aperture through the front face (aligned with active screen)
+                translate([disp_glass_ox, 0, -10])
                     cube([disp_view_w, disp_view_h, 30], center=true);
 
                 // 45 degree aesthetic outer chamfer around screen window
-                translate([0, 0, 0.2])
+                translate([disp_glass_ox, 0, 0.2])
                     hull() {
                         cube([disp_view_w, disp_view_h, 0.1], center=true);
                         translate([0, 0, 2.0])
                             cube([disp_view_w + 3.6, disp_view_h + 3.6, 0.1], center=true);
                     }
 
-                // Internal glass seating pocket
-                translate([0, 0, -wall_thickness - 0.5])
-                    cube([disp_pcb_w + 1.2, disp_pcb_h + 1.2, 4.0], center=true);
+                // Internal glass seating pocket (43.7 x 34.5 mm + 0.8mm clearance)
+                translate([disp_glass_ox, 0, -wall_thickness - disp_glass_th/2])
+                    cube([disp_glass_w + 0.8, disp_glass_h + 0.8, disp_glass_th + 0.4], center=true);
 
-                // Screw holes for ST7735 PCB corners (M2 self-tapping)
+                // Internal PCB seating relief pocket (58.0 x 34.5 mm + 1.2mm clearance)
+                translate([0, 0, -wall_thickness - disp_glass_th - disp_pcb_th/2])
+                    cube([disp_pcb_w + 1.2, disp_pcb_h + 1.2, disp_pcb_th + 1.0], center=true);
+
+                // Screw holes for ST7735 PCB corners (M2.5/M2 self-tapping pilot)
                 for (sx = [-disp_hole_dx/2, disp_hole_dx/2]) {
                     for (sy = [-disp_hole_dy/2, disp_hole_dy/2]) {
                         translate([sx, sy, -12])
@@ -210,6 +226,12 @@ module top_bezel() {
                         translate([0, 0, -wall_thickness - 3.0])
                             cylinder(d=btn_flange_dia + 0.8, h=5.0);
                     }
+                }
+
+                // Pilot holes for button carrier bosses
+                for (sy = [-btn_boss_dy, btn_boss_dy]) {
+                    translate([0, sy, -12])
+                        cylinder(d=2.2, h=15);
                 }
 
                 // Button Labels Debossed into Face (0.6mm deep)
@@ -390,25 +412,107 @@ module button_cap() {
 // ASSEMBLY / HARDWARE MOCKUP PREVIEW
 // -----------------------------------------------------------------------------
 module mock_display() {
-    color([0.15, 0.45, 0.85, 0.8]) // Blue PCB
-        cube([disp_pcb_w, disp_pcb_h, disp_pcb_th], center=true);
-    color([0.05, 0.05, 0.05, 0.95]) // Black LCD Glass
-        translate([0, 0, disp_pcb_th/2 + 1.2])
-            cube([disp_view_w + 3, disp_view_h + 3, 2.0], center=true);
-    color([0.0, 0.9, 0.2, 0.9]) // Radar Active Green Sweep
-        translate([0, 0, disp_pcb_th/2 + 2.25])
-            cube([disp_view_w, disp_view_h, 0.1], center=true);
+    // Red FR4 PCB matching AZ-Delivery 1.8" SPI TFT
+    difference() {
+        color([0.78, 0.12, 0.15, 0.95])
+            cube([disp_pcb_w, disp_pcb_h, disp_pcb_th], center=true);
+
+        // 4 Corner M3 Mounting Holes (Exact CAD Pitch 52.0 x 28.5 mm)
+        for (sx = [-disp_hole_dx/2, disp_hole_dx/2]) {
+            for (sy = [-disp_hole_dy/2, disp_hole_dy/2]) {
+                translate([sx, sy, 0])
+                    cylinder(d=3.2, h=disp_pcb_th + 0.2, center=true);
+            }
+        }
+    }
+
+    // Outer Glass / Metal Bezel Frame (43.7 x 34.5 mm, offset X = -0.8mm)
+    translate([disp_glass_ox, 0, disp_pcb_th/2 + disp_glass_th/2]) {
+        color([0.15, 0.15, 0.18, 0.98])
+            cube([disp_glass_w, disp_glass_h, disp_glass_th], center=true);
+
+        // Active TFT Screen Area (36.0 x 28.5 mm)
+        translate([0, 0, disp_glass_th/2 + 0.05]) {
+            color([0.04, 0.06, 0.05, 1.0])
+                cube([disp_view_w, disp_view_h, 0.05], center=true);
+
+            // Radar Active Phosphor Green Sweep Line Graphic
+            color([0.0, 1.0, 0.35, 1.0]) {
+                cube([disp_view_w * 0.92, 0.8, 0.1], center=true);
+                cylinder(d=12.0, h=0.1, center=true);
+            }
+        }
+    }
+
+    // 8-Pin SPI Interface Header at X = +26.5 mm
+    color([0.2, 0.2, 0.2])
+        translate([26.5, 0, disp_pcb_th/2 + 1.25])
+            cube([2.54, 20.32, 2.5], center=true);
+    color([0.85, 0.75, 0.2])
+        translate([26.5, 0, -disp_pcb_th/2 - 2.5])
+            cube([2.54, 20.32, 5.0], center=true);
+
+    // SD Card Slot on back at X = -26.5 mm
+    color([0.7, 0.7, 0.75])
+        translate([-26.5, 0, -disp_pcb_th/2 - 0.9])
+            cube([14.0, 14.5, 1.8], center=true);
+}
+
+module mock_tactile_switch() {
+    // 6x6mm tactile push switch body
+    color([0.2, 0.2, 0.22])
+        cube([6.0, 6.0, 3.5], center=true);
+    // Silver metal cover plate
+    color([0.75, 0.75, 0.8])
+        translate([0, 0, 1.8])
+            cube([5.8, 5.8, 0.2], center=true);
+    // Actuator plunger button
+    color([0.08, 0.08, 0.1])
+        translate([0, 0, 1.8 + 1.5])
+            cylinder(d=3.2, h=3.0, center=true);
 }
 
 module mock_esp32() {
-    color([0.1, 0.1, 0.1, 0.9]) // Matte Black ESP32 PCB
-        cube([esp_pcb_w, esp_pcb_l, esp_pcb_th], center=true);
-    color([0.8, 0.8, 0.85]) // Metal RF Shield Can
-        translate([0, 6, esp_pcb_th/2 + 1.6])
-            cube([18, 25, 3.0], center=true);
-    color([0.7, 0.7, 0.75]) // Micro USB Port
-        translate([0, esp_pcb_l/2 - 1.5, esp_pcb_th/2 + 1.5])
-            cube([7.5, 6.0, 3.0], center=true);
+    // Matte Black ESP32 DevKit V1 30-pin PCB
+    difference() {
+        color([0.1, 0.12, 0.14, 0.95])
+            cube([esp_pcb_w, esp_pcb_l, esp_pcb_th], center=true);
+
+        // 4 Corner Standoff Pilot Holes
+        for (sx = [-esp_hole_dx/2, esp_hole_dx/2]) {
+            for (sy = [-esp_hole_dy/2, esp_hole_dy/2]) {
+                translate([sx, sy, 0])
+                    cylinder(d=2.8, h=esp_pcb_th + 0.2, center=true);
+            }
+        }
+    }
+
+    // Metal RF Shield Can (ESP-WROOM-32)
+    color([0.82, 0.82, 0.85])
+        translate([0, 6.0, esp_pcb_th/2 + 1.6])
+            cube([18.0, 25.5, 3.2], center=true);
+
+    // Micro USB / USB-C Port Receptacle
+    color([0.75, 0.78, 0.82])
+        translate([0, esp_pcb_l/2 - 1.0, esp_pcb_th/2 + 1.5])
+            cube([7.8, 6.5, 3.0], center=true);
+
+    // Dual 15-pin 2.54mm Header Strips
+    for (hx = [-11.43, 11.43]) {
+        color([0.15, 0.15, 0.15])
+            translate([hx, 0, -esp_pcb_th/2 - 1.25])
+                cube([2.54, 38.1, 2.5], center=true);
+        color([0.85, 0.75, 0.2])
+            translate([hx, 0, -esp_pcb_th/2 - 4.5])
+                cube([0.64, 38.1, 6.0], center=true);
+    }
+
+    // EN and BOOT Buttons
+    for (bx = [-6.5, 6.5]) {
+        color([0.2, 0.2, 0.2])
+            translate([bx, esp_pcb_l/2 - 5.0, esp_pcb_th/2 + 0.9])
+                cube([3.5, 3.0, 1.8], center=true);
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -431,6 +535,16 @@ if (part == "assembly") {
                     translate([0, i * btn_spacing_y, -wall_thickness + 1.2])
                         button_cap();
                 }
+            }
+        }
+    }
+
+    // Tactile Switches Mockup behind button caps
+    on_top_face() {
+        translate([btn_col_x, 0, 0]) {
+            for (i = [-1, 0, 1]) {
+                translate([0, i * btn_spacing_y, -wall_thickness - 4.5])
+                    mock_tactile_switch();
             }
         }
     }
