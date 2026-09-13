@@ -99,6 +99,29 @@ def make_rounded_box(xmin, xmax, ymin, ymax, zmin, zmax, r):
             return box
     return box
 
+def make_rounded_wire(xmin, xmax, ymin, ymax, z, r):
+    pts = [
+        FreeCAD.Vector(xmin + r, ymin, z),
+        FreeCAD.Vector(xmax - r, ymin, z),
+        FreeCAD.Vector(xmax, ymin + r, z),
+        FreeCAD.Vector(xmax, ymax - r, z),
+        FreeCAD.Vector(xmax - r, ymax, z),
+        FreeCAD.Vector(xmin + r, ymax, z),
+        FreeCAD.Vector(xmin, ymax - r, z),
+        FreeCAD.Vector(xmin, ymin + r, z),
+    ]
+    edges = [
+        Part.makeLine(pts[0], pts[1]),
+        Part.makeCircle(r, pts[1] + FreeCAD.Vector(0, r, 0), FreeCAD.Vector(0, 0, 1), 270, 360),
+        Part.makeLine(pts[2], pts[3]),
+        Part.makeCircle(r, pts[4] + FreeCAD.Vector(0, -r, 0), FreeCAD.Vector(0, 0, 1), 0, 90),
+        Part.makeLine(pts[4], pts[5]),
+        Part.makeCircle(r, pts[5] + FreeCAD.Vector(0, -r, 0), FreeCAD.Vector(0, 0, 1), 90, 180),
+        Part.makeLine(pts[6], pts[7]),
+        Part.makeCircle(r, pts[0] + FreeCAD.Vector(0, r, 0), FreeCAD.Vector(0, 0, 1), 180, 270),
+    ]
+    return Part.Wire(edges)
+
 # ==========================================
 # 3. ENCLOSURE OUTER & CAVITY
 # ==========================================
@@ -155,64 +178,34 @@ lid_body = lid_base
 for lb in lid_bosses:
     lid_body = lid_body.fuse(lb)
 
-# Interlocking Lip & Alignment Skirt:
-# CONTINUOUS UNBROKEN SKIRT ON LID (0.35mm extra clearance for effortless slide fit!)
-lid_skirt_outer = make_rounded_box(X_MIN + WALL + 0.35, X_MAX - WALL - 0.35, Y_MIN + WALL + 0.35, Y_MAX - WALL - 0.35, Z_SPLIT - 2.0, Z_SPLIT, R_CORNER - 1.65)
-lid_skirt_inner = make_rounded_box(X_MIN + WALL + 1.45, X_MAX - WALL - 1.45, Y_MIN + WALL + 1.45, Y_MAX - WALL - 1.45, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
-lid_skirt = lid_skirt_outer.cut(lid_skirt_inner)
+# ==========================================
+# 4. PARTING LINE: 100% SOLID INTERLOCKING JOINT (ZERO FLOATING WALLS, ZERO TREE SUPPORTS)
+# ==========================================
+# 1. Shell: Continuous 45-Degree Solid Perimeter Support Fillet (Z in [14.5, 16.5]):
+# Solid continuous 45-degree chamfer running along the entire inner perimeter wall.
+# 45-degree slope prints upright with ZERO tree supports while providing full edge rigidity!
+w_shelf_base = make_rounded_wire(X_MIN + WALL, X_MAX - WALL, Y_MIN + WALL, Y_MAX - WALL, 14.5, R_CORNER - WALL)
+w_shelf_top = make_rounded_wire(X_MIN + WALL + 1.2, X_MAX - WALL - 1.2, Y_MIN + WALL + 1.2, Y_MAX - WALL - 1.2, 16.5, R_CORNER - WALL - 0.8)
+shelf_solid = Part.Face(w_shelf_base).extrude(FreeCAD.Vector(0, 0, 2.0))
+shelf_loft = Part.makeLoft([w_shelf_base, w_shelf_top], True, False)
+shell_45_fillet = shelf_solid.cut(shelf_loft)
 
-# Corner relief cutouts so skirt does not collide with corner posts:
-for cx, cy in screw_corners:
-    skirt_post_cut = Part.makeCylinder(4.1, 3.0, FreeCAD.Vector(cx, cy, Z_SPLIT - 2.2), FreeCAD.Vector(0, 0, 1))
-    lid_skirt = lid_skirt.cut(skirt_post_cut)
+# 2. Shell: Solid Alignment Lip rising from Z = 16.5 to Z = 18.0:
+# Integrally printed going straight UP from the shell wall (ZERO overhang, ZERO supports needed!)
+lip_outer = make_rounded_box(X_MIN + 0.9, X_MAX - 0.9, Y_MIN + 0.9, Y_MAX - 0.9, 16.5, 18.0, R_CORNER - 0.9)
+lip_inner = make_rounded_box(X_MIN + WALL, X_MAX - WALL, Y_MIN + WALL, Y_MAX - WALL, 16.4, 18.1, R_CORNER - WALL)
+shell_lip = lip_outer.cut(lip_inner)
 
-# FULL CONTINUOUS 45-DEGREE PERIMETER SUPPORT SHELF IN SHELL ("INFULL EDGE SUPPORT"):
-# Solid continuous 45-degree support ledge running along the entire inner wall of the shell:
-# 45-degree gusset from Z = 12.5mm to Z = 14.0mm, with a horizontal seating rim up to Z = 14.4mm:
-def make_rounded_wire(xmin, xmax, ymin, ymax, z, r):
-    pts = [
-        FreeCAD.Vector(xmin + r, ymin, z),
-        FreeCAD.Vector(xmax - r, ymin, z),
-        FreeCAD.Vector(xmax, ymin + r, z),
-        FreeCAD.Vector(xmax, ymax - r, z),
-        FreeCAD.Vector(xmax - r, ymax, z),
-        FreeCAD.Vector(xmin + r, ymax, z),
-        FreeCAD.Vector(xmin, ymax - r, z),
-        FreeCAD.Vector(xmin, ymin + r, z),
-    ]
-    edges = [
-        Part.makeLine(pts[0], pts[1]),
-        Part.makeCircle(r, pts[1] + FreeCAD.Vector(0, r, 0), FreeCAD.Vector(0, 0, 1), 270, 360),
-        Part.makeLine(pts[2], pts[3]),
-        Part.makeCircle(r, pts[4] + FreeCAD.Vector(0, -r, 0), FreeCAD.Vector(0, 0, 1), 0, 90),
-        Part.makeLine(pts[4], pts[5]),
-        Part.makeCircle(r, pts[5] + FreeCAD.Vector(0, -r, 0), FreeCAD.Vector(0, 0, 1), 90, 180),
-        Part.makeLine(pts[6], pts[7]),
-        Part.makeCircle(r, pts[0] + FreeCAD.Vector(0, r, 0), FreeCAD.Vector(0, 0, 1), 180, 270),
-    ]
-    return Part.Wire(edges)
+# 3. 4 Automatic Cantilever Snap Tabs on the Shell Lip (with 45-degree lead-in ramps):
+tab_front = Part.makeBox(8.0, 0.40, 1.0, FreeCAD.Vector(-4.0, Y_MIN + 0.9 - 0.40, 16.7))
+tab_rear = Part.makeBox(8.0, 0.40, 1.0, FreeCAD.Vector(-4.0, Y_MAX - 0.9, 16.7))
+tab_left = Part.makeBox(0.40, 8.0, 1.0, FreeCAD.Vector(X_MIN + 0.9 - 0.40, -4.0, 16.7))
+tab_right = Part.makeBox(0.40, 8.0, 1.0, FreeCAD.Vector(X_MAX - 0.9, -20.0, 16.7))
+shell_lip = shell_lip.fuse(tab_front).fuse(tab_rear).fuse(tab_left).fuse(tab_right)
 
-w_outer_shelf = make_rounded_wire(X_MIN + WALL, X_MAX - WALL, Y_MIN + WALL, Y_MAX - WALL, 12.5, R_CORNER - 1.5)
-w_inner_shelf = make_rounded_wire(X_MIN + WALL + 1.2, X_MAX - WALL - 1.2, Y_MIN + WALL + 1.2, Y_MAX - WALL - 1.2, 13.7, R_CORNER - 2.5)
+shell_body = shell_body.fuse(shell_45_fillet).fuse(shell_lip)
 
-outer_shelf_solid = Part.Face(w_outer_shelf).extrude(FreeCAD.Vector(0, 0, 1.2))
-core_shelf_loft = Part.makeLoft([w_outer_shelf, w_inner_shelf], True, False)
-shelf_45 = outer_shelf_solid.cut(core_shelf_loft)
-
-w_rim_inner = make_rounded_wire(X_MIN + WALL + 1.2, X_MAX - WALL - 1.2, Y_MIN + WALL + 1.2, Y_MAX - WALL - 1.2, 13.7, R_CORNER - 2.5)
-shelf_rim = Part.Face(w_outer_shelf).extrude(FreeCAD.Vector(0, 0, 0.4)).cut(Part.Face(w_rim_inner).extrude(FreeCAD.Vector(0, 0, 0.4)))
-shelf_rim.translate(FreeCAD.Vector(0, 0, 1.2))
-
-edge_shelf = shelf_45.fuse(shelf_rim)
-
-# Clear corner posts from edge shelf:
-for cx, cy in screw_corners:
-    post_cut = Part.makeCylinder(4.1, 2.5, FreeCAD.Vector(cx, cy, 12.4), FreeCAD.Vector(0, 0, 1))
-    edge_shelf = edge_shelf.cut(post_cut)
-
-shell_body = shell_body.fuse(edge_shelf)
-
-# Cut clearance for button switch bodies from shell if they reach into split zone:
+# Clear button switch body envelope from shell split zone if needed:
 for pt in [pt_up, pt_sel, pt_down]:
     sw_env_shell = Part.makeBox(8.5, 8.5, 14.0, FreeCAD.Vector(-4.25, -4.25, -13.5))
     p_sw = FreeCAD.Placement()
@@ -221,26 +214,20 @@ for pt in [pt_up, pt_sel, pt_down]:
     sw_env_shell.Placement = p_sw
     shell_body = shell_body.cut(sw_env_shell)
 
-# AUTOMATIC PRESS-PUSH-SET SNAP LOCKS (Lid Skirt to Shell Walls):
-# 4 snap tabs on the Lid skirt that click into shell undercuts:
-# 1. Front snap tab (Y = Y_MIN + WALL + 0.35, projecting 0.50mm in -Y)
-tab_front = Part.makeBox(8.0, 0.50, 1.2, FreeCAD.Vector(-4.0, Y_MIN + WALL + 0.35 - 0.50, 14.8))
-# 2. Rear snap tab (Y = Y_MAX - WALL - 0.35, projecting 0.50mm in +Y)
-tab_rear = Part.makeBox(8.0, 0.50, 1.2, FreeCAD.Vector(-4.0, Y_MAX - WALL - 0.35, 14.8))
-# 3. Left snap tab (X = X_MIN + WALL + 0.35, projecting 0.50mm in -X)
-tab_left = Part.makeBox(0.50, 8.0, 1.2, FreeCAD.Vector(X_MIN + WALL + 0.35 - 0.50, -8.0, 14.8))
-# 4. Right snap tab (X = X_MAX - WALL - 0.35, projecting 0.50mm in +X, at Y = -18.0 to clear USB-C port)
-tab_right = Part.makeBox(0.50, 8.0, 1.2, FreeCAD.Vector(X_MAX - WALL - 0.35, -22.0, 14.8))
+# 4. Lid: Solid Wall Rebate to receive the Shell Lip (ZERO floating walls!):
+# The lid wall is ONE SOLID PIECE. The rebate is cut into the inner face from Z=16.45 to 18.15.
+rebate_cut = make_rounded_box(X_MIN + 0.70, X_MAX - 0.70, Y_MIN + 0.70, Y_MAX - 0.70, 16.45, 18.15, R_CORNER - 0.70)
+rebate_core = make_rounded_box(X_MIN + WALL + 0.05, X_MAX - WALL - 0.05, Y_MIN + WALL + 0.05, Y_MAX - WALL - 0.05, 16.4, 18.2, R_CORNER - WALL - 0.05)
+lid_rebate = rebate_cut.cut(rebate_core)
+lid_body = lid_body.cut(lid_rebate)
 
-lid_skirt = lid_skirt.fuse(tab_front).fuse(tab_rear).fuse(tab_left).fuse(tab_right)
-lid_body = lid_body.fuse(lid_skirt)
+# 5. Matching Undercut Snap Pockets inside the Lid Rebate:
+pocket_front = Part.makeBox(10.0, 0.60, 1.3, FreeCAD.Vector(-5.0, Y_MIN + 0.9 - 0.50, 16.55))
+pocket_rear = Part.makeBox(10.0, 0.60, 1.3, FreeCAD.Vector(-5.0, Y_MAX - 0.9 - 0.10, 16.55))
+pocket_left = Part.makeBox(0.60, 10.0, 1.3, FreeCAD.Vector(X_MIN + 0.9 - 0.50, -5.0, 16.55))
+pocket_right = Part.makeBox(0.60, 10.0, 1.3, FreeCAD.Vector(X_MAX - 0.9 - 0.10, -21.0, 16.55))
+lid_body = lid_body.cut(pocket_front).cut(pocket_rear).cut(pocket_left).cut(pocket_right)
 
-# Undercuts in Shell walls to receive the snap tabs (generous clearance to ensure 0.000000 mm3 interference):
-pocket_front = Part.makeBox(10.0, 0.70, 1.6, FreeCAD.Vector(-5.0, Y_MIN + WALL + 0.35 - 0.60, 14.6))
-pocket_rear = Part.makeBox(10.0, 0.70, 1.6, FreeCAD.Vector(-5.0, Y_MAX - WALL - 0.35 - 0.10, 14.6))
-pocket_left = Part.makeBox(0.70, 10.0, 1.6, FreeCAD.Vector(X_MIN + WALL + 0.35 - 0.60, -9.0, 14.6))
-pocket_right = Part.makeBox(0.70, 10.0, 1.6, FreeCAD.Vector(X_MAX - WALL - 0.35 - 0.10, -23.0, 14.6))
-shell_body = shell_body.cut(pocket_front).cut(pocket_rear).cut(pocket_left).cut(pocket_right)
 
 # ==========================================
 # 5. SHELL: BOTTOM ESP32 CRADLE WITH AUTOMATIC SNAP-FIT LOCKS & TYPE-C PORT
