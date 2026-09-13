@@ -154,29 +154,8 @@ split_box_lid = Part.makeBox(140.0, 120.0, 40.0, FreeCAD.Vector(-70.0, -60.0, Z_
 shell_base = enclosure_hollow.common(split_box_shell)
 lid_base = enclosure_hollow.common(split_box_lid)
 
-screw_corners = [(-40.0, -29.0), (32.0, -29.0), (-40.0, 21.0), (32.0, 21.0)]
-
-# Shell: 4 Solid corner pillars (No screw holes - 100% Press-Push-Set!)
-shell_posts = []
-for cx, cy in screw_corners:
-    post = Part.makeCylinder(3.6, Z_SPLIT - FLOOR, FreeCAD.Vector(cx, cy, FLOOR), FreeCAD.Vector(0, 0, 1))
-    shell_posts.append(post)
-
 shell_body = shell_base
-for sp in shell_posts:
-    shell_body = shell_body.fuse(sp)
-
-# Lid: 4 Solid corner bosses (No screw holes - 100% Press-Push-Set!)
-lid_bosses = []
-for cx, cy in screw_corners:
-    z_roof = 31.0 + cy * math.tan(math.radians(TILT_DEG)) - WALL * math.cos(math.radians(TILT_DEG))
-    boss_h = z_roof - Z_SPLIT + 0.5
-    boss = Part.makeCylinder(3.6, boss_h, FreeCAD.Vector(cx, cy, Z_SPLIT), FreeCAD.Vector(0, 0, 1))
-    lid_bosses.append(boss)
-
 lid_body = lid_base
-for lb in lid_bosses:
-    lid_body = lid_body.fuse(lb)
 
 # ==========================================
 # 4. PARTING LINE: 100% SOLID INTERLOCKING JOINT (ZERO FLOATING WALLS, ZERO TREE SUPPORTS)
@@ -339,20 +318,26 @@ win_bevel2 = Part.makeBox(38.6, 31.6, 0.6, FreeCAD.Vector(-19.3, -15.8, -0.3))
 win_bevel2.Placement = p_win
 lid_body = lid_body.cut(win_bevel2)
 
-# B. 4 Solid Screw Standoffs for TFT (terminating at front face of PCB, local Z = 6.55):
-for hx, hy in [(-26.0, -14.25), (26.0, -14.25), (-26.0, 14.25), (26.0, 14.25)]:
-    pt_rot = rot_x10.multVec(FreeCAD.Vector(-hx, -hy, 6.55))
-    pt_glob = pt_rot.add(pos_tft)
-    
-    boss_roof_z = 31.0 + pt_glob.y * math.tan(math.radians(TILT_DEG)) - 1.8 * math.cos(math.radians(TILT_DEG))
-    boss_height = boss_roof_z - pt_glob.z
-    
-    if boss_height > 0.5:
-        boss_dir = rot_x10.multVec(FreeCAD.Vector(0, 0, -1))
-        boss_solid = Part.makeCylinder(2.6, boss_height, FreeCAD.Vector(pt_glob.x, pt_glob.y, boss_roof_z), boss_dir)
-        pilot_hole = Part.makeCylinder(0.925, 5.0, pt_glob, rot_x10.multVec(FreeCAD.Vector(0, 0, 1)))
-        boss_solid = boss_solid.cut(pilot_hole)
-        lid_body = lid_body.fuse(boss_solid)
+# B. 100% SCREWLESS PUSH-AND-SET TFT RETENTION CRADLE:
+# The TFT PCB rests on the bezel perimeter rim (at local Z = 6.50).
+# 4 Cantilever Snap-Fit Clips click over the PCB back (local Z = 8.90 + 0.20 = 9.10mm) to lock the screen.
+# Flexible release tabs allow effortless removal without screws or tools!
+p_tft_pl = FreeCAD.Placement(pos_tft, rot_tft)
+for y_side, sign in [(-17.45, -1), (17.45, 1)]:
+    for x_pos in [-10.0, 8.0]:
+        arm_y = y_side if sign > 0 else (y_side - 1.2)
+        arm_box = Part.makeBox(6.0, 1.2, 7.5, FreeCAD.Vector(x_pos - 3.0, arm_y, 3.0))
+        
+        tooth_y_start = (y_side - 0.65) if sign > 0 else y_side
+        tooth_box = Part.makeBox(6.0, 0.65, 0.75, FreeCAD.Vector(x_pos - 3.0, tooth_y_start, 9.05))
+        
+        ramp_cutter = Part.makeBox(8.0, 1.5, 1.5, FreeCAD.Vector(x_pos - 4.0, y_side - 0.75, 9.4))
+        rot_ramp = FreeCAD.Rotation(FreeCAD.Vector(1, 0, 0), -45 if sign > 0 else 45)
+        ramp_cutter.Placement = FreeCAD.Placement(FreeCAD.Vector(x_pos - 4.0, y_side, 9.8), rot_ramp)
+        
+        clip_local = arm_box.fuse(tooth_box).cut(ramp_cutter)
+        clip_local.Placement = p_tft_pl
+        lid_body = lid_body.fuse(clip_local)
 
 # C. SOLID BUTTON CARRIER EXTENDING ALL THE WAY TO THE RIGHT WALL ("Supported from wall properly!"):
 # Right inner wall is at X = X_MAX - WALL = 35.2mm.
