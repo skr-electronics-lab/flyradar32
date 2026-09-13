@@ -22,3 +22,8 @@ include/web_assets_gz.h
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# CAD & Python backups/caches
+*.FCBak*
+__pycache__/
+*.pyc

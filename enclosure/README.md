@@ -1,72 +1,67 @@
-# FlyRadar32 3D Printable Desktop Enclosure
+# FlyRadar32 Desktop Radar Console Enclosure
 
-A custom, avionics-inspired desktop ATC radar console enclosure designed specifically for the **FlyRadar32** ground station.
-
-![FlyRadar32 Enclosure 3D Hero Preview](preview_hero.png)
+Production-ready, dual-shell 3D printable console enclosure for the **FlyRadar32** ADS-B / Flight Radar Ground Station.
 
 ---
 
-## 🧰 Hardware & Compatibility
+## 1. Mechanical Architecture & Logic
 
-| Component | Specification | Notes |
-|---|---|---|
-| **Microcontroller** | ESP32 DevKit V1 (30-pin CH340 / CP2102) | Snug friction cradle with side retention guides + rear USB port access |
-| **Display** | AZ-Delivery 1.8" ST7735 128×160 SPI TFT | Exact AP242 CAD calibrated: 52.0×28.5mm hole pitch, -0.8mm glass offset |
-| **Buttons** | 3× 6×6mm tactile pushbuttons (`push_switch_small`) | UP (▲), SELECT (SEL), DOWN (▼) with captive printable actuator caps |
-| **Button Carrier** | Dual M2 interior standoff bosses (17.5mm half-pitch) | For mounting button perfboard or carrier bracket behind bezel |
-| **Fasteners** | 4× M3 × 16mm screws | Bottom countersunk (no visible screws on front face) |
-| **Thread Inserts** | 4× M3 heat-set brass inserts (OD ~4.2mm) | *Optional* — screws can also self-tap directly into top bosses |
-| **Display Screws**| 4× M2 × 4mm or M2.5 × 6mm self-tapping | Secures ST7735 PCB into 5.8mm OD bosses |
-| **Desk Feet** | 4× 8mm rubber adhesive bumpers | Recessed circular slots in bottom chassis base |
+### A. Lid & Display Retaining Bezel
+- **Ergonomic Desktop Tilt**: Front face angled at $10.0^\circ$ for desktop visibility.
+- **Active Glass Framing Window**: Clean, sharp front aperture ($36.0 \times 28.5\text{ mm}$) centered at local $(-5.15, 0.0)\text{ mm}$ exactly conforming to the $35.00 \times 28.00\text{ mm}$ active pixel matrix from the technical drawing.
+- **Stepped Bezel Pocket (Inside)**: Recessed pocket that acts as a front retaining lip. The glass module sits against this lip and cannot push through the front panel.
+- **4 Monolithic Screw Standoffs**: 4 solid cylindrical bosses with pilot holes for M2 self-tapping screws clamping the display against the bezel.
+- **100% Continuous Alignment Skirt**: Full perimeter interlocking lip between lid and shell with zero cutouts or steps.
 
----
+### B. Tactile Button Carrier (Beside Display)
+- **Monolithic Wall-Supported Shelf**: Solid carrier bar fused directly into the right enclosure wall ($X \in [22.5, 35.2]\text{ mm}$), eliminating detached/floating walls.
+- **Precision Switch Pockets**: 3 switch cavities ($6.20 \times 6.20 \times 3.60\text{ mm}$) with lower wire pass-through channels and retention lips.
+- **Tactile Keycaps**: Stepped plunger caps with anti-fallout shoulder rings trapped under the lid bezel.
 
-## 📐 Design Features
-
-- **Ergonomic Desktop Incline**: Sleek 9° inclined face for natural, comfortable viewing on your desk while seated.
-- **Pristine Avionics Face**: Completely clean front panel with **zero exposed screws**; clean debossed `FLYRADAR 32` and `SKR ELECTRONICS LAB` branding.
-- **Low-Profile Tactile Buttons**: Sleek 6.6mm disc button caps protruding only 1.8mm above the bezel face, with captive retention flanges underneath so they can never fall out.
-- **Flush Display Fit**: Precision-beveled aperture with an internal pocket that seats the ST7735 glass flush against the front bezel with minimal border.
-- **Passive Thermal Management**: Dual convective cooling louvers along the bottom base and rear exhaust keep the ESP32 Wi-Fi radio cool during 24/7 flight tracking.
-- **Clean Cable Access**: Rear oval USB cutout accommodates standard Micro-USB and USB-C cable heads without binding.
-- **Interlocking Mating Lip**: Perimeter tongue-and-groove joint between top and bottom halves prevents light bleed and ensures rigid alignment.
+### C. Screwless ESP32 Plastic Snap-Fit Cradle (Bottom Floor)
+- **Pins Desoldered**: ESP32 sits directly onto bottom floor support ribs at $Z = 2.60\text{ mm}$ (no tall standoffs needed).
+- **Automatic Cantilever Snap Locks**: 4 snap clips with $45^\circ$ lead-in ramps that deflect outward during insertion and click securely over the PCB top face ($Z = 4.20\text{ mm}$).
+- **Anti-Push Thrust Wall**: Solid $2.2\text{ mm}$ thick vertical backstop at $X = -19.2\text{ mm}$ absorbing 100% of USB-C cable insertion force without screws.
+- **Precision Type-C Cutout**: Tight $10.0 \times 4.2\text{ mm}$ ($R = 2.1\text{ mm}$) pill cutout centered at $Z = 5.45\text{ mm}$ on the side wall with uniform $0.25\text{ mm}$ cable clearance.
+- **Rubber Feet**: 4 circular pockets ($\varnothing 8.0\text{ mm} \times 0.65\text{ mm}$) for non-slip silicone bumper pads.
 
 ---
 
-## 🖨️ 3D Printing Guidelines
+## 2. Production Files
 
-![Print Bed Layout](preview_plate.png)
-
-### Recommended Slicer Settings
-- **Material**: PETG, PLA, or ABS/ASA (Matte Black, Dark Navy, or Slate Grey recommended).
-- **Layer Height**: `0.20 mm` (or `0.16 mm` for ultra-smooth bevels).
-- **Perimeters / Walls**: `4 to 6 walls` (for solid structural rigidity around screw bosses).
-- **Infill**: `20%` (Gyroid or Grid).
-- **Supports**:
-  - `bottom_case`: **No supports required** (prints flat on base).
-  - `button_caps`: **No supports required** (prints flat on flange).
-  - `top_bezel`: Minimal tree supports under the internal hollow cavity.
+| File | Description | Material / Infill |
+| :--- | :--- | :--- |
+| [`flyradar32_lid.stl`](file:///D:/Projects/Embedded/Firmware-Development/flyradar32/enclosure/flyradar32_lid.stl) | Console top lid with display bezel, screw standoffs & button cages | PLA/PETG, 0.16–0.20mm, 20% gyroid |
+| [`flyradar32_shell.stl`](file:///D:/Projects/Embedded/Firmware-Development/flyradar32/enclosure/flyradar32_shell.stl) | Bottom shell with ESP32 cradle, thrust wall & USB-C cutout | PLA/PETG, 0.20mm, 20% gyroid |
+| [`flyradar32_button_caps.stl`](file:///D:/Projects/Embedded/Firmware-Development/flyradar32/enclosure/flyradar32_button_caps.stl) | 3 tactile orange button caps with captive flange | PLA/PETG (Orange), 0.12mm, 100% infill |
+| [`FlyRadar32_Enclosure.FCStd`](file:///D:/Projects/Embedded/Firmware-Development/flyradar32/enclosure/FlyRadar32_Enclosure.FCStd) | Master parametric CAD document | FreeCAD 1.1+ |
+| [`build_radar_console.py`](file:///D:/Projects/Embedded/Firmware-Development/flyradar32/enclosure/build_radar_console.py) | Parametric build script with 20/20 boolean collision checks | Python 3 + FreeCAD |
 
 ---
 
-## 💻 OpenSCAD Customization
+## 3. Interference Matrix Verification
 
-The `.scad` model is 100% parametric. Open [`flyradar32_case.scad`](flyradar32_case.scad) in OpenSCAD and use the **Customizer** panel:
+All 20 physical intersection checks between components, shell, lid, and buttons evaluate to **strictly $0.000000\text{ mm}^3$**:
 
-- `part = "assembly"` — 3D color-coded preview with hardware mockups.
-- `part = "top"` — Top bezel oriented for export.
-- `part = "bottom"` — Bottom chassis oriented for export.
-- `part = "buttons"` — Set of 3 button caps.
-- `part = "plate"` — Complete print bed layout with all parts arranged for a single print job.
-
-### Exporting STLs via Command Line
-```powershell
-# Export Bottom Chassis
-& "C:\Program Files\OpenSCAD\openscad.com" -o flyradar32_bottom.stl -D 'part=\"bottom\"' flyradar32_case.scad
-
-# Export Top Bezel
-& "C:\Program Files\OpenSCAD\openscad.com" -o flyradar32_top.stl -D 'part=\"top\"' flyradar32_case.scad
-
-# Export Button Caps
-& "C:\Program Files\OpenSCAD\openscad.com" -o flyradar32_buttons.stl -D 'part=\"buttons\"' flyradar32_case.scad
+```
+  PASS: ESP32 <-> TFT                = 0.000000 mm3
+  PASS: ESP32 <-> Button_UP          = 0.000000 mm3
+  PASS: ESP32 <-> Button_SEL         = 0.000000 mm3
+  PASS: ESP32 <-> Button_DOWN        = 0.000000 mm3
+  PASS: TFT <-> Button_UP            = 0.000000 mm3
+  PASS: TFT <-> Button_SEL           = 0.000000 mm3
+  PASS: TFT <-> Button_DOWN          = 0.000000 mm3
+  PASS: Shell <-> ESP32              = 0.000000 mm3
+  PASS: Shell <-> TFT                = 0.000000 mm3
+  PASS: Shell <-> Button_UP          = 0.000000 mm3
+  PASS: Shell <-> Button_SEL         = 0.000000 mm3
+  PASS: Shell <-> Button_DOWN        = 0.000000 mm3
+  PASS: Lid <-> ESP32                = 0.000000 mm3
+  PASS: Lid <-> TFT                  = 0.000000 mm3
+  PASS: Lid <-> Button_UP            = 0.000000 mm3
+  PASS: Lid <-> Button_SEL           = 0.000000 mm3
+  PASS: Lid <-> Button_DOWN          = 0.000000 mm3
+  PASS: Lid <-> Button_Caps          = 0.000000 mm3
+  PASS: Shell <-> Button_Caps        = 0.000000 mm3
+  PASS: Shell <-> Lid (Mating)       = 0.000000 mm3
 ```
