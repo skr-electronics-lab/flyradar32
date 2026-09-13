@@ -161,21 +161,21 @@ for lb in lid_bosses:
     lid_body = lid_body.fuse(lb)
 
 # Interlocking Lip:
-# CONTINUOUS UNBROKEN SKIRT ON LID (No USB notches! Completely smooth and clean!)
-lid_skirt_outer = make_rounded_box(X_MIN + WALL + 0.3, X_MAX - WALL - 0.3, Y_MIN + WALL + 0.3, Y_MAX - WALL - 0.3, Z_SPLIT - 1.8, Z_SPLIT, R_CORNER - 1.6)
-lid_skirt_inner = make_rounded_box(X_MIN + WALL + 1.3, X_MAX - WALL - 1.3, Y_MIN + WALL + 1.3, Y_MAX - WALL - 1.3, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
+# CONTINUOUS UNBROKEN SKIRT ON LID (0.35mm extra clearance for effortless slide fit!)
+lid_skirt_outer = make_rounded_box(X_MIN + WALL + 0.35, X_MAX - WALL - 0.35, Y_MIN + WALL + 0.35, Y_MAX - WALL - 0.35, Z_SPLIT - 1.8, Z_SPLIT, R_CORNER - 1.65)
+lid_skirt_inner = make_rounded_box(X_MIN + WALL + 1.35, X_MAX - WALL - 1.35, Y_MIN + WALL + 1.35, Y_MAX - WALL - 1.35, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
 lid_skirt = lid_skirt_outer.cut(lid_skirt_inner)
 
 # Corner relief cutouts so skirt does not collide with shell posts:
 for cx, cy in screw_corners:
-    skirt_post_cut = Part.makeCylinder(4.0, 3.0, FreeCAD.Vector(cx, cy, Z_SPLIT - 2.2), FreeCAD.Vector(0, 0, 1))
+    skirt_post_cut = Part.makeCylinder(4.1, 3.0, FreeCAD.Vector(cx, cy, Z_SPLIT - 2.2), FreeCAD.Vector(0, 0, 1))
     lid_skirt = lid_skirt.cut(skirt_post_cut)
 
 lid_body = lid_body.fuse(lid_skirt)
 
 # Shell rebate:
 shell_rebate_outer = make_rounded_box(X_MIN + WALL - 0.01, X_MAX - WALL + 0.01, Y_MIN + WALL - 0.01, Y_MAX - WALL + 0.01, Z_SPLIT - 2.0, Z_SPLIT + 0.1, R_CORNER - 1.5)
-shell_rebate_inner = make_rounded_box(X_MIN + WALL + 1.3, X_MAX - WALL - 1.3, Y_MIN + WALL - 1.3, Y_MAX + WALL + 1.3, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
+shell_rebate_inner = make_rounded_box(X_MIN + WALL + 1.35, X_MAX - WALL - 1.35, Y_MIN + WALL - 1.35, Y_MAX + WALL + 1.35, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
 shell_rebate = shell_rebate_outer.cut(shell_rebate_inner)
 
 for cx, cy in screw_corners:
@@ -229,39 +229,56 @@ lanyard2 = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(-18.0, 24.0, 6.0), FreeCAD
 lanyard_slot = Part.makeBox(6.0, 5.0, 3.0, FreeCAD.Vector(-24.0, 24.0, 4.5))
 shell_body = shell_body.cut(lanyard1).cut(lanyard2).cut(lanyard_slot)
 
-# TIGHT, EXACT TYPE-C PILL PORT:
+# WIDE-CLEARANCE TYPE-C PORT WITH CABLE HOUSING RELIEF:
 # Metal shell: Y in [-4.47, 4.47], Z in [3.587, 7.30] (height 3.71, width 8.94)
-# Pill cutout: Centered at Z=5.45mm, Y=0.0mm. Width 10.0mm, height 4.2mm (R=2.1mm):
+# 1. Main through-pill cutout: Width 10.6mm, height 4.6mm (R=2.3mm), centered at Z=5.45mm, Y=0.0mm:
 Z_USBC = 5.45
-c_top = Part.makeCylinder(2.1, 8.0, FreeCAD.Vector(X_MAX - 5.0, 2.9, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_bot = Part.makeCylinder(2.1, 8.0, FreeCAD.Vector(X_MAX - 5.0, -2.9, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_mid = Part.makeBox(8.0, 5.8, 4.2, FreeCAD.Vector(X_MAX - 5.0, -2.9, Z_USBC - 2.1))
+c_top = Part.makeCylinder(2.3, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_bot = Part.makeCylinder(2.3, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_mid = Part.makeBox(8.0, 6.0, 4.6, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC - 2.3))
 usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
 shell_body = shell_body.cut(usbc_pill)
 
-# AUTOMATIC SNAP-FIT ESP32 CRADLE ON BOTTOM PLATE:
-# PCB sits at Z in [2.6, 4.2], X in [-17.3, 34.2], Y in [-14.25, 14.25]
-# 1. Four 0.8mm resting pads on floor:
-pad1 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(-17.0, -14.2, FLOOR))
-pad2 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(-17.0, 10.2, FLOOR))
-pad3 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(30.0, -14.2, FLOOR))
-pad4 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(30.0, 10.2, FLOOR))
+# 2. Outer cable shroud relief pocket: 13.0mm wide x 7.0mm high (R=3.5mm), depth 1.2mm on outer wall
+c_rel_top = Part.makeCylinder(3.5, 2.0, FreeCAD.Vector(X_MAX - 1.2, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_rel_bot = Part.makeCylinder(3.5, 2.0, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_rel_mid = Part.makeBox(2.0, 6.0, 7.0, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC - 3.5))
+usbc_relief = c_rel_top.fuse(c_rel_bot).fuse(b_rel_mid)
+shell_body = shell_body.cut(usbc_relief)
 
-# 2. Solid Rear Thrust Wall (prevents backward push during USB plugging):
-rear_thrust = Part.makeBox(2.2, 28.5, 4.0, FreeCAD.Vector(-19.2, -14.25, FLOOR))
+# ==========================================
+# AUTOMATIC SNAP-FIT ESP32 CRADLE WITH 0.25mm EXTRA CLEARANCE:
+# ESP32 PCB: X in [-17.30, 34.20], Y in [-14.25, 14.25], Z in [2.60, 4.20]
+# Extra gap added: GAP_ESP_Y = 0.25mm each side (total width 29.0mm vs 28.5mm PCB)
+# ==========================================
+GAP_ESP_Y = 0.25
+GAP_ESP_X = 0.25
+Y_ESP_MIN = -14.25 - GAP_ESP_Y   # -14.50mm
+Y_ESP_MAX = 14.25 + GAP_ESP_Y    # +14.50mm
+X_ESP_REAR = -17.30 - GAP_ESP_X  # -17.55mm
 
-# 3. Lateral Guide Rails:
-rail_left = Part.makeBox(30.0, 1.5, 3.5, FreeCAD.Vector(-10.0, -15.75, FLOOR))
-rail_right = Part.makeBox(30.0, 1.5, 3.5, FreeCAD.Vector(-10.0, 14.25, FLOOR))
+# 1. Four 0.8mm resting pads on floor (Z in [1.80, 2.60]):
+pad1 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(-17.0, Y_ESP_MIN, FLOOR))
+pad2 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(-17.0, Y_ESP_MAX - 4.0, FLOOR))
+pad3 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(30.0, Y_ESP_MIN, FLOOR))
+pad4 = Part.makeBox(4.0, 4.0, 0.8, FreeCAD.Vector(30.0, Y_ESP_MAX - 4.0, FLOOR))
 
-# 4. DUAL AUTOMATIC CANTILEVER SNAP-FIT LOCKS:
+# 2. Solid Rear Thrust Wall (2.2mm thick, inner face at X_ESP_REAR = -17.55mm):
+thrust_w = Y_ESP_MAX - Y_ESP_MIN
+rear_thrust = Part.makeBox(2.2, thrust_w, 4.0, FreeCAD.Vector(X_ESP_REAR - 2.2, Y_ESP_MIN, FLOOR))
+
+# 3. Lateral Guide Rails with 0.25mm gap each side:
+rail_left = Part.makeBox(30.0, 1.5, 3.5, FreeCAD.Vector(-10.0, Y_ESP_MIN - 1.5, FLOOR))
+rail_right = Part.makeBox(30.0, 1.5, 3.5, FreeCAD.Vector(-10.0, Y_ESP_MAX, FLOOR))
+
+# 4. 4 AUTOMATIC CANTILEVER SNAP-FIT LOCKS WITH 0.25mm EXTRA CLEARANCE:
 def make_snap_clip(x_center, y_pos, side_sign):
     y_base = y_pos - (1.4 if side_sign > 0 else 0.0)
     arm = Part.makeBox(5.0, 1.4, 5.6 - FLOOR, FreeCAD.Vector(x_center - 2.5, y_base, FLOOR))
     
-    y_tooth = y_pos - (0.8 if side_sign > 0 else 0.0)
-    # Tooth starts at Z = 4.30mm (0.10mm above top face of PCB Z=4.20mm to prevent boolean clash while locking securely):
-    tooth = Part.makeBox(5.0, 0.8, 1.3, FreeCAD.Vector(x_center - 2.5, y_tooth, 4.30))
+    y_tooth = y_pos - (0.9 if side_sign > 0 else -0.0)
+    # Undercut tooth starts at Z = 4.35mm (0.15mm vertical clearance over PCB Z=4.20mm to ensure effortless click):
+    tooth = Part.makeBox(5.0, 0.9, 1.25, FreeCAD.Vector(x_center - 2.5, y_tooth, 4.35))
     
     c_box = Part.makeBox(7.0, 2.0, 2.0, FreeCAD.Vector(x_center - 3.5, y_pos - 1.0, 4.6))
     rot = FreeCAD.Rotation(FreeCAD.Vector(1, 0, 0), -45 if side_sign > 0 else 45)
@@ -270,15 +287,15 @@ def make_snap_clip(x_center, y_pos, side_sign):
     clip = arm.fuse(tooth).cut(c_box)
     return clip
 
-snap1 = make_snap_clip(0.0, -14.25, -1)
-snap2 = make_snap_clip(22.0, -14.25, -1)
-snap3 = make_snap_clip(0.0, 14.25, 1)
-snap4 = make_snap_clip(22.0, 14.25, 1)
+snap1 = make_snap_clip(0.0, Y_ESP_MIN, -1)
+snap2 = make_snap_clip(22.0, Y_ESP_MIN, -1)
+snap3 = make_snap_clip(0.0, Y_ESP_MAX, 1)
+snap4 = make_snap_clip(22.0, Y_ESP_MAX, 1)
 
 esp_mount = pad1.fuse(pad2).fuse(pad3).fuse(pad4).fuse(rear_thrust).fuse(rail_left).fuse(rail_right).fuse(snap1).fuse(snap2).fuse(snap3).fuse(snap4)
 
 # Cut exact PCB entry path so snap clips have proper spring clearance:
-pcb_clear = Part.makeBox(53.0, 29.0, 10.0, FreeCAD.Vector(-18.0, -14.5, 2.6))
+pcb_clear = Part.makeBox(54.0, thrust_w + 0.1, 10.0, FreeCAD.Vector(-18.5, Y_ESP_MIN - 0.05, 2.6))
 esp_mount = esp_mount.cut(pcb_clear)
 
 shell_body = shell_body.fuse(esp_mount)
