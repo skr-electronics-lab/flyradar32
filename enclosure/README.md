@@ -23,12 +23,13 @@ A custom, avionics-inspired desktop ATC radar console enclosure designed specifi
 
 ## 📐 Design Features
 
-- **Ergonomic Desktop Incline**: 12.2° inclined face for natural viewing angles on your desk while seated.
-- **Clean Avionics Aesthetics**: Clean, screw-free front face; debossed `FLYRADAR 32` and `SKR ELECTRONICS LAB` branding.
-- **Captive Button Caps**: 3D-printed button caps feature an internal retention flange so they cannot fall out from the exterior.
-- **Passive Thermal Ventilation**: Dual ventilation louvers (bottom chassis and rear panel) ensure continuous convective cooling for the ESP32 Wi-Fi radio.
-- **Clean Cable Access**: Rear-facing USB port cutout sized to accommodate standard Micro-USB and USB-C cable heads.
-- **Interlocking Mating Lip**: 2mm perimeter tongue-and-groove joint between top and bottom halves prevents light bleed and ensures rigid alignment.
+- **Ergonomic Desktop Incline**: Sleek 9° inclined face for natural, comfortable viewing on your desk while seated.
+- **Pristine Avionics Face**: Completely clean front panel with **zero exposed screws**; clean debossed `FLYRADAR 32` and `SKR ELECTRONICS LAB` branding.
+- **Low-Profile Tactile Buttons**: Sleek 6.6mm disc button caps protruding only 1.8mm above the bezel face, with captive retention flanges underneath so they can never fall out.
+- **Flush Display Fit**: Precision-beveled aperture with an internal pocket that seats the ST7735 glass flush against the front bezel with minimal border.
+- **Passive Thermal Management**: Dual convective cooling louvers along the bottom base and rear exhaust keep the ESP32 Wi-Fi radio cool during 24/7 flight tracking.
+- **Clean Cable Access**: Rear oval USB cutout accommodates standard Micro-USB and USB-C cable heads without binding.
+- **Interlocking Mating Lip**: Perimeter tongue-and-groove joint between top and bottom halves prevents light bleed and ensures rigid alignment.
 
 ---
 
