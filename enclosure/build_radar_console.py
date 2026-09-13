@@ -189,13 +189,45 @@ pry_notch = Part.makeBox(4.0, 8.0, 2.0, FreeCAD.Vector(X_MIN - 2.0, -4.0, Z_SPLI
 shell_body = shell_body.cut(pry_notch)
 lid_body = lid_body.cut(pry_notch)
 
+# Modern Parting Line Accent Reveal (Perimeter Shadow Gap):
+# 1.2mm total reveal height (0.6mm cut in shell, 0.6mm cut in lid), 0.5mm deep around outer perimeter
+shadow_cut_shell = make_rounded_box(X_MIN - 2.0, X_MAX + 2.0, Y_MIN - 2.0, Y_MAX + 2.0, Z_SPLIT - 0.6, Z_SPLIT + 0.05, R_CORNER + 2.0).cut(
+    make_rounded_box(X_MIN + 0.5, X_MAX - 0.5, Y_MIN + 0.5, Y_MAX - 0.5, Z_SPLIT - 0.7, Z_SPLIT + 0.1, R_CORNER - 0.5)
+)
+shell_body = shell_body.cut(shadow_cut_shell)
+
+shadow_cut_lid = make_rounded_box(X_MIN - 2.0, X_MAX + 2.0, Y_MIN - 2.0, Y_MAX + 2.0, Z_SPLIT - 0.05, Z_SPLIT + 0.6, R_CORNER + 2.0).cut(
+    make_rounded_box(X_MIN + 0.5, X_MAX - 0.5, Y_MIN + 0.5, Y_MAX - 0.5, Z_SPLIT - 0.1, Z_SPLIT + 0.7, R_CORNER - 0.5)
+)
+lid_body = lid_body.cut(shadow_cut_lid)
+
 # ==========================================
-# 5. SHELL: BOTTOM ESP32 CRADLE WITH AUTOMATIC SNAP-FIT LOCKS & TIGHT TYPE-C HOLE
+# 5. SHELL: BOTTOM ESP32 CRADLE WITH AUTOMATIC SNAP-FIT LOCKS, TYPE-C PORT & ERGONOMICS
 # ==========================================
-# Rubber Bumper Feet Pockets on bottom:
-for fx, fy in [(-38.0, -27.0), (30.0, -27.0), (-38.0, 19.0), (30.0, 19.0)]:
-    foot_pocket = Part.makeCylinder(4.0, 0.65, FreeCAD.Vector(fx, fy, -0.05), FreeCAD.Vector(0, 0, 1))
+# Rubber Bumper Feet Pockets on bottom (dia 8.2mm, depth 0.75mm for standard 8mm silicone pads):
+for fx, fy in [(-36.0, -25.0), (28.0, -25.0), (-36.0, 17.0), (28.0, 17.0)]:
+    foot_pocket = Part.makeCylinder(4.1, 0.75, FreeCAD.Vector(fx, fy, -0.05), FreeCAD.Vector(0, 0, 1))
     shell_body = shell_body.cut(foot_pocket)
+
+# Lateral Tactile Grip Flutes (Left flank):
+for fy in [-16.0, -8.0, 0.0, 8.0, 16.0]:
+    flute_l = Part.makeCylinder(1.0, 10.0, FreeCAD.Vector(-44.6, fy, 3.5), FreeCAD.Vector(0, 0, 1))
+    shell_body = shell_body.cut(flute_l)
+
+# Lateral Tactile Grip Flutes (Right flank, avoiding Type-C port at Y=0):
+for fy in [-18.0, -11.0, 11.0, 18.0]:
+    flute_r = Part.makeCylinder(1.0, 10.0, FreeCAD.Vector(36.6, fy, 3.5), FreeCAD.Vector(0, 0, 1))
+    shell_body = shell_body.cut(flute_r)
+
+# Bottom Plate Maker Badge Recess (30 x 14mm, 0.4mm deep):
+badge_recess = make_rounded_box(-19.0, 11.0, -11.0, 3.0, -0.1, 0.4, 2.5)
+shell_body = shell_body.cut(badge_recess)
+
+# Rear Lanyard Loop Slot through rear wall (X=-21, Y=26, Z=6):
+lanyard1 = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(-24.0, 24.0, 6.0), FreeCAD.Vector(0, 1, 0))
+lanyard2 = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(-18.0, 24.0, 6.0), FreeCAD.Vector(0, 1, 0))
+lanyard_slot = Part.makeBox(6.0, 5.0, 3.0, FreeCAD.Vector(-24.0, 24.0, 4.5))
+shell_body = shell_body.cut(lanyard1).cut(lanyard2).cut(lanyard_slot)
 
 # TIGHT, EXACT TYPE-C PILL PORT:
 # Metal shell: Y in [-4.47, 4.47], Z in [3.587, 7.30] (height 3.71, width 8.94)
@@ -253,13 +285,14 @@ shell_body = shell_body.fuse(esp_mount)
 shell_body = shell_body.removeSplitter()
 
 # ==========================================
-# 6. LID: FULL SCREEN DISPLAY AREA & WALL-SUPPORTED BUTTON HOLDER
+# 6. LID: AVIONICS SUN-VISOR BEZEL, ERGONOMIC BUTTON DISHES & ACOUSTIC LOUVERS
 # ==========================================
 X_SCREEN = global_active_center.x
 Y_SCREEN = global_active_center.y
 z_sc_top = 31.0 + Y_SCREEN * math.tan(math.radians(TILT_DEG))
 
-# A. Display Viewing Window: Exactly 36.0 x 28.5 mm (Full Active Display Area 35x28mm + 0.5mm frame margin!):
+# A. Multi-tiered Avionics Sun-Visor Display Bezel:
+# 1. Main viewing window: Exactly 36.0 x 28.5 mm (Full Active Display Area 35x28mm + 0.5mm frame margin!):
 window_cutter = Part.makeBox(36.0, 28.5, 10.0, FreeCAD.Vector(-18.0, -14.25, -5.0))
 p_win = FreeCAD.Placement()
 p_win.Rotation = rot_x10
@@ -267,10 +300,15 @@ p_win.Base = FreeCAD.Vector(X_SCREEN, Y_SCREEN, z_sc_top)
 window_cutter.Placement = p_win
 lid_body = lid_body.cut(window_cutter)
 
-# 45-degree aesthetic lead-in bevel on the outer viewing window:
-win_bevel = Part.makeBox(37.4, 29.9, 1.2, FreeCAD.Vector(-18.7, -14.95, -0.6))
-win_bevel.Placement = p_win
-lid_body = lid_body.cut(win_bevel)
+# 2. Middle 45-degree lead-in bevel:
+win_bevel1 = Part.makeBox(37.8, 30.3, 1.2, FreeCAD.Vector(-18.9, -15.15, -0.6))
+win_bevel1.Placement = p_win
+lid_body = lid_body.cut(win_bevel1)
+
+# 3. Outer sun-hood framing step:
+win_bevel2 = Part.makeBox(39.6, 32.1, 0.6, FreeCAD.Vector(-19.8, -16.05, -0.3))
+win_bevel2.Placement = p_win
+lid_body = lid_body.cut(win_bevel2)
 
 # B. 4 Solid Screw Standoffs for TFT (terminating at front face of PCB, local Z = 6.55):
 for hx, hy in [(-26.0, -14.25), (26.0, -14.25), (-26.0, 14.25), (26.0, 14.25)]:
@@ -302,6 +340,10 @@ for btn_obj, pt in [(btn_up, pt_up), (btn_sel, pt_sel), (btn_down, pt_down)]:
     bdir = rot_x10.multVec(FreeCAD.Vector(0, 0, 1))
     bz_top = 31.0 + pt.y * math.tan(math.radians(TILT_DEG))
     b_origin = FreeCAD.Vector(pt.x, pt.y, bz_top)
+    
+    # 0. Ergonomic recessed finger dish (dia 8.6mm, depth 0.6mm):
+    dish = Part.makeCone(4.3, 2.9, 0.6, b_origin - bdir * 0.6, bdir)
+    lid_body = lid_body.cut(dish)
     
     # 1. Outer button hole: dia 5.8mm (smooth glide for dia 5.0mm cap stem)
     bhole = Part.makeCylinder(2.9, 12.0, b_origin - bdir * 6.0, bdir)
@@ -337,12 +379,42 @@ for btn_obj, pt in [(btn_up, pt_up), (btn_sel, pt_sel), (btn_down, pt_down)]:
     sw_env.Placement = p_sw
     lid_body = lid_body.cut(sw_env)
 
-# E. 5 FLUTED COOLING VENTS:
-for vx in [8.0, 11.5, 15.0, 18.5, 22.0]:
+# D. DEBOSSED TACTILE INDICATOR GLYPHS BESIDE BUTTONS:
+# Up button glyph: ▲ (triangle prism pointing +Y)
+p_glyph_up = FreeCAD.Placement()
+p_glyph_up.Rotation = rot_x10
+z_g_up = 31.0 + 13.0 * math.tan(math.radians(TILT_DEG))
+p_glyph_up.Base = FreeCAD.Vector(22.2, 13.0, z_g_up)
+tri_up = Part.Face(Part.makePolygon([FreeCAD.Vector(0, 1.0, 0), FreeCAD.Vector(-1.0, -0.8, 0), FreeCAD.Vector(1.0, -0.8, 0), FreeCAD.Vector(0, 1.0, 0)])).extrude(FreeCAD.Vector(0, 0, -0.5))
+tri_up.Placement = p_glyph_up
+lid_body = lid_body.cut(tri_up)
+
+# Select button glyph: ● (circular indicator dia 2.0mm)
+p_glyph_sel = FreeCAD.Placement()
+p_glyph_sel.Rotation = rot_x10
+z_g_sel = 31.0
+p_glyph_sel.Base = FreeCAD.Vector(22.2, 0.0, z_g_sel)
+dot_sel = Part.makeCylinder(1.0, 0.5, FreeCAD.Vector(0, 0, -0.5), FreeCAD.Vector(0, 0, 1))
+dot_sel.Placement = p_glyph_sel
+lid_body = lid_body.cut(dot_sel)
+
+# Down button glyph: ▼ (triangle prism pointing -Y)
+p_glyph_down = FreeCAD.Placement()
+p_glyph_down.Rotation = rot_x10
+z_g_down = 31.0 - 13.0 * math.tan(math.radians(TILT_DEG))
+p_glyph_down.Base = FreeCAD.Vector(22.2, -13.0, z_g_down)
+tri_down = Part.Face(Part.makePolygon([FreeCAD.Vector(0, -1.0, 0), FreeCAD.Vector(-1.0, 0.8, 0), FreeCAD.Vector(1.0, 0.8, 0), FreeCAD.Vector(0, -1.0, 0)])).extrude(FreeCAD.Vector(0, 0, -0.5))
+tri_down.Placement = p_glyph_down
+lid_body = lid_body.cut(tri_down)
+
+# E. ANGLED AEROSPACE ACOUSTIC CHEVRON LOUVERS (Swept at 30 deg):
+rot_vent = FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), 30.0)
+rot_vent_comb = rot_x10.multiply(rot_vent)
+for vx in [7.0, 10.5, 14.0, 17.5, 21.0]:
     vz = 31.0 - 25.0 * math.tan(math.radians(TILT_DEG))
-    vslot = Part.makeBox(1.6, 6.0, 8.0, FreeCAD.Vector(-0.8, -3.0, -4.0))
+    vslot = Part.makeBox(1.5, 7.5, 8.0, FreeCAD.Vector(-0.75, -3.75, -4.0))
     pv = FreeCAD.Placement()
-    pv.Rotation = rot_x10
+    pv.Rotation = rot_vent_comb
     pv.Base = FreeCAD.Vector(vx, -25.0, vz)
     vslot.Placement = pv
     lid_body = lid_body.cut(vslot)
