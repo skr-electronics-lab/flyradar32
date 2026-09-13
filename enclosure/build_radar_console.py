@@ -50,8 +50,8 @@ pos_tft = FreeCAD.Vector(-10.0, 0.0, 20.0)
 tft.Placement = FreeCAD.Placement(pos_tft, rot_tft)
 
 tft_pl = FreeCAD.Placement(pos_tft, rot_tft)
-# Exact Active Area center from datasheet: local X = -5.15mm, Y = 0.0mm, Z = 8.90mm
-global_active_center = tft_pl.multVec(FreeCAD.Vector(-5.15, 0.0, 8.90))
+# Exact Active Area center from STEP model Face 26: local X = -2.89mm, Y = 0.0mm, Z = 8.90mm
+global_active_center = tft_pl.multVec(FreeCAD.Vector(-2.89, 0.0, 8.90))
 
 # 3 Buttons: Beside display on the right at X = +28.5mm, tilted +10 deg
 def clone_button_exact(src_part, name, label, target_plunger_xy, base_z, tilt_deg):
@@ -229,20 +229,20 @@ lanyard2 = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(-18.0, 24.0, 6.0), FreeCAD
 lanyard_slot = Part.makeBox(6.0, 5.0, 3.0, FreeCAD.Vector(-24.0, 24.0, 4.5))
 shell_body = shell_body.cut(lanyard1).cut(lanyard2).cut(lanyard_slot)
 
-# WIDE-CLEARANCE TYPE-C PORT WITH CABLE HOUSING RELIEF:
-# Metal shell: Y in [-4.47, 4.47], Z in [3.587, 7.30] (height 3.71, width 8.94)
-# 1. Main through-pill cutout: Width 10.6mm, height 4.6mm (R=2.3mm), centered at Z=5.45mm, Y=0.0mm:
-Z_USBC = 5.45
-c_top = Part.makeCylinder(2.3, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_bot = Part.makeCylinder(2.3, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_mid = Part.makeBox(8.0, 6.0, 4.6, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC - 2.3))
+# WIDE-CLEARANCE TYPE-C PORT WITH PERFECT CENTER ALIGNMENT:
+# Metal shell: Y in [-4.45, 4.45], Z in [4.15, 7.30] -> Exact Center Y = 0.000, Center Z = 5.725mm
+Z_USBC = 5.725
+# 1. Main through-pill cutout: Width 10.4mm, height 4.4mm (R=2.2mm):
+c_top = Part.makeCylinder(2.2, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_bot = Part.makeCylinder(2.2, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_mid = Part.makeBox(8.0, 6.0, 4.4, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC - 2.2))
 usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
 shell_body = shell_body.cut(usbc_pill)
 
-# 2. Outer cable shroud relief pocket: 13.0mm wide x 7.0mm high (R=3.5mm), depth 1.2mm on outer wall
-c_rel_top = Part.makeCylinder(3.5, 2.0, FreeCAD.Vector(X_MAX - 1.2, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_rel_bot = Part.makeCylinder(3.5, 2.0, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_rel_mid = Part.makeBox(2.0, 6.0, 7.0, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC - 3.5))
+# 2. Outer cable shroud relief pocket: 12.6mm wide x 6.6mm high (R=3.3mm), depth 1.2mm on outer wall
+c_rel_top = Part.makeCylinder(3.3, 2.0, FreeCAD.Vector(X_MAX - 1.2, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_rel_bot = Part.makeCylinder(3.3, 2.0, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_rel_mid = Part.makeBox(2.0, 6.0, 6.6, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC - 3.3))
 usbc_relief = c_rel_top.fuse(c_rel_bot).fuse(b_rel_mid)
 shell_body = shell_body.cut(usbc_relief)
 
@@ -309,8 +309,8 @@ Y_SCREEN = global_active_center.y
 z_sc_top = 31.0 + Y_SCREEN * math.tan(math.radians(TILT_DEG))
 
 # A. Multi-tiered Avionics Sun-Visor Display Bezel:
-# 1. Main viewing window: Exactly 36.0 x 28.5 mm (Full Active Display Area 35x28mm + 0.5mm frame margin!):
-window_cutter = Part.makeBox(36.0, 28.5, 10.0, FreeCAD.Vector(-18.0, -14.25, -5.0))
+# 1. Main viewing window: 35.2 x 28.2 mm (Frames the 35.00 x 28.00mm active display with 0.10mm frame margin):
+window_cutter = Part.makeBox(35.2, 28.2, 10.0, FreeCAD.Vector(-17.6, -14.1, -5.0))
 p_win = FreeCAD.Placement()
 p_win.Rotation = rot_x10
 p_win.Base = FreeCAD.Vector(X_SCREEN, Y_SCREEN, z_sc_top)
@@ -318,12 +318,12 @@ window_cutter.Placement = p_win
 lid_body = lid_body.cut(window_cutter)
 
 # 2. Middle 45-degree lead-in bevel:
-win_bevel1 = Part.makeBox(37.8, 30.3, 1.2, FreeCAD.Vector(-18.9, -15.15, -0.6))
+win_bevel1 = Part.makeBox(37.0, 30.0, 1.2, FreeCAD.Vector(-18.5, -15.0, -0.6))
 win_bevel1.Placement = p_win
 lid_body = lid_body.cut(win_bevel1)
 
 # 3. Outer sun-hood framing step:
-win_bevel2 = Part.makeBox(39.6, 32.1, 0.6, FreeCAD.Vector(-19.8, -16.05, -0.3))
+win_bevel2 = Part.makeBox(38.6, 31.6, 0.6, FreeCAD.Vector(-19.3, -15.8, -0.3))
 win_bevel2.Placement = p_win
 lid_body = lid_body.cut(win_bevel2)
 
