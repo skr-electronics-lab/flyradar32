@@ -133,101 +133,126 @@ lid_base = enclosure_hollow.common(split_box_lid)
 
 screw_corners = [(-40.0, -29.0), (32.0, -29.0), (-40.0, 21.0), (32.0, 21.0)]
 
-# Shell: 4 Corner posts from floor to parting line
+# Shell: 4 Solid corner pillars (No screw holes - 100% Press-Push-Set!)
 shell_posts = []
 for cx, cy in screw_corners:
     post = Part.makeCylinder(3.6, Z_SPLIT - FLOOR, FreeCAD.Vector(cx, cy, FLOOR), FreeCAD.Vector(0, 0, 1))
-    hole = Part.makeCylinder(1.7, Z_SPLIT + 2.0, FreeCAD.Vector(cx, cy, -1.0), FreeCAD.Vector(0, 0, 1))
-    cbore = Part.makeCylinder(3.1, 2.8, FreeCAD.Vector(cx, cy, -0.1), FreeCAD.Vector(0, 0, 1))
-    post = post.cut(hole).cut(cbore)
     shell_posts.append(post)
 
 shell_body = shell_base
 for sp in shell_posts:
     shell_body = shell_body.fuse(sp)
 
-# Lid: 4 Corner bosses from parting line to ceiling
+# Lid: 4 Solid corner bosses (No screw holes - 100% Press-Push-Set!)
 lid_bosses = []
 for cx, cy in screw_corners:
     z_roof = 31.0 + cy * math.tan(math.radians(TILT_DEG)) - WALL * math.cos(math.radians(TILT_DEG))
     boss_h = z_roof - Z_SPLIT + 0.5
     boss = Part.makeCylinder(3.6, boss_h, FreeCAD.Vector(cx, cy, Z_SPLIT), FreeCAD.Vector(0, 0, 1))
-    pilot = Part.makeCylinder(1.25, 8.5, FreeCAD.Vector(cx, cy, Z_SPLIT - 0.2), FreeCAD.Vector(0, 0, 1))
-    boss = boss.cut(pilot)
     lid_bosses.append(boss)
 
 lid_body = lid_base
 for lb in lid_bosses:
     lid_body = lid_body.fuse(lb)
 
-# Interlocking Lip:
+# Interlocking Lip & Alignment Skirt:
 # CONTINUOUS UNBROKEN SKIRT ON LID (0.35mm extra clearance for effortless slide fit!)
-lid_skirt_outer = make_rounded_box(X_MIN + WALL + 0.35, X_MAX - WALL - 0.35, Y_MIN + WALL + 0.35, Y_MAX - WALL - 0.35, Z_SPLIT - 1.8, Z_SPLIT, R_CORNER - 1.65)
-lid_skirt_inner = make_rounded_box(X_MIN + WALL + 1.35, X_MAX - WALL - 1.35, Y_MIN + WALL + 1.35, Y_MAX - WALL - 1.35, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
+lid_skirt_outer = make_rounded_box(X_MIN + WALL + 0.35, X_MAX - WALL - 0.35, Y_MIN + WALL + 0.35, Y_MAX - WALL - 0.35, Z_SPLIT - 2.0, Z_SPLIT, R_CORNER - 1.65)
+lid_skirt_inner = make_rounded_box(X_MIN + WALL + 1.45, X_MAX - WALL - 1.45, Y_MIN + WALL + 1.45, Y_MAX - WALL - 1.45, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
 lid_skirt = lid_skirt_outer.cut(lid_skirt_inner)
 
-# Corner relief cutouts so skirt does not collide with shell posts:
+# Corner relief cutouts so skirt does not collide with corner posts:
 for cx, cy in screw_corners:
     skirt_post_cut = Part.makeCylinder(4.1, 3.0, FreeCAD.Vector(cx, cy, Z_SPLIT - 2.2), FreeCAD.Vector(0, 0, 1))
     lid_skirt = lid_skirt.cut(skirt_post_cut)
 
+# FULL CONTINUOUS 45-DEGREE PERIMETER SUPPORT SHELF IN SHELL ("INFULL EDGE SUPPORT"):
+# Solid continuous 45-degree support ledge running along the entire inner wall of the shell:
+# 45-degree gusset from Z = 12.5mm to Z = 14.0mm, with a horizontal seating rim up to Z = 14.4mm:
+def make_rounded_wire(xmin, xmax, ymin, ymax, z, r):
+    pts = [
+        FreeCAD.Vector(xmin + r, ymin, z),
+        FreeCAD.Vector(xmax - r, ymin, z),
+        FreeCAD.Vector(xmax, ymin + r, z),
+        FreeCAD.Vector(xmax, ymax - r, z),
+        FreeCAD.Vector(xmax - r, ymax, z),
+        FreeCAD.Vector(xmin + r, ymax, z),
+        FreeCAD.Vector(xmin, ymax - r, z),
+        FreeCAD.Vector(xmin, ymin + r, z),
+    ]
+    edges = [
+        Part.makeLine(pts[0], pts[1]),
+        Part.makeCircle(r, pts[1] + FreeCAD.Vector(0, r, 0), FreeCAD.Vector(0, 0, 1), 270, 360),
+        Part.makeLine(pts[2], pts[3]),
+        Part.makeCircle(r, pts[4] + FreeCAD.Vector(0, -r, 0), FreeCAD.Vector(0, 0, 1), 0, 90),
+        Part.makeLine(pts[4], pts[5]),
+        Part.makeCircle(r, pts[5] + FreeCAD.Vector(0, -r, 0), FreeCAD.Vector(0, 0, 1), 90, 180),
+        Part.makeLine(pts[6], pts[7]),
+        Part.makeCircle(r, pts[0] + FreeCAD.Vector(0, r, 0), FreeCAD.Vector(0, 0, 1), 180, 270),
+    ]
+    return Part.Wire(edges)
+
+w_outer_shelf = make_rounded_wire(X_MIN + WALL, X_MAX - WALL, Y_MIN + WALL, Y_MAX - WALL, 12.5, R_CORNER - 1.5)
+w_inner_shelf = make_rounded_wire(X_MIN + WALL + 1.2, X_MAX - WALL - 1.2, Y_MIN + WALL + 1.2, Y_MAX - WALL - 1.2, 13.7, R_CORNER - 2.5)
+
+outer_shelf_solid = Part.Face(w_outer_shelf).extrude(FreeCAD.Vector(0, 0, 1.2))
+core_shelf_loft = Part.makeLoft([w_outer_shelf, w_inner_shelf], True, False)
+shelf_45 = outer_shelf_solid.cut(core_shelf_loft)
+
+w_rim_inner = make_rounded_wire(X_MIN + WALL + 1.2, X_MAX - WALL - 1.2, Y_MIN + WALL + 1.2, Y_MAX - WALL - 1.2, 13.7, R_CORNER - 2.5)
+shelf_rim = Part.Face(w_outer_shelf).extrude(FreeCAD.Vector(0, 0, 0.4)).cut(Part.Face(w_rim_inner).extrude(FreeCAD.Vector(0, 0, 0.4)))
+shelf_rim.translate(FreeCAD.Vector(0, 0, 1.2))
+
+edge_shelf = shelf_45.fuse(shelf_rim)
+
+# Clear corner posts from edge shelf:
+for cx, cy in screw_corners:
+    post_cut = Part.makeCylinder(4.1, 2.5, FreeCAD.Vector(cx, cy, 12.4), FreeCAD.Vector(0, 0, 1))
+    edge_shelf = edge_shelf.cut(post_cut)
+
+shell_body = shell_body.fuse(edge_shelf)
+
+# Cut clearance for button switch bodies from shell if they reach into split zone:
+for pt in [pt_up, pt_sel, pt_down]:
+    sw_env_shell = Part.makeBox(8.5, 8.5, 14.0, FreeCAD.Vector(-4.25, -4.25, -13.5))
+    p_sw = FreeCAD.Placement()
+    p_sw.Rotation = rot_x10
+    p_sw.Base = FreeCAD.Vector(pt.x, pt.y, pt.z)
+    sw_env_shell.Placement = p_sw
+    shell_body = shell_body.cut(sw_env_shell)
+
+# AUTOMATIC PRESS-PUSH-SET SNAP LOCKS (Lid Skirt to Shell Walls):
+# 4 snap tabs on the Lid skirt that click into shell undercuts:
+# 1. Front snap tab (Y = Y_MIN + WALL + 0.35, projecting 0.50mm in -Y)
+tab_front = Part.makeBox(8.0, 0.50, 1.2, FreeCAD.Vector(-4.0, Y_MIN + WALL + 0.35 - 0.50, 14.8))
+# 2. Rear snap tab (Y = Y_MAX - WALL - 0.35, projecting 0.50mm in +Y)
+tab_rear = Part.makeBox(8.0, 0.50, 1.2, FreeCAD.Vector(-4.0, Y_MAX - WALL - 0.35, 14.8))
+# 3. Left snap tab (X = X_MIN + WALL + 0.35, projecting 0.50mm in -X)
+tab_left = Part.makeBox(0.50, 8.0, 1.2, FreeCAD.Vector(X_MIN + WALL + 0.35 - 0.50, -8.0, 14.8))
+# 4. Right snap tab (X = X_MAX - WALL - 0.35, projecting 0.50mm in +X, at Y = -18.0 to clear USB-C port)
+tab_right = Part.makeBox(0.50, 8.0, 1.2, FreeCAD.Vector(X_MAX - WALL - 0.35, -22.0, 14.8))
+
+lid_skirt = lid_skirt.fuse(tab_front).fuse(tab_rear).fuse(tab_left).fuse(tab_right)
 lid_body = lid_body.fuse(lid_skirt)
 
-# Shell rebate:
-shell_rebate_outer = make_rounded_box(X_MIN + WALL - 0.01, X_MAX - WALL + 0.01, Y_MIN + WALL - 0.01, Y_MAX - WALL + 0.01, Z_SPLIT - 2.0, Z_SPLIT + 0.1, R_CORNER - 1.5)
-shell_rebate_inner = make_rounded_box(X_MIN + WALL + 1.35, X_MAX - WALL - 1.35, Y_MIN + WALL - 1.35, Y_MAX + WALL + 1.35, Z_SPLIT - 2.5, Z_SPLIT + 0.5, R_CORNER - 2.5)
-shell_rebate = shell_rebate_outer.cut(shell_rebate_inner)
-
-for cx, cy in screw_corners:
-    post_keep = Part.makeCylinder(3.6, 2.5, FreeCAD.Vector(cx, cy, Z_SPLIT - 2.2), FreeCAD.Vector(0, 0, 1))
-    shell_rebate = shell_rebate.cut(post_keep)
-
-shell_body = shell_body.cut(shell_rebate)
-
-# Thumb pry notch on -X left wall
-pry_notch = Part.makeBox(4.0, 8.0, 2.0, FreeCAD.Vector(X_MIN - 2.0, -4.0, Z_SPLIT - 1.0))
-shell_body = shell_body.cut(pry_notch)
-lid_body = lid_body.cut(pry_notch)
-
-# Modern Parting Line Accent Reveal (Perimeter Shadow Gap):
-# 1.2mm total reveal height (0.6mm cut in shell, 0.6mm cut in lid), 0.5mm deep around outer perimeter
-shadow_cut_shell = make_rounded_box(X_MIN - 2.0, X_MAX + 2.0, Y_MIN - 2.0, Y_MAX + 2.0, Z_SPLIT - 0.6, Z_SPLIT + 0.05, R_CORNER + 2.0).cut(
-    make_rounded_box(X_MIN + 0.5, X_MAX - 0.5, Y_MIN + 0.5, Y_MAX - 0.5, Z_SPLIT - 0.7, Z_SPLIT + 0.1, R_CORNER - 0.5)
-)
-shell_body = shell_body.cut(shadow_cut_shell)
-
-shadow_cut_lid = make_rounded_box(X_MIN - 2.0, X_MAX + 2.0, Y_MIN - 2.0, Y_MAX + 2.0, Z_SPLIT - 0.05, Z_SPLIT + 0.6, R_CORNER + 2.0).cut(
-    make_rounded_box(X_MIN + 0.5, X_MAX - 0.5, Y_MIN + 0.5, Y_MAX - 0.5, Z_SPLIT - 0.1, Z_SPLIT + 0.7, R_CORNER - 0.5)
-)
-lid_body = lid_body.cut(shadow_cut_lid)
+# Undercuts in Shell walls to receive the snap tabs (generous clearance to ensure 0.000000 mm3 interference):
+pocket_front = Part.makeBox(10.0, 0.70, 1.6, FreeCAD.Vector(-5.0, Y_MIN + WALL + 0.35 - 0.60, 14.6))
+pocket_rear = Part.makeBox(10.0, 0.70, 1.6, FreeCAD.Vector(-5.0, Y_MAX - WALL - 0.35 - 0.10, 14.6))
+pocket_left = Part.makeBox(0.70, 10.0, 1.6, FreeCAD.Vector(X_MIN + WALL + 0.35 - 0.60, -9.0, 14.6))
+pocket_right = Part.makeBox(0.70, 10.0, 1.6, FreeCAD.Vector(X_MAX - WALL - 0.35 - 0.10, -23.0, 14.6))
+shell_body = shell_body.cut(pocket_front).cut(pocket_rear).cut(pocket_left).cut(pocket_right)
 
 # ==========================================
-# 5. SHELL: BOTTOM ESP32 CRADLE WITH AUTOMATIC SNAP-FIT LOCKS, TYPE-C PORT & ERGONOMICS
+# 5. SHELL: BOTTOM ESP32 CRADLE WITH AUTOMATIC SNAP-FIT LOCKS & TYPE-C PORT
 # ==========================================
 # Rubber Bumper Feet Pockets on bottom (dia 8.2mm, depth 0.75mm for standard 8mm silicone pads):
 for fx, fy in [(-36.0, -25.0), (28.0, -25.0), (-36.0, 17.0), (28.0, 17.0)]:
     foot_pocket = Part.makeCylinder(4.1, 0.75, FreeCAD.Vector(fx, fy, -0.05), FreeCAD.Vector(0, 0, 1))
     shell_body = shell_body.cut(foot_pocket)
 
-# Lateral Tactile Grip Flutes (Left flank):
-for fy in [-16.0, -8.0, 0.0, 8.0, 16.0]:
-    flute_l = Part.makeCylinder(1.0, 10.0, FreeCAD.Vector(-44.6, fy, 3.5), FreeCAD.Vector(0, 0, 1))
-    shell_body = shell_body.cut(flute_l)
-
-# Lateral Tactile Grip Flutes (Right flank, avoiding Type-C port at Y=0):
-for fy in [-18.0, -11.0, 11.0, 18.0]:
-    flute_r = Part.makeCylinder(1.0, 10.0, FreeCAD.Vector(36.6, fy, 3.5), FreeCAD.Vector(0, 0, 1))
-    shell_body = shell_body.cut(flute_r)
-
 # Bottom Plate Maker Badge Recess (30 x 14mm, 0.4mm deep):
 badge_recess = make_rounded_box(-19.0, 11.0, -11.0, 3.0, -0.1, 0.4, 2.5)
 shell_body = shell_body.cut(badge_recess)
-
-# Rear Lanyard Loop Slot through rear wall (X=-21, Y=26, Z=6):
-lanyard1 = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(-24.0, 24.0, 6.0), FreeCAD.Vector(0, 1, 0))
-lanyard2 = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(-18.0, 24.0, 6.0), FreeCAD.Vector(0, 1, 0))
-lanyard_slot = Part.makeBox(6.0, 5.0, 3.0, FreeCAD.Vector(-24.0, 24.0, 4.5))
-shell_body = shell_body.cut(lanyard1).cut(lanyard2).cut(lanyard_slot)
 
 # WIDE-CLEARANCE TYPE-C PORT WITH PERFECT CENTER ALIGNMENT:
 # Metal shell: Y in [-4.45, 4.45], Z in [4.15, 7.30] -> Exact Center Y = 0.000, Center Z = 5.725mm
