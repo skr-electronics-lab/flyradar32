@@ -229,22 +229,17 @@ for cx, cy in CORNER_BOSS_DATA:
 
 # Bottom plate is kept 100% plane and smooth (no badge recess)
 
-# SOLID FULL-DEPTH TYPE-C ARCH (Zero thin bottom sliver, 100% solid vertical print walls):
-# 1. Main through-cutout: Width 11.0mm (Y in [-5.5, +5.5]), extends from Z = -0.50 to Z = 7.50:
-c1 = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, 5.0), FreeCAD.Vector(1, 0, 0))
-c2 = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, 5.0), FreeCAD.Vector(1, 0, 0))
-b_arch = Part.makeBox(8.0, 6.0, 2.5, FreeCAD.Vector(X_MAX - 5.0, -3.0, 5.0))
-b_base = Part.makeBox(8.0, 11.0, 5.5, FreeCAD.Vector(X_MAX - 5.0, -5.5, -0.50))
-usbc_pill = c1.fuse(c2).fuse(b_arch).fuse(b_base)
+# SIMPLE, CLEAN TYPE-C PORT (Centered at Y=0, Z=5.80mm, with 2.60mm solid base - ZERO slicing slivers, 100% solid flat bottom):
+# Width: 12.0mm (Y in [-6.0, +6.0]), Height: 6.4mm (Z in [2.60, 9.00]), R = 3.20mm stadium pill slot
+# Solid plastic beneath cutout: 2.60mm (13 layers at 0.20mm) - bottom plate remains 100% flat and solid.
+Z_USBC = 5.80
+R_USBC = 3.20
+DY_USBC = 6.00 - R_USBC  # 2.80mm
+c_top = Part.makeCylinder(R_USBC, 8.0, FreeCAD.Vector(X_MAX - 5.0,  DY_USBC, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_bot = Part.makeCylinder(R_USBC, 8.0, FreeCAD.Vector(X_MAX - 5.0, -DY_USBC, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_mid = Part.makeBox(8.0, 2 * DY_USBC, 2 * R_USBC, FreeCAD.Vector(X_MAX - 5.0, -DY_USBC, Z_USBC - R_USBC))
+usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
 shell_body = shell_body.cut(usbc_pill)
-
-# 2. Outer cable shroud relief pocket: Width 13.6mm, depth 1.5mm, extends from Z = -0.50 to Z = 7.80:
-c_rel1 = Part.makeCylinder(3.4, 2.0, FreeCAD.Vector(X_MAX - 1.5, 3.4, 4.4), FreeCAD.Vector(1, 0, 0))
-c_rel2 = Part.makeCylinder(3.4, 2.0, FreeCAD.Vector(X_MAX - 1.5, -3.4, 4.4), FreeCAD.Vector(1, 0, 0))
-b_rel_top = Part.makeBox(2.0, 6.8, 3.4, FreeCAD.Vector(X_MAX - 1.5, -3.4, 4.4))
-b_rel_base = Part.makeBox(2.0, 13.6, 4.9, FreeCAD.Vector(X_MAX - 1.5, -6.8, -0.50))
-usbc_relief = c_rel1.fuse(c_rel2).fuse(b_rel_top).fuse(b_rel_base)
-shell_body = shell_body.cut(usbc_relief)
 
 # 3. VERTICAL FLUTES WITH PERFECT ROUNDED INNER PROFILE (Capsule geometry, NOT boxed):
 # Cylinder R=1.25mm with spherical ends, submerged 0.35mm into wall (leaves 1.45mm solid plastic = 100% solid, ZERO slicing holes)
