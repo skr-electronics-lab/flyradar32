@@ -299,9 +299,11 @@ Y_ESP_MAX = 14.25 + GAP_ESP_Y    # +14.65mm
 X_ESP_REAR = -17.30 - GAP_ESP_X  # -17.80mm
 
 # 1. Four resting pads with Dia 2.80mm (R=1.40mm) locator pins:
+# Calculated from exact ESP32 STEP model holes at local (+-11.60, +-23.50), transformed by rot_z90 + pos_esp(8.7, 0, 4.2):
+# Pitch in X = 47.00mm (-14.80 to +32.20), Pitch in Y = 23.20mm (-11.60 to +11.60), Diagonal = 52.41mm
 esp_pads = []
 esp_pins = []
-for hx, hy in [(-16.55, -13.50), (-16.55, 13.50), (33.95, -13.50), (33.95, 13.50)]:
+for hx, hy in [(-14.80, -11.60), (-14.80, 11.60), (32.20, -11.60), (32.20, 11.60)]:
     # Resting pad: 4.8 x 4.8 mm, height 0.8mm (Z in [1.80, 2.60])
     pad = Part.makeBox(4.8, 4.8, 0.80, FreeCAD.Vector(hx - 2.4, hy - 2.4, FLOOR))
     esp_pads.append(pad)
