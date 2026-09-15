@@ -229,21 +229,21 @@ for cx, cy in CORNER_BOSS_DATA:
 
 # Bottom plate is kept 100% plane and smooth (no badge recess)
 
-# WIDE-CLEARANCE TYPE-C PORT WITH PERFECT UNIVERSAL ALIGNMENT:
-# Accommodates both CH340 Type-C (Z in [2.60, 5.85]) and C-Type (Z in [3.12, 7.30]):
-Z_USBC = 4.80
-# 1. Main through-pill cutout: Width 11.0mm, height 5.6mm (R=2.8mm, spans Z in [2.00, 7.60mm]):
-c_top = Part.makeCylinder(2.8, 8.0, FreeCAD.Vector(X_MAX - 5.0, 2.7, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_bot = Part.makeCylinder(2.8, 8.0, FreeCAD.Vector(X_MAX - 5.0, -2.7, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_mid = Part.makeBox(8.0, 5.4, 5.6, FreeCAD.Vector(X_MAX - 5.0, -2.7, Z_USBC - 2.8))
-usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
+# SOLID FULL-DEPTH TYPE-C ARCH (Zero thin bottom sliver, 100% solid vertical print walls):
+# 1. Main through-cutout: Width 11.0mm (Y in [-5.5, +5.5]), extends from Z = -0.50 to Z = 7.50:
+c1 = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, 5.0), FreeCAD.Vector(1, 0, 0))
+c2 = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, 5.0), FreeCAD.Vector(1, 0, 0))
+b_arch = Part.makeBox(8.0, 6.0, 2.5, FreeCAD.Vector(X_MAX - 5.0, -3.0, 5.0))
+b_base = Part.makeBox(8.0, 11.0, 5.5, FreeCAD.Vector(X_MAX - 5.0, -5.5, -0.50))
+usbc_pill = c1.fuse(c2).fuse(b_arch).fuse(b_base)
 shell_body = shell_body.cut(usbc_pill)
 
-# 2. Outer cable shroud relief pocket: 13.6mm wide x 7.4mm high (R=3.7mm), depth 1.5mm on outer wall
-c_rel_top = Part.makeCylinder(3.7, 2.0, FreeCAD.Vector(X_MAX - 1.5, 3.1, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_rel_bot = Part.makeCylinder(3.7, 2.0, FreeCAD.Vector(X_MAX - 1.5, -3.1, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_rel_mid = Part.makeBox(2.0, 6.2, 7.4, FreeCAD.Vector(X_MAX - 1.5, -3.1, Z_USBC - 3.7))
-usbc_relief = c_rel_top.fuse(c_rel_bot).fuse(b_rel_mid)
+# 2. Outer cable shroud relief pocket: Width 13.6mm, depth 1.5mm, extends from Z = -0.50 to Z = 7.80:
+c_rel1 = Part.makeCylinder(3.4, 2.0, FreeCAD.Vector(X_MAX - 1.5, 3.4, 4.4), FreeCAD.Vector(1, 0, 0))
+c_rel2 = Part.makeCylinder(3.4, 2.0, FreeCAD.Vector(X_MAX - 1.5, -3.4, 4.4), FreeCAD.Vector(1, 0, 0))
+b_rel_top = Part.makeBox(2.0, 6.8, 3.4, FreeCAD.Vector(X_MAX - 1.5, -3.4, 4.4))
+b_rel_base = Part.makeBox(2.0, 13.6, 4.9, FreeCAD.Vector(X_MAX - 1.5, -6.8, -0.50))
+usbc_relief = c_rel1.fuse(c_rel2).fuse(b_rel_top).fuse(b_rel_base)
 shell_body = shell_body.cut(usbc_relief)
 
 # 3. VERTICAL FLUTES WITH PERFECT ROUNDED INNER PROFILE (Capsule geometry, NOT boxed):
@@ -290,59 +290,40 @@ for rx in [X_WALL_CTR - 12.0, X_WALL_CTR, X_WALL_CTR + 12.0]:
 # ==========================================
 GAP_ESP_Y = 0.40
 GAP_ESP_X = 0.60
-# Accommodates 29.0mm wide CH340 board (and 28.5mm WROOM):
-Y_ESP_MIN = -14.50 - GAP_ESP_Y   # -14.90mm
-Y_ESP_MAX = 14.50 + GAP_ESP_Y    # +14.90mm
-X_ESP_REAR = -16.60 - GAP_ESP_X  # -17.20mm
+# Accommodates both 29.0mm CH340 board and 28.5mm WROOM board with 0.5mm clearance:
+Y_ESP_MIN = -15.00  # Lateral guide rail inner face (Y = -15.00mm)
+Y_ESP_MAX = 15.00   # Lateral guide rail inner face (Y = +15.00mm)
+X_ESP_REAR = -18.00 # Rear thrust wall inner face (X = -18.00mm)
 
-# 1. Four resting pads with Dia 2.40mm (R=1.20mm) locator pins with lead-in cone:
-# Perfectly centered between CH340 (24.00 x 46.48mm pitch) and WROOM (23.20 x 47.00mm pitch)
-# Pitch in X = 46.50mm (-13.85 to +32.65), Pitch in Y = 23.80mm (-11.90 to +11.90)
-# Radial clearance >= 0.30mm inside Dia 3.20mm holes for 100% effortless drop-in slip fit
+# 1. Four resting pads with Dia 2.40mm (R=1.20mm) locator pins:
+# Perfectly centered for CH340 (24.00 x 46.48mm pitch) and WROOM (23.20 x 47.00mm pitch)
+# Front pins: X = +32.00mm, Y = +-11.85mm
+# Rear pins:  X = -14.65mm, Y = +-11.85mm
+# Pitch in X = 46.65mm, Pitch in Y = 23.70mm
+# Conical lead-in tip (R=1.20 -> 0.65mm) for effortless drop-in slip fit inside Dia 3.20mm holes
 esp_pads = []
 esp_pins = []
-for hx, hy in [(-14.55, -11.80), (-14.55, 11.80), (32.20, -11.80), (32.20, 11.80)]:
+for hx, hy in [(-14.65, -11.85), (-14.65, 11.85), (32.00, -11.85), (32.00, 11.85)]:
     # Resting pad: 5.0 x 5.0 mm, height 0.8mm (Z in [1.80, 2.60])
     pad = Part.makeBox(5.0, 5.0, 0.80, FreeCAD.Vector(hx - 2.5, hy - 2.5, FLOOR))
     esp_pads.append(pad)
-    # 2.40mm locator pin: height 2.10mm (Z in [2.60, 4.70], PCB top is at 4.20mm, cone tip above)
-    cyl = Part.makeCylinder(1.20, 1.60, FreeCAD.Vector(hx, hy, 2.60), FreeCAD.Vector(0, 0, 1))
-    tip = Part.makeCone(1.20, 0.70, 0.50, FreeCAD.Vector(hx, hy, 4.20), FreeCAD.Vector(0, 0, 1))
+    # 2.40mm locator pin: height 1.50mm straight + 0.50mm conical guide tip (Z in [2.60, 4.60])
+    cyl = Part.makeCylinder(1.20, 1.50, FreeCAD.Vector(hx, hy, 2.60), FreeCAD.Vector(0, 0, 1))
+    tip = Part.makeCone(1.20, 0.65, 0.50, FreeCAD.Vector(hx, hy, 4.10), FreeCAD.Vector(0, 0, 1))
     esp_pins.append(cyl.fuse(tip))
 
 all_pads = esp_pads[0].fuse(esp_pads[1]).fuse(esp_pads[2]).fuse(esp_pads[3])
 all_pins = esp_pins[0].fuse(esp_pins[1]).fuse(esp_pins[2]).fuse(esp_pins[3])
 
-# 2. Solid Rear Thrust Wall (2.0mm thick, inner face at X_ESP_REAR = -17.20mm):
+# 2. Solid Rear Thrust Wall (2.0mm thick, inner face at X_ESP_REAR = -18.00mm):
 thrust_w = Y_ESP_MAX - Y_ESP_MIN
 rear_thrust = Part.makeBox(2.0, thrust_w, 4.0, FreeCAD.Vector(X_ESP_REAR - 2.0, Y_ESP_MIN, FLOOR))
 
-# 3. Lateral Guide Rails with 0.4mm gap each side:
+# 3. Lateral Guide Rails with 0.5mm gap each side (total width 30.0mm):
 rail_left = Part.makeBox(24.0, 1.5, 3.5, FreeCAD.Vector(0.0, Y_ESP_MIN - 1.5, FLOOR))
 rail_right = Part.makeBox(24.0, 1.5, 3.5, FreeCAD.Vector(0.0, Y_ESP_MAX, FLOOR))
 
-# 4. 4 Cantilever snap-fit locks:
-def make_snap_clip(x_center, y_pos, side_sign):
-    y_base = y_pos - (1.4 if side_sign > 0 else 0.0)
-    arm = Part.makeBox(5.0, 1.4, 5.6 - FLOOR, FreeCAD.Vector(x_center - 2.5, y_base, FLOOR))
-    y_tooth = y_pos - (0.8 if side_sign > 0 else -0.0)
-    tooth = Part.makeBox(5.0, 0.8, 1.25, FreeCAD.Vector(x_center - 2.5, y_tooth, 4.35))
-    c_box = Part.makeBox(7.0, 2.0, 2.0, FreeCAD.Vector(x_center - 3.5, y_pos - 1.0, 4.6))
-    rot = FreeCAD.Rotation(FreeCAD.Vector(1, 0, 0), -45 if side_sign > 0 else 45)
-    c_box.Placement = FreeCAD.Placement(FreeCAD.Vector(x_center - 3.5, y_pos, 5.6), rot)
-    return arm.fuse(tooth).cut(c_box)
-
-snap1 = make_snap_clip(5.0, Y_ESP_MIN, -1)
-snap2 = make_snap_clip(22.0, Y_ESP_MIN, -1)
-snap3 = make_snap_clip(5.0, Y_ESP_MAX, 1)
-snap4 = make_snap_clip(22.0, Y_ESP_MAX, 1)
-
-esp_mount = all_pads.fuse(all_pins).fuse(rear_thrust).fuse(rail_left).fuse(rail_right).fuse(snap1).fuse(snap2).fuse(snap3).fuse(snap4)
-
-# Cut exact PCB entry path so snap clips have proper spring clearance:
-pcb_clear = Part.makeBox(54.0, thrust_w + 0.1, 10.0, FreeCAD.Vector(-18.5, Y_ESP_MIN - 0.05, 2.6))
-# Cut only the snap arms, preserve the locator pins:
-snap_cleared = esp_mount.cut(pcb_clear).fuse(all_pins)
+snap_cleared = all_pads.fuse(all_pins).fuse(rear_thrust).fuse(rail_left).fuse(rail_right)
 
 shell_body = shell_body.fuse(snap_cleared)
 shell_body = shell_body.removeSplitter()
