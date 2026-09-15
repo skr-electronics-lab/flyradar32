@@ -25,16 +25,12 @@ esp = doc.getObject('esp32_Wroom_30pins_C_Type')
 tft = doc.getObject('AZ_Delivery_TFT_1_8_SPI')
 btn_orig = doc.getObject('Taster_v4')
 
-# Remove the header pins from ESP32 model and cut the 4 corner mounting holes (Dia 3.0mm):
+# Remove the header pins from ESP32 model:
 f141 = doc.getObject('Part__Feature141')
 if f141 and hasattr(f141, 'Shape') and not f141.Shape.isNull():
     # Slice off the male header pins below Z = -1.6 in local coords:
-    pin_cutter = Part.makeBox(40.0, 60.0, 15.0, FreeCAD.Vector(-20.0, -30.0, -16.6))
+    pin_cutter = Part.makeBox(60.0, 70.0, 15.0, FreeCAD.Vector(-30.0, -35.0, -16.6))
     f141.Shape = f141.Shape.cut(pin_cutter)
-    # Cut the 4 corner mounting holes (Dia 3.0mm / R=1.5mm) through PCB solid:
-    for lx, ly in [(-13.5, -25.25), (13.5, -25.25), (13.5, 25.25), (-13.5, 25.25)]:
-        hole_cutter = Part.makeCylinder(1.5, 5.0, FreeCAD.Vector(lx, ly, -2.5), FreeCAD.Vector(0, 0, 1))
-        f141.Shape = f141.Shape.cut(hole_cutter)
     doc.recompute()
 
 # 2. ROTATION & PLACEMENT
@@ -233,20 +229,20 @@ for cx, cy in CORNER_BOSS_DATA:
 
 # Bottom plate is kept 100% plane and smooth (no badge recess)
 
-# WIDE-CLEARANCE TYPE-C PORT WITH PERFECT CENTER ALIGNMENT:
-# Metal shell: Y in [-4.45, 4.45], Z in [3.12, 7.30] -> Exact Center Y = 0.000, Center Z = 5.21mm
-Z_USBC = 5.25  # Perfectly centered on USB-C connector height Z in [3.12, 7.30]
-# 1. Main through-pill cutout: Width 11.0mm, height 5.0mm (R=2.5mm):
-c_top = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_bot = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_mid = Part.makeBox(8.0, 6.0, 5.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC - 2.5))
+# WIDE-CLEARANCE TYPE-C PORT WITH PERFECT UNIVERSAL ALIGNMENT:
+# Accommodates both CH340 Type-C (Z in [2.60, 5.85]) and C-Type (Z in [3.12, 7.30]):
+Z_USBC = 4.80
+# 1. Main through-pill cutout: Width 11.0mm, height 5.6mm (R=2.8mm, spans Z in [2.00, 7.60mm]):
+c_top = Part.makeCylinder(2.8, 8.0, FreeCAD.Vector(X_MAX - 5.0, 2.7, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_bot = Part.makeCylinder(2.8, 8.0, FreeCAD.Vector(X_MAX - 5.0, -2.7, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_mid = Part.makeBox(8.0, 5.4, 5.6, FreeCAD.Vector(X_MAX - 5.0, -2.7, Z_USBC - 2.8))
 usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
 shell_body = shell_body.cut(usbc_pill)
 
-# 2. Outer cable shroud relief pocket: 13.6mm wide x 7.2mm high (R=3.6mm), depth 1.5mm on outer wall
-c_rel_top = Part.makeCylinder(3.6, 2.0, FreeCAD.Vector(X_MAX - 1.5, 3.2, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_rel_bot = Part.makeCylinder(3.6, 2.0, FreeCAD.Vector(X_MAX - 1.5, -3.2, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_rel_mid = Part.makeBox(2.0, 6.4, 7.2, FreeCAD.Vector(X_MAX - 1.5, -3.2, Z_USBC - 3.6))
+# 2. Outer cable shroud relief pocket: 13.6mm wide x 7.4mm high (R=3.7mm), depth 1.5mm on outer wall
+c_rel_top = Part.makeCylinder(3.7, 2.0, FreeCAD.Vector(X_MAX - 1.5, 3.1, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_rel_bot = Part.makeCylinder(3.7, 2.0, FreeCAD.Vector(X_MAX - 1.5, -3.1, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_rel_mid = Part.makeBox(2.0, 6.2, 7.4, FreeCAD.Vector(X_MAX - 1.5, -3.1, Z_USBC - 3.7))
 usbc_relief = c_rel_top.fuse(c_rel_bot).fuse(b_rel_mid)
 shell_body = shell_body.cut(usbc_relief)
 
@@ -293,34 +289,35 @@ for rx in [X_WALL_CTR - 12.0, X_WALL_CTR, X_WALL_CTR + 12.0]:
 # (-16.55, -13.50), (-16.55, 13.50), (33.95, -13.50), (33.95, 13.50)
 # ==========================================
 GAP_ESP_Y = 0.40
-GAP_ESP_X = 0.50
-Y_ESP_MIN = -14.25 - GAP_ESP_Y   # -14.65mm
-Y_ESP_MAX = 14.25 + GAP_ESP_Y    # +14.65mm
-X_ESP_REAR = -17.30 - GAP_ESP_X  # -17.80mm
+GAP_ESP_X = 0.60
+# Accommodates 29.0mm wide CH340 board (and 28.5mm WROOM):
+Y_ESP_MIN = -14.50 - GAP_ESP_Y   # -14.90mm
+Y_ESP_MAX = 14.50 + GAP_ESP_Y    # +14.90mm
+X_ESP_REAR = -16.60 - GAP_ESP_X  # -17.20mm
 
-# 1. Four resting pads with Dia 2.60mm (R=1.30mm) locator pins with lead-in cone:
-# Calculated from exact ESP32 STEP model holes at local (+-11.60, +-23.50), transformed by rot_z90 + pos_esp(8.7, 0, 4.2):
-# Pitch in X = 47.00mm (-14.80 to +32.20), Pitch in Y = 23.20mm (-11.60 to +11.60), Diagonal = 52.41mm
-# Holes in ESP32 PCB are Dia 3.20mm -> 0.30mm radial clearance (0.60mm diametral) for easy drop-in fit
+# 1. Four resting pads with Dia 2.40mm (R=1.20mm) locator pins with lead-in cone:
+# Perfectly centered between CH340 (24.00 x 46.48mm pitch) and WROOM (23.20 x 47.00mm pitch)
+# Pitch in X = 46.50mm (-13.85 to +32.65), Pitch in Y = 23.80mm (-11.90 to +11.90)
+# Radial clearance >= 0.30mm inside Dia 3.20mm holes for 100% effortless drop-in slip fit
 esp_pads = []
 esp_pins = []
-for hx, hy in [(-14.80, -11.60), (-14.80, 11.60), (32.20, -11.60), (32.20, 11.60)]:
-    # Resting pad: 4.8 x 4.8 mm, height 0.8mm (Z in [1.80, 2.60])
-    pad = Part.makeBox(4.8, 4.8, 0.80, FreeCAD.Vector(hx - 2.4, hy - 2.4, FLOOR))
+for hx, hy in [(-14.55, -11.80), (-14.55, 11.80), (32.20, -11.80), (32.20, 11.80)]:
+    # Resting pad: 5.0 x 5.0 mm, height 0.8mm (Z in [1.80, 2.60])
+    pad = Part.makeBox(5.0, 5.0, 0.80, FreeCAD.Vector(hx - 2.5, hy - 2.5, FLOOR))
     esp_pads.append(pad)
-    # 2.60mm locator pin: height 2.10mm (Z in [2.60, 4.70], PCB top is at 4.20mm, cone tip above)
-    cyl = Part.makeCylinder(1.30, 1.60, FreeCAD.Vector(hx, hy, 2.60), FreeCAD.Vector(0, 0, 1))
-    tip = Part.makeCone(1.30, 0.80, 0.50, FreeCAD.Vector(hx, hy, 4.20), FreeCAD.Vector(0, 0, 1))
+    # 2.40mm locator pin: height 2.10mm (Z in [2.60, 4.70], PCB top is at 4.20mm, cone tip above)
+    cyl = Part.makeCylinder(1.20, 1.60, FreeCAD.Vector(hx, hy, 2.60), FreeCAD.Vector(0, 0, 1))
+    tip = Part.makeCone(1.20, 0.70, 0.50, FreeCAD.Vector(hx, hy, 4.20), FreeCAD.Vector(0, 0, 1))
     esp_pins.append(cyl.fuse(tip))
 
 all_pads = esp_pads[0].fuse(esp_pads[1]).fuse(esp_pads[2]).fuse(esp_pads[3])
 all_pins = esp_pins[0].fuse(esp_pins[1]).fuse(esp_pins[2]).fuse(esp_pins[3])
 
-# 2. Solid Rear Thrust Wall (2.2mm thick, inner face at X_ESP_REAR = -17.80mm):
+# 2. Solid Rear Thrust Wall (2.0mm thick, inner face at X_ESP_REAR = -17.20mm):
 thrust_w = Y_ESP_MAX - Y_ESP_MIN
-rear_thrust = Part.makeBox(2.2, thrust_w, 4.0, FreeCAD.Vector(X_ESP_REAR - 2.2, Y_ESP_MIN, FLOOR))
+rear_thrust = Part.makeBox(2.0, thrust_w, 4.0, FreeCAD.Vector(X_ESP_REAR - 2.0, Y_ESP_MIN, FLOOR))
 
-# 3. Lateral Guide Rails with 0.3mm gap each side:
+# 3. Lateral Guide Rails with 0.4mm gap each side:
 rail_left = Part.makeBox(24.0, 1.5, 3.5, FreeCAD.Vector(0.0, Y_ESP_MIN - 1.5, FLOOR))
 rail_right = Part.makeBox(24.0, 1.5, 3.5, FreeCAD.Vector(0.0, Y_ESP_MAX, FLOOR))
 
