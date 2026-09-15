@@ -234,19 +234,19 @@ for cx, cy in CORNER_BOSS_DATA:
 # Bottom plate is kept 100% plane and smooth (no badge recess)
 
 # WIDE-CLEARANCE TYPE-C PORT WITH PERFECT CENTER ALIGNMENT:
-# Metal shell: Y in [-4.45, 4.45], Z in [4.15, 7.30] -> Exact Center Y = 0.000, Center Z = 5.725mm
-Z_USBC = 6.15
-# 1. Main through-pill cutout: Width 10.4mm, height 4.4mm (R=2.2mm):
-c_top = Part.makeCylinder(2.2, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_bot = Part.makeCylinder(2.2, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_mid = Part.makeBox(8.0, 6.0, 4.4, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC - 2.2))
+# Metal shell: Y in [-4.45, 4.45], Z in [3.12, 7.30] -> Exact Center Y = 0.000, Center Z = 5.21mm
+Z_USBC = 5.25  # Perfectly centered on USB-C connector height Z in [3.12, 7.30]
+# 1. Main through-pill cutout: Width 11.0mm, height 5.0mm (R=2.5mm):
+c_top = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_bot = Part.makeCylinder(2.5, 8.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_mid = Part.makeBox(8.0, 6.0, 5.0, FreeCAD.Vector(X_MAX - 5.0, -3.0, Z_USBC - 2.5))
 usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
 shell_body = shell_body.cut(usbc_pill)
 
-# 2. Outer cable shroud relief pocket: 12.6mm wide x 6.6mm high (R=3.3mm), depth 1.2mm on outer wall
-c_rel_top = Part.makeCylinder(3.3, 2.0, FreeCAD.Vector(X_MAX - 1.2, 3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-c_rel_bot = Part.makeCylinder(3.3, 2.0, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC), FreeCAD.Vector(1, 0, 0))
-b_rel_mid = Part.makeBox(2.0, 6.0, 6.6, FreeCAD.Vector(X_MAX - 1.2, -3.0, Z_USBC - 3.3))
+# 2. Outer cable shroud relief pocket: 13.6mm wide x 7.2mm high (R=3.6mm), depth 1.5mm on outer wall
+c_rel_top = Part.makeCylinder(3.6, 2.0, FreeCAD.Vector(X_MAX - 1.5, 3.2, Z_USBC), FreeCAD.Vector(1, 0, 0))
+c_rel_bot = Part.makeCylinder(3.6, 2.0, FreeCAD.Vector(X_MAX - 1.5, -3.2, Z_USBC), FreeCAD.Vector(1, 0, 0))
+b_rel_mid = Part.makeBox(2.0, 6.4, 7.2, FreeCAD.Vector(X_MAX - 1.5, -3.2, Z_USBC - 3.6))
 usbc_relief = c_rel_top.fuse(c_rel_bot).fuse(b_rel_mid)
 shell_body = shell_body.cut(usbc_relief)
 
@@ -298,18 +298,19 @@ Y_ESP_MIN = -14.25 - GAP_ESP_Y   # -14.65mm
 Y_ESP_MAX = 14.25 + GAP_ESP_Y    # +14.65mm
 X_ESP_REAR = -17.30 - GAP_ESP_X  # -17.80mm
 
-# 1. Four resting pads with Dia 2.80mm (R=1.40mm) locator pins:
+# 1. Four resting pads with Dia 2.60mm (R=1.30mm) locator pins with lead-in cone:
 # Calculated from exact ESP32 STEP model holes at local (+-11.60, +-23.50), transformed by rot_z90 + pos_esp(8.7, 0, 4.2):
 # Pitch in X = 47.00mm (-14.80 to +32.20), Pitch in Y = 23.20mm (-11.60 to +11.60), Diagonal = 52.41mm
+# Holes in ESP32 PCB are Dia 3.20mm -> 0.30mm radial clearance (0.60mm diametral) for easy drop-in fit
 esp_pads = []
 esp_pins = []
 for hx, hy in [(-14.80, -11.60), (-14.80, 11.60), (32.20, -11.60), (32.20, 11.60)]:
     # Resting pad: 4.8 x 4.8 mm, height 0.8mm (Z in [1.80, 2.60])
     pad = Part.makeBox(4.8, 4.8, 0.80, FreeCAD.Vector(hx - 2.4, hy - 2.4, FLOOR))
     esp_pads.append(pad)
-    # 2.80mm locator pin: height 2.20mm (Z in [2.60, 4.80], PCB top is at 4.20mm)
-    cyl = Part.makeCylinder(1.40, 1.80, FreeCAD.Vector(hx, hy, 2.60), FreeCAD.Vector(0, 0, 1))
-    tip = Part.makeCone(1.40, 1.00, 0.40, FreeCAD.Vector(hx, hy, 4.40), FreeCAD.Vector(0, 0, 1))
+    # 2.60mm locator pin: height 2.10mm (Z in [2.60, 4.70], PCB top is at 4.20mm, cone tip above)
+    cyl = Part.makeCylinder(1.30, 1.60, FreeCAD.Vector(hx, hy, 2.60), FreeCAD.Vector(0, 0, 1))
+    tip = Part.makeCone(1.30, 0.80, 0.50, FreeCAD.Vector(hx, hy, 4.20), FreeCAD.Vector(0, 0, 1))
     esp_pins.append(cyl.fuse(tip))
 
 all_pads = esp_pads[0].fuse(esp_pads[1]).fuse(esp_pads[2]).fuse(esp_pads[3])
