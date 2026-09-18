@@ -34,10 +34,10 @@ if f141 and hasattr(f141, 'Shape') and not f141.Shape.isNull():
     doc.recompute()
 
 # 2. ROTATION & PLACEMENT
-TILT_DEG = 10.0
-rot_x10 = FreeCAD.Rotation(FreeCAD.Vector(1, 0, 0), TILT_DEG)
+TILT_DEG = 15.0
+rot_tilt = FreeCAD.Rotation(FreeCAD.Vector(1, 0, 0), TILT_DEG)
 rot_z180 = FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), 180)
-rot_tft = rot_x10.multiply(rot_z180)
+rot_tft = rot_tilt.multiply(rot_z180)
 rot_esp = FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), 90)
 
 # ESP32: Placed on the bottom floor resting on 0.8mm ribs (PCB bottom at Z = 2.6mm, top at Z = 4.2mm)
@@ -47,7 +47,7 @@ esp.Placement = FreeCAD.Placement(pos_esp, rot_esp)
 
 # TFT: Placed at X=-10.0mm, active center Y=-3.00mm (aligned with SELECT button at Y=-3.00mm,
 # symmetrically framing UP button at Y=10.0mm and DOWN button at Y=-16.0mm with exact 3.10mm top/bottom gaps)
-pos_tft = FreeCAD.Vector(-10.0, -1.455, 19.743)
+pos_tft = FreeCAD.Vector(-10.0, -0.697, 19.736)
 tft.Placement = FreeCAD.Placement(pos_tft, rot_tft)
 
 tft_pl = FreeCAD.Placement(pos_tft, rot_tft)
@@ -136,12 +136,12 @@ Z_SPLIT = 16.5
 raw_outer = make_rounded_box(X_MIN, X_MAX, Y_MIN, Y_MAX, 0.0, 48.0, R_CORNER)
 
 cutter_box = Part.makeBox(130.0, 110.0, 30.0, FreeCAD.Vector(-65.0, -55.0, 0.0))
-cutter_box.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0), rot_x10)
+cutter_box.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0), rot_tilt)
 wedge_solid = raw_outer.cut(cutter_box)
 
 cavity_raw = make_rounded_box(X_MIN + WALL, X_MAX - WALL, Y_MIN + WALL, Y_MAX - WALL, FLOOR, 46.0, R_CORNER - 1.5)
 cavity_cutter = Part.makeBox(130.0, 110.0, 30.0, FreeCAD.Vector(-65.0, -55.0, 0.0))
-cavity_cutter.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0 - WALL), rot_x10)
+cavity_cutter.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0 - WALL), rot_tilt)
 cavity_solid = cavity_raw.cut(cavity_cutter)
 
 enclosure_hollow = wedge_solid.cut(cavity_solid)
@@ -169,31 +169,38 @@ lip_outer = make_rounded_box(X_MIN + 0.9, X_MAX - 0.9, Y_MIN + 0.9, Y_MAX - 0.9,
 lip_inner = make_rounded_box(X_MIN + WALL, X_MAX - WALL, Y_MIN + WALL, Y_MAX - WALL, 16.4, 18.1, R_CORNER - WALL)
 shell_lip = lip_outer.cut(lip_inner)
 
-# 2. 4 Automatic Cantilever Snap Tabs on the Shell Lip (reduced to 0.3mm for smoother snap):
-# All 4 tabs: 8mm long x 0.30mm wide x 1.0mm tall, centered on their respective wall
-tab_front = Part.makeBox(8.0, 0.30, 1.0, FreeCAD.Vector(-4.0, Y_MIN + 0.9 - 0.30, 16.7))
-tab_rear  = Part.makeBox(8.0, 0.30, 1.0, FreeCAD.Vector(-4.0, Y_MAX - 0.9,          16.7))
-tab_left  = Part.makeBox(0.30, 8.0, 1.0, FreeCAD.Vector(X_MIN + 0.9 - 0.30, -4.0,  16.7))
-tab_right = Part.makeBox(0.30, 8.0, 1.0, FreeCAD.Vector(X_MAX - 0.9,         -4.0,  16.7))  # FIX: was -20.0 (wrong)
+# 2. 4 Internal Snap Tabs on the INNER face of the Shell Lip (pointing inward into cavity):
+# Completely decoupled from outer walls — ZERO risk of outer wall breakthrough!
+# Protrusion = 0.35mm inward, length = 8.0mm, height = 1.0mm (Z in [16.7, 17.7])
+tab_front = Part.makeBox(8.0, 0.35, 1.0, FreeCAD.Vector(-4.0, Y_MIN + WALL, 16.7))
+tab_rear  = Part.makeBox(8.0, 0.35, 1.0, FreeCAD.Vector(-4.0, Y_MAX - WALL - 0.35, 16.7))
+tab_left  = Part.makeBox(0.35, 8.0, 1.0, FreeCAD.Vector(X_MIN + WALL, -4.0, 16.7))
+tab_right = Part.makeBox(0.35, 8.0, 1.0, FreeCAD.Vector(X_MAX - WALL - 0.35, -4.0, 16.7))
 shell_lip = shell_lip.fuse(tab_front).fuse(tab_rear).fuse(tab_left).fuse(tab_right)
 
 shell_body = shell_body.fuse(shell_lip)
 
+# 3. Lid: Internal Reinforcement Pads at the 4 Snap Locations:
+# Thickens the wall locally from the inside (3.8mm total thickness) so the snap pocket is cut 100% internally:
+pad_front = Part.makeBox(14.0, 2.0, 4.5, FreeCAD.Vector(-7.0, Y_MIN + WALL, 16.5))
+pad_rear  = Part.makeBox(14.0, 2.0, 4.5, FreeCAD.Vector(-7.0, Y_MAX - WALL - 2.0, 16.5))
+pad_left  = Part.makeBox(2.0, 14.0, 4.5, FreeCAD.Vector(X_MIN + WALL, -7.0, 16.5))
+pad_right = Part.makeBox(2.0, 14.0, 4.5, FreeCAD.Vector(X_MAX - WALL - 2.0, -7.0, 16.5))
+lid_body = lid_body.fuse(pad_front).fuse(pad_rear).fuse(pad_left).fuse(pad_right)
+
 # 4. Lid: Solid Wall Rebate to receive the Shell Lip (with 0.15mm clearance):
-# The lid wall is ONE SOLID PIECE. The rebate is cut into the inner face from Z=16.45 to 18.15.
+# Outer face: 0.75mm from outer wall, Inner face: 1.95mm from outer wall
 rebate_outer = make_rounded_box(X_MIN + 0.75, X_MAX - 0.75, Y_MIN + 0.75, Y_MAX - 0.75, 16.45, 18.15, R_CORNER - 0.75)
 rebate_inner = make_rounded_box(X_MIN + WALL + 0.15, X_MAX - WALL - 0.15, Y_MIN + WALL + 0.15, Y_MAX - WALL - 0.15, 16.4, 18.2, R_CORNER - WALL - 0.15)
 lid_rebate = rebate_outer.cut(rebate_inner)
 lid_body = lid_body.cut(lid_rebate)
 
-# 5. Matching Undercut Snap Pockets inside the Lid Rebate (0.15mm clearance over the 0.30mm tabs):
-# Tab protrusion is 0.30mm on the shell lip. The rebate outer wall is at X_MIN+0.75.
-# The pocket needs to cut into the outer wall by 0.30mm+0.15mm clearance = 0.45mm.
-# All 4 pockets: 10mm long x 0.45mm deep x 1.3mm tall, symmetric on all walls
-pocket_front = Part.makeBox(10.0, 0.45, 1.3, FreeCAD.Vector(-5.0, Y_MIN + 0.75 - 0.45, 16.55))
-pocket_rear  = Part.makeBox(10.0, 0.45, 1.3, FreeCAD.Vector(-5.0, Y_MAX - 0.75,          16.55))
-pocket_left  = Part.makeBox(0.45, 10.0, 1.3, FreeCAD.Vector(X_MIN + 0.75 - 0.45, -5.0,  16.55))
-pocket_right = Part.makeBox(0.45, 10.0, 1.3, FreeCAD.Vector(X_MAX - 0.75,         -5.0,  16.55))  # FIX: was -21.0 (wrong)
+# 5. Matching Internal Snap Pockets cut strictly into the internal reinforcement pads:
+# Cuts inward into the pad (away from the outer wall). Exterior wall remains 100% solid (>1.8mm plastic)!
+pocket_front = Part.makeBox(10.0, 0.50, 1.3, FreeCAD.Vector(-5.0, Y_MIN + WALL, 16.55))
+pocket_rear  = Part.makeBox(10.0, 0.50, 1.3, FreeCAD.Vector(-5.0, Y_MAX - WALL - 0.50, 16.55))
+pocket_left  = Part.makeBox(0.50, 10.0, 1.3, FreeCAD.Vector(X_MIN + WALL, -5.0, 16.55))
+pocket_right = Part.makeBox(0.50, 10.0, 1.3, FreeCAD.Vector(X_MAX - WALL - 0.50, -5.0, 16.55))
 lid_body = lid_body.cut(pocket_front).cut(pocket_rear).cut(pocket_left).cut(pocket_right)
 
 
@@ -229,53 +236,20 @@ for cx, cy in CORNER_BOSS_DATA:
 
 # Bottom plate is kept 100% plane and smooth (no badge recess)
 
-# SIMPLE, CLEAN TYPE-C PORT (Centered at Y=0, Z=5.80mm, with 2.60mm solid base - ZERO slicing slivers, 100% solid flat bottom):
-# Width: 12.0mm (Y in [-6.0, +6.0]), Height: 6.4mm (Z in [2.60, 9.00]), R = 3.20mm stadium pill slot
-# Solid plastic beneath cutout: 2.60mm (13 layers at 0.20mm) - bottom plate remains 100% flat and solid.
+# RIGHT-SIZED TYPE-C PORT (Centered at Y=0, Z=5.80mm, Width=11.20mm, Height=5.00mm, R=2.50mm):
+# Perfectly frames standard Type-C cable shroud (10.5x5.8mm) with zero exposed internal PCB gap
+# Solid plastic below port: 3.30mm from print bed (1.50mm above inside floor)
+# All bottom shell outer walls are 100% planar, smooth, and solid (no flutes).
 Z_USBC = 5.80
-R_USBC = 3.20
-DY_USBC = 6.00 - R_USBC  # 2.80mm
+W_USBC = 11.20
+H_USBC = 5.00
+R_USBC = H_USBC / 2.0  # 2.50mm
+DY_USBC = (W_USBC / 2.0) - R_USBC  # 5.60 - 2.50 = 3.10mm
 c_top = Part.makeCylinder(R_USBC, 8.0, FreeCAD.Vector(X_MAX - 5.0,  DY_USBC, Z_USBC), FreeCAD.Vector(1, 0, 0))
 c_bot = Part.makeCylinder(R_USBC, 8.0, FreeCAD.Vector(X_MAX - 5.0, -DY_USBC, Z_USBC), FreeCAD.Vector(1, 0, 0))
 b_mid = Part.makeBox(8.0, 2 * DY_USBC, 2 * R_USBC, FreeCAD.Vector(X_MAX - 5.0, -DY_USBC, Z_USBC - R_USBC))
 usbc_pill = c_top.fuse(c_bot).fuse(b_mid)
 shell_body = shell_body.cut(usbc_pill)
-
-# 3. VERTICAL FLUTES WITH PERFECT ROUNDED INNER PROFILE (Capsule geometry, NOT boxed):
-# Cylinder R=1.25mm with spherical ends, submerged 0.35mm into wall (leaves 1.45mm solid plastic = 100% solid, ZERO slicing holes)
-def make_vertical_rounded_flute(cx, cy, z_bot, h_flute, r_flute, depth, norm_vec):
-    pos = FreeCAD.Vector(cx, cy, z_bot) + norm_vec * (r_flute - depth)
-    cyl = Part.makeCylinder(r_flute, h_flute, pos, FreeCAD.Vector(0, 0, 1))
-    sph1 = Part.makeSphere(r_flute, pos)
-    sph2 = Part.makeSphere(r_flute, pos + FreeCAD.Vector(0, 0, h_flute))
-    return cyl.fuse(sph1).fuse(sph2)
-
-# Wall Centers: Enclosure is X in [-45, 37] -> Center X = -4.0mm; Y in [-34, 26] -> Center Y = -4.0mm
-X_WALL_CTR = (X_MIN + X_MAX) / 2.0  # -4.0mm (dead center of front & rear walls)
-Y_WALL_CTR = (Y_MIN + Y_MAX) / 2.0  # -4.0mm (dead center of left wall)
-
-# Left wall: 3 vertical rounded flutes centered at Y_WALL_CTR (-4.0mm), pitch 10.0mm:
-# Spans Y in [-14.0, 6.0] -> exactly 20.0mm margin to both front (Y=-34) and rear (Y=26) corners!
-for fy in [Y_WALL_CTR - 10.0, Y_WALL_CTR, Y_WALL_CTR + 10.0]:
-    flute_l = make_vertical_rounded_flute(X_MIN, fy, 4.5, 6.0, 1.25, 0.35, FreeCAD.Vector(-1, 0, 0))
-    shell_body = shell_body.cut(flute_l)
-
-# Right wall: 2 vertical rounded flutes flanking Type-C port (centered at Y=0.0mm)
-for fy in [-13.0, 13.0]:
-    flute_r = make_vertical_rounded_flute(X_MAX, fy, 4.5, 6.0, 1.25, 0.35, FreeCAD.Vector(1, 0, 0))
-    shell_body = shell_body.cut(flute_r)
-
-# Front wall: 3 vertical rounded flutes centered at X_WALL_CTR (-4.0mm), pitch 12.0mm:
-# Spans X in [-16.0, 8.0] -> exactly 29.0mm margin to both left (X=-45) and right (X=37) corners!
-for fx in [X_WALL_CTR - 12.0, X_WALL_CTR, X_WALL_CTR + 12.0]:
-    flute_f = make_vertical_rounded_flute(fx, Y_MIN, 4.5, 6.0, 1.25, 0.35, FreeCAD.Vector(0, -1, 0))
-    shell_body = shell_body.cut(flute_f)
-
-# Rear wall: 3 vertical rounded flutes centered at X_WALL_CTR (-4.0mm), pitch 12.0mm:
-# Spans X in [-16.0, 8.0] -> exactly 29.0mm margin to both left (X=-45) and right (X=37) corners!
-for rx in [X_WALL_CTR - 12.0, X_WALL_CTR, X_WALL_CTR + 12.0]:
-    flute_rear = make_vertical_rounded_flute(rx, Y_MAX, 4.5, 6.0, 1.25, 0.35, FreeCAD.Vector(0, 1, 0))
-    shell_body = shell_body.cut(flute_rear)
 
 # ==========================================
 # AUTOMATIC SNAP-FIT ESP32 CRADLE WITH 2.80mm LOCATOR PINS:
@@ -334,7 +308,7 @@ z_sc_top = 31.0 + Y_SCREEN * math.tan(math.radians(TILT_DEG))
 # 1. Main viewing window: 35.2 x 28.2 mm (Frames the 35.00 x 28.00mm active display with clean perpendicular cut):
 window_cutter = Part.makeBox(35.2, 28.2, 10.0, FreeCAD.Vector(-17.6, -14.1, -5.0))
 p_win = FreeCAD.Placement()
-p_win.Rotation = rot_x10
+p_win.Rotation = rot_tilt
 p_win.Base = FreeCAD.Vector(X_SCREEN, Y_SCREEN, z_sc_top)
 window_cutter.Placement = p_win
 lid_body = lid_body.cut(window_cutter)
@@ -347,6 +321,16 @@ bezel_accent = b_outer.cut(b_inner)
 bezel_accent.Placement = p_win
 lid_body = lid_body.cut(bezel_accent)
 
+# 2b. Precision Aerospace Radar Datum Accent Line:
+# Elegant 1.0mm wide red pinstripe at X = 13.5mm separating display zone from control bank:
+# Runs Y from -18.0 to +12.0mm, depth 0.40mm with 0.5mm rounded ends
+datum_bar = make_rounded_box(13.0, 14.0, -18.0, 12.0, -0.40, 0.0, 0.5)
+p_datum = FreeCAD.Placement()
+p_datum.Rotation = rot_tilt
+p_datum.Base = FreeCAD.Vector(0.0, 0.0, 31.0)
+datum_bar.Placement = p_datum
+lid_body = lid_body.cut(datum_bar)
+
 # 3. 4 PRECISION CORNER MOUNTING POINTS FOR 1.8" TFT DISPLAY MODULE:
 # TFT PCB Size: 58.00 x 34.50 mm, 1.60mm thickness
 # 4 Mounting Holes: Pitch X = 52.00mm, Pitch Y = 28.50mm, Diagonal = 59.30mm, Dia 3.20mm
@@ -356,8 +340,8 @@ lid_body = lid_body.cut(bezel_accent)
 #   - M2 Screw Pilot Hole: Dia 1.90mm (R=0.95mm) x 5.50mm depth for optional M2 screw fixation
 #   - Anchored solidly into lid roof, trimmed cleanly 0.50mm below outer cosmetic surface
 tft_mount_posts = []
-v_tft_roof_up = rot_x10.multVec(FreeCAD.Vector(0, 0, 1))
-v_tft_pcb_down = rot_x10.multVec(FreeCAD.Vector(0, 0, -1))
+v_tft_roof_up = rot_tilt.multVec(FreeCAD.Vector(0, 0, 1))
+v_tft_pcb_down = rot_tilt.multVec(FreeCAD.Vector(0, 0, -1))
 TFT_HOLES_LOCAL = [(-26.0, -14.25), (26.0, -14.25), (-26.0, 14.25), (26.0, 14.25)]
 
 for hx, hy in TFT_HOLES_LOCAL:
@@ -377,7 +361,7 @@ all_tft_posts = tft_mount_posts[0].fuse(tft_mount_posts[1]).fuse(tft_mount_posts
 
 # Roof cutter leaves 0.5mm solid cosmetic exterior skin:
 roof_cutter_tft = Part.makeBox(130.0, 110.0, 30.0, FreeCAD.Vector(-65.0, -55.0, 0.0))
-roof_cutter_tft.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0 - 0.5), rot_x10)
+roof_cutter_tft.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0 - 0.5), rot_tilt)
 clean_tft_posts = all_tft_posts.cut(roof_cutter_tft)
 
 lid_body = lid_body.fuse(clean_tft_posts)
@@ -392,7 +376,7 @@ lid_body = lid_body.fuse(clean_tft_posts)
 # Full continuous solid pillars extending from Z_SPLIT all the way into the lid roof!
 # Anchored solidly to the inner roof and corner walls so they print continuously without mid-air gaps or floating overhangs.
 roof_embed_cutter = Part.makeBox(130.0, 110.0, 30.0, FreeCAD.Vector(-65.0, -55.0, 0.0))
-roof_embed_cutter.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0 - 0.5), rot_x10)
+roof_embed_cutter.Placement = FreeCAD.Placement(FreeCAD.Vector(0.0, 0.0, 31.0 - 0.5), rot_tilt)
 
 for cx, cy in CORNER_BOSS_DATA:
     raw_lid_boss = Part.makeCylinder(BOSS_R, 30.0, FreeCAD.Vector(cx, cy, Z_SPLIT), FreeCAD.Vector(0, 0, 1))
@@ -415,7 +399,7 @@ for _btn_obj in [btn_up, btn_sel, btn_down]:
 # Centered at Y = -3.0 (matches SELECT button and middle of button cluster)
 btn_carrier = Part.makeBox(12.5, 38.0, 12.0, FreeCAD.Vector(-5.8, -19.0, -12.0))
 p_bc = FreeCAD.Placement()
-p_bc.Rotation = rot_x10
+p_bc.Rotation = rot_tilt
 z_bc = 31.0 + (-3.0) * math.tan(math.radians(TILT_DEG))
 p_bc.Base = FreeCAD.Vector(28.5, -3.0, z_bc)
 btn_carrier.Placement = p_bc
@@ -428,11 +412,11 @@ lid_body = lid_body.fuse(btn_carrier)
 
 btn_caps = []
 for btn_obj, pt in [(btn_up, pt_up), (btn_sel, pt_sel), (btn_down, pt_down)]:
-    bdir = rot_x10.multVec(FreeCAD.Vector(0, 0, 1))
+    bdir = rot_tilt.multVec(FreeCAD.Vector(0, 0, 1))
     bz_top = 31.0 + pt.y * math.tan(math.radians(TILT_DEG))
     
     p_sw = FreeCAD.Placement()
-    p_sw.Rotation = rot_x10
+    p_sw.Rotation = rot_tilt
     p_sw.Base = FreeCAD.Vector(pt.x, pt.y, bz_top)
     
     # Exact physical switch plunger location in global and local frames:
@@ -479,7 +463,7 @@ for btn_obj, pt in [(btn_up, pt_up), (btn_sel, pt_sel), (btn_down, pt_down)]:
 # Centered at X=22.2 (clean 2.2mm gap from button hole at X=24.4, 12.6mm from screen bezel)
 # Up button glyph: bold triangle pointing UP, at Y=10.0 (X=22.2, width 4.2mm, height 3.8mm)
 p_glyph_up = FreeCAD.Placement()
-p_glyph_up.Rotation = rot_x10
+p_glyph_up.Rotation = rot_tilt
 z_g_up = 31.0 + 10.0 * math.tan(math.radians(TILT_DEG))
 p_glyph_up.Base = FreeCAD.Vector(22.2, 10.0, z_g_up)
 tri_up = Part.Face(Part.makePolygon([
@@ -493,7 +477,7 @@ lid_body = lid_body.cut(tri_up)
 
 # Select button glyph: bold solid circle / dot, at Y=-3.0 (X=22.2, Dia 3.8mm / R=1.9mm)
 p_glyph_sel = FreeCAD.Placement()
-p_glyph_sel.Rotation = rot_x10
+p_glyph_sel.Rotation = rot_tilt
 z_g_sel = 31.0 + (-3.0) * math.tan(math.radians(TILT_DEG))
 p_glyph_sel.Base = FreeCAD.Vector(22.2, -3.0, z_g_sel)
 dot_sel = Part.makeCylinder(1.90, 0.40, FreeCAD.Vector(0, 0, -0.40), FreeCAD.Vector(0, 0, 1))
@@ -502,7 +486,7 @@ lid_body = lid_body.cut(dot_sel)
 
 # Down button glyph: bold triangle pointing DOWN, at Y=-16.0 (X=22.2, width 4.2mm, height 3.8mm)
 p_glyph_down = FreeCAD.Placement()
-p_glyph_down.Rotation = rot_x10
+p_glyph_down.Rotation = rot_tilt
 z_g_down = 31.0 + (-16.0) * math.tan(math.radians(TILT_DEG))
 p_glyph_down.Base = FreeCAD.Vector(22.2, -16.0, z_g_down)
 tri_down = Part.Face(Part.makePolygon([
@@ -514,10 +498,13 @@ tri_down = Part.Face(Part.makePolygon([
 tri_down.Placement = p_glyph_down
 lid_body = lid_body.cut(tri_down)
 
+# Re-cut lid rebate and pocket_right to ensure button carrier has 100% zero interference at split line:
+lid_body = lid_body.cut(lid_rebate).cut(pocket_right)
+
 lid_body = lid_body.removeSplitter()
 
 # Clean Minimalist Aerospace: Screen Border, Bold Button Glyphs
-accent_solids = [bezel_accent, tri_up, dot_sel, tri_down]
+accent_solids = [bezel_accent, datum_bar, tri_up, dot_sel, tri_down]
 accents_compound = Part.makeCompound(accent_solids)
 
 # 7. ADD PART FEATURES

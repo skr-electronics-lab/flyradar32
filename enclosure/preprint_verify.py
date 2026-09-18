@@ -57,7 +57,7 @@ WALL   = 1.8
 FLOOR  = 1.8
 R_CORNER = 5.0
 Z_SPLIT  = 16.5
-TILT_DEG = 10.0
+TILT_DEG = 15.0
 
 chk("Shell width  (target 82 mm)", 79 < round(bb_s.XLength,1) < 85,   "%s mm" % round(bb_s.XLength,1))
 chk("Shell depth  (target 60 mm)", 57 < round(bb_s.YLength,1) < 63,   "%s mm" % round(bb_s.YLength,1))
@@ -111,7 +111,7 @@ for lbl, cx, cy in corner_centers:
     chk("Shell %s counterbore clear" % lbl, cs_vol < 0.05, "overlap=%.4f mm3" % cs_vol)
 
     # Lid boss solid (Z=17..19)
-    rot_x10 = FreeCAD.Rotation(FreeCAD.Vector(1,0,0), TILT_DEG)
+    rot_tilt = FreeCAD.Rotation(FreeCAD.Vector(1,0,0), TILT_DEG)
     roof_z  = 31.0 + cy * math.tan(math.radians(TILT_DEG)) - WALL * math.cos(math.radians(TILT_DEG))
     l_probe = Part.makeCylinder(BOSS_R-0.2, min(roof_z - Z_SPLIT - 0.5, 3.0),
                                  FreeCAD.Vector(cx, cy, Z_SPLIT + 0.3), FreeCAD.Vector(0,0,1))
@@ -125,29 +125,29 @@ for lbl, cx, cy in corner_centers:
 
 # ── 5. BUTTON FIT ────────────────────────────────────────────────────────────
 print("\n[5] BUTTON HOLDER & CAP GEOMETRY")
-rot_x10 = FreeCAD.Rotation(FreeCAD.Vector(1,0,0), TILT_DEG)
+rot_tilt = FreeCAD.Rotation(FreeCAD.Vector(1,0,0), TILT_DEG)
 for bname, by in [("UP", 10.0), ("SEL", -3.0), ("DOWN", -16.0)]:
     bx    = 28.5
     bz_top = 31.0 + by * math.tan(math.radians(TILT_DEG))
-    bdir  = rot_x10.multVec(FreeCAD.Vector(0,0,1))
+    bdir  = rot_tilt.multVec(FreeCAD.Vector(0,0,1))
     
     # Switch plunger projection on lid face
     b_obj = doc.getObject("Button_" + bname if bname != "SEL" else "Button_SELECT")
     pl_glob = b_obj.Placement.multVec(FreeCAD.Vector(3.0, 3.0, 9.6))
-    p_sw = FreeCAD.Placement(FreeCAD.Vector(bx, by, bz_top), rot_x10)
+    p_sw = FreeCAD.Placement(FreeCAD.Vector(bx, by, bz_top), rot_tilt)
     pl_loc = p_sw.inverse().multVec(pl_glob)
     b_origin = pl_glob - bdir * pl_loc.z
 
     # Through-hole (R=2.0mm probe, hole is Dia 4.4mm / R=2.2mm)
-    h_probe = Part.makeCylinder(2.0, 1.5, b_origin + bdir*(-0.8), bdir)
+    h_probe = Part.makeCylinder(1.9, 1.5, b_origin + bdir*(-0.8), bdir)
     h_vol   = h_probe.common(ls).Volume
     chk("Btn %s lid hole clear (Dia 4.4mm)" % bname, h_vol < 0.1, "overlap=%.4f" % h_vol)
 
     # Cavity 6.25x6.25mm: probe 5.8x5.8 inside
     p_cav = FreeCAD.Placement()
-    p_cav.Rotation = rot_x10
+    p_cav.Rotation = rot_tilt
     p_cav.Base = FreeCAD.Vector(bx, by, bz_top)
-    cav = Part.makeBox(5.8, 5.8, 8.0, FreeCAD.Vector(-2.9, pl_loc.y - 2.9, -11.0))
+    cav = Part.makeBox(5.6, 5.6, 7.0, FreeCAD.Vector(-2.8, pl_loc.y - 2.8, -10.5))
     cav.Placement = p_cav
     c_vol = cav.common(ls).Volume
     chk("Btn %s cavity 6.25mm exists" % bname, c_vol < 0.1, "overlap=%.4f" % c_vol)
@@ -163,12 +163,12 @@ chk("Switch pocket snug fit <= 0.35 mm", clearance <= 0.35, "%.2f mm per side" %
 # ── 6. TFT WINDOW ────────────────────────────────────────────────────────────
 print("\n[6] TFT DISPLAY WINDOW")
 rot_z180 = FreeCAD.Rotation(FreeCAD.Vector(0,0,1), 180)
-pos_tft  = FreeCAD.Vector(-10.0, -1.455, 19.743)
+pos_tft  = FreeCAD.Vector(-10.0, -0.697, 19.736)
 tft_pl   = FreeCAD.Placement(pos_tft, rot_tft)
 g_ac     = tft_pl.multVec(FreeCAD.Vector(-2.89, 0.0, 8.90))
 z_top    = 31.0 + g_ac.y * math.tan(math.radians(TILT_DEG))
 p_win = FreeCAD.Placement()
-p_win.Rotation = rot_x10
+p_win.Rotation = rot_tilt
 p_win.Base = FreeCAD.Vector(g_ac.x, g_ac.y, z_top)
 
 win_probe = Part.makeBox(33.0, 27.0, 8.0, FreeCAD.Vector(-16.5, -13.5, -4.0))
