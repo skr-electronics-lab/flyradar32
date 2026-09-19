@@ -597,6 +597,7 @@ void loop() {
                 break;
             case SCR_SETTINGS_MAIN:
             case SCR_SETTINGS_DISPLAY:
+            case SCR_SETTINGS_BRIGHTNESS:
             case SCR_SETTINGS_LABELS:
             case SCR_SETTINGS_ICON:
             case SCR_SETTINGS_PROVIDERS:
