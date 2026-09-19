@@ -5,9 +5,8 @@
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: #4b5563; 
     line-height: 1.8;
-    max-width: 740px;
-    margin: 0 auto;
-    padding: 24px 16px;
+    width: 100%;
+    padding: 0;
     background-color: transparent;
     -webkit-font-smoothing: antialiased;
   }
@@ -494,52 +493,57 @@
     margin: 2rem 0;
   }
 
-  /* Clean Full-Screen Lightbox Popup */
-  .skr-img-modal {
-    display: none; 
-    position: fixed; 
-    z-index: 999999; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    background-color: rgba(10, 15, 29, 0.92); 
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+  /* Clean Full-Screen Lightbox Popup — injected to body by JS to escape WP container */
+  #skrImgModal {
+    display: none;
+    position: fixed !important;
+    z-index: 2147483647 !important;
+    inset: 0 !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(10, 15, 29, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     align-items: center;
     justify-content: center;
     padding: 24px;
     box-sizing: border-box;
     cursor: zoom-out;
+    margin: 0 !important;
   }
 
-  .skr-img-modal.show {
+  #skrImgModal.show {
     display: flex;
   }
 
-  .skr-img-modal-content {
-    max-width: 92vw;
-    max-height: 90vh;
+  #skrImgModal .skr-img-modal-content {
+    max-width: 90vw;
+    max-height: 88vh;
     border-radius: 8px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
     object-fit: contain;
     cursor: default;
+    display: block;
+    margin: auto;
   }
 
-  .skr-img-modal-close {
-    position: absolute;
+  #skrImgModal .skr-img-modal-close {
+    position: fixed !important;
     top: 20px;
     right: 28px;
     color: #e2e8f0;
-    font-size: 40px;
-    font-weight: 600;
+    font-size: 42px;
+    font-weight: 300;
     cursor: pointer;
     line-height: 1;
     transition: color 0.2s ease;
     user-select: none;
+    z-index: 2147483647;
   }
 
-  .skr-img-modal-close:hover {
+  #skrImgModal .skr-img-modal-close:hover {
     color: #ffffff;
   }
 
@@ -584,7 +588,7 @@
       FlyRadar32: Standalone ESP32 ADS-B Aircraft Radar & Desktop Flight Tracker
     </h1>
 
-    <p style="font-size: 1.15rem; color: #4b5563; max-width: 860px; line-height: 1.75; margin: 0;">
+    <p style="font-size: 1.15rem; color: #4b5563; line-height: 1.75; margin: 0;">
       Commercial and private aircraft continuously broadcast their real-time coordinates, altitude, velocity, and transponder telemetry over 1090 MHz ADS-B. In this complete step-by-step tutorial, we build FlyRadar32: an autonomous desktop aircraft radar station powered by an ESP32, an 8-pin 1.8-inch ST7735 SPI color TFT, non-blocking hardware LEDC PWM backlight dimming, a 4-tier fault-tolerant ADS-B telemetry engine, and a custom FreeCAD 3D-printed desktop console.
     </p>
   </div>
@@ -1289,38 +1293,54 @@ void set_backlight_percent(uint8_t percent) {
 </div>
 
 <script>
-  function openImgModal(src) {
-    var modal = document.getElementById("skrImgModal");
-    var modalImg = document.getElementById("skrImgModalImg");
-    if (modal && modalImg) {
-      modalImg.src = src;
-      modal.style.display = "flex";
-      void modal.offsetWidth; 
-      modal.classList.add("show");
-      document.body.style.overflow = "hidden";
+  // Move modal to document.body immediately — bypasses any WP container
+  // with overflow:hidden or transform that breaks position:fixed
+  (function() {
+    function escapeModal() {
+      var modal = document.getElementById('skrImgModal');
+      if (modal && modal.parentNode !== document.body) {
+        document.body.appendChild(modal);
+      }
     }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', escapeModal);
+    } else {
+      escapeModal();
+    }
+  })();
+
+  function openImgModal(src) {
+    var modal = document.getElementById('skrImgModal');
+    var modalImg = document.getElementById('skrImgModalImg');
+    if (!modal || !modalImg) return;
+    // Ensure on body
+    if (modal.parentNode !== document.body) document.body.appendChild(modal);
+    modalImg.src = src;
+    modal.style.display = 'flex';
+    void modal.offsetWidth;
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
   }
-  
+
   function closeImgModal(e) {
     if (e) e.stopPropagation();
-    var modal = document.getElementById("skrImgModal");
-    if (modal) {
-      modal.classList.remove("show");
-      document.body.style.overflow = "auto";
-      setTimeout(function() {
-        modal.style.display = "none";
-        var modalImg = document.getElementById("skrImgModalImg");
-        if (modalImg) modalImg.src = ""; 
-      }, 200);
-    }
+    var modal = document.getElementById('skrImgModal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    setTimeout(function() {
+      modal.style.display = 'none';
+      var modalImg = document.getElementById('skrImgModalImg');
+      if (modalImg) modalImg.src = '';
+    }, 180);
   }
 
   document.addEventListener('keydown', function(event) {
-    if (event.key === "Escape") {
-      var modal = document.getElementById("skrImgModal");
-      if (modal && modal.classList.contains("show")) {
-        closeImgModal();
-      }
+    if (event.key === 'Escape') {
+      var modal = document.getElementById('skrImgModal');
+      if (modal && modal.classList.contains('show')) closeImgModal();
     }
   });
 
