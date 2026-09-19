@@ -4,13 +4,18 @@
 
 FlyRadar32 is a standalone desktop aviation instrument powered by an ESP32 dual-core microcontroller and a 1.8-inch ST7735 SPI display. It aggregates real-time ADS-B transponder telemetry from global flight tracking networks, computes spatial trajectories, and renders a sweeping 60 FPS PPI (Plan Position Indicator) radar display without requiring an external computer or cloud intermediary.
 
+<div align="center">
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: ESP32](https://img.shields.io/badge/Hardware-ESP32--WROOM--32-red.svg)](https://www.espressif.com/)
 [![Framework: PlatformIO](https://img.shields.io/badge/Build-PlatformIO-orange.svg)](https://platformio.org/)
 [![Display: ST7735](https://img.shields.io/badge/Display-ST7735%201.8%22%20SPI-purple.svg)](include/radar_display.h)
-[![Support: Ko-fi](https://img.shields.io/badge/Support-Ko--fi-ff5e5b.svg)](https://ko-fi.com/skrelectronicslab)
 
-<div align="center">
+<p align="center">
+  <a href="https://ko-fi.com/skrelectronicslab">
+    <img src="assets/kofi_button.svg" alt="Support on Ko-fi" height="46">
+  </a>
+</p>
 
 ![FlyRadar32 Desktop Radar Console](assets/enclosure_hero.png)
 
@@ -77,11 +82,21 @@ FlyRadar32 segregates workloads across both symmetric Xtensa LX6 CPU cores using
 
 ## Circuit Diagram and Physical Prototype
 
+### Live Hardware Prototype
+
 <div align="center">
 
-| Schematic Wiring Diagram | Live Breadboard Prototype |
-|:---:|:---:|
-| ![FlyRadar32 Circuit Diagram](assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg) | ![FlyRadar32 Live Breadboard Prototype](assets/breadboard_image.jpeg) |
+![FlyRadar32 Live Breadboard Prototype](assets/breadboard_image.jpeg)
+
+*FlyRadar32 standalone hardware tracking active aviation target AKJ1107 (Boeing 737 MAX 8) on a 1.8" ST7735 SPI display.*
+
+</div>
+
+### Schematic Circuit Diagram
+
+<div align="center">
+
+![FlyRadar32 Circuit Diagram](assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg)
 
 </div>
 

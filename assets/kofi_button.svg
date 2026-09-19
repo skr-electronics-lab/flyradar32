@@ -1,92 +1,125 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 48" width="248" height="48" fill="none" role="img" aria-label="Support on Ko-fi">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 52" width="260" height="52" fill="none" role="img" aria-label="Support on Ko-fi">
   <defs>
     <style>
-      .btn-bg {
-        fill: #0f172a;
-        stroke: #334155;
+      .btn-container {
+        cursor: pointer;
+      }
+      .bg-rect {
+        fill: #0d1322;
+        stroke: #2e3c54;
         stroke-width: 1.5;
-        rx: 10px;
-        transition: stroke 0.3s;
+        rx: 12px;
       }
       .badge-bg {
         fill: #FF5E5B;
-        rx: 8px;
+        rx: 9px;
       }
-      .btn-text-main {
+      .text-title {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        font-size: 14px;
+        font-size: 14.5px;
         font-weight: 700;
         fill: #ffffff;
         letter-spacing: 0.2px;
       }
-      .btn-text-sub {
+      .text-author {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         font-size: 11px;
         font-weight: 500;
         fill: #94a3b8;
         letter-spacing: 0.3px;
       }
-      .cup-body {
+      .cup-shape {
         fill: #ffffff;
       }
-      .cup-heart {
+      .heart-shape {
         fill: #FF5E5B;
+        transform-origin: 19px 24px;
       }
-      .steam-line {
+      .steam {
         stroke: #ffffff;
-        stroke-width: 1.5;
+        stroke-width: 1.4;
         stroke-linecap: round;
         fill: none;
       }
     </style>
+
+    <!-- Clip path to keep light sheen inside button pill -->
+    <clipPath id="btnClip">
+      <rect x="1" y="1" width="258" height="50" rx="11" />
+    </clipPath>
+
+    <!-- Shimmer sheen linear gradient -->
+    <linearGradient id="sheen" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
   </defs>
 
-  <!-- Button Container Base -->
-  <rect class="btn-bg" x="1" y="1" width="246" height="46">
-    <animate attributeName="stroke" values="#334155;#ff5a00;#334155" dur="4s" repeatCount="indefinite" />
-  </rect>
+  <g class="btn-container">
+    <!-- Base Card Frame with Animated Pulse Border -->
+    <rect class="bg-rect" x="1" y="1" width="258" height="50">
+      <animate attributeName="stroke" values="#2e3c54;#FF5E5B;#ff5a00;#2e3c54" dur="4s" repeatCount="indefinite" />
+    </rect>
 
-  <!-- Icon Badge Left -->
-  <g transform="translate(10, 8)">
-    <rect class="badge-bg" width="32" height="32" rx="8" />
+    <!-- Smooth Light Sheen Sweep across Card -->
+    <g clip-path="url(#btnClip)">
+      <rect x="-100" y="0" width="70" height="52" fill="url(#sheen)" transform="skewX(-25)">
+        <animate attributeName="x" values="-120; 340; 340" keyTimes="0; 0.45; 1" dur="3.6s" repeatCount="indefinite" />
+      </rect>
+    </g>
 
-    <!-- Coffee Cup Graphic -->
-    <g transform="translate(6, 11)">
-      <!-- Animated Steam Wisps -->
-      <path class="steam-line" d="M 4 -3 Q 6 -6 4 -9">
-        <animate attributeName="opacity" values="0;0.9;0" dur="2.4s" repeatCount="indefinite" />
-        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4" dur="2.4s" repeatCount="indefinite" />
-      </path>
-      <path class="steam-line" d="M 10 -2 Q 8 -5 10 -8">
-        <animate attributeName="opacity" values="0;0.9;0" dur="2.4s" begin="0.8s" repeatCount="indefinite" />
-        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4" dur="2.4s" begin="0.8s" repeatCount="indefinite" />
-      </path>
-      <path class="steam-line" d="M 15 -3 Q 17 -6 15 -9">
-        <animate attributeName="opacity" values="0;0.9;0" dur="2.4s" begin="1.6s" repeatCount="indefinite" />
-        <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4" dur="2.4s" begin="1.6s" repeatCount="indefinite" />
-      </path>
+    <!-- Ko-fi Left Icon Badge -->
+    <g transform="translate(10, 8.5)">
+      <!-- Badge Backdrop with Soft Shadow Pulse -->
+      <rect class="badge-bg" width="35" height="35">
+        <animate attributeName="opacity" values="0.95; 1; 0.95" dur="2s" repeatCount="indefinite" />
+      </rect>
 
-      <!-- Cup Profile -->
-      <path class="cup-body" d="M 0 0 L 15 0 C 15 0 16 7 14 10 C 12 13 4 13 2 10 C 0 7 0 0 0 0 Z" />
-      <!-- Cup Handle -->
-      <path d="M 14 2 C 17 2 18 4 18 6 C 18 8 16 9 14 9" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" fill="none" />
-      <!-- Heart on Cup -->
-      <path class="cup-heart" d="M 7.5 4.5 C 6.5 3 4.5 3.5 4.5 5 C 4.5 7 7.5 9 7.5 9 C 7.5 9 10.5 7 10.5 5 C 10.5 3.5 8.5 3 7.5 4.5 Z">
-        <animate attributeName="transform" type="scale" values="1;1.15;1" dur="1.8s" repeatCount="indefinite" additive="sum" />
+      <!-- Coffee Mug Container -->
+      <g transform="translate(7.5, 12)">
+        <!-- Animated Steam Wisp 1 -->
+        <path class="steam" d="M 3.5 -2 Q 5.5 -5 3.5 -8">
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" repeatCount="indefinite" />
+          <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4.5" dur="2.2s" repeatCount="indefinite" />
+        </path>
+        <!-- Animated Steam Wisp 2 -->
+        <path class="steam" d="M 10 -1.5 Q 8 -4.5 10 -7.5">
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" begin="0.7s" repeatCount="indefinite" />
+          <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4.5" dur="2.2s" begin="0.7s" repeatCount="indefinite" />
+        </path>
+        <!-- Animated Steam Wisp 3 -->
+        <path class="steam" d="M 15.5 -2 Q 17.5 -5 15.5 -8">
+          <animate attributeName="opacity" values="0;0.9;0" dur="2.2s" begin="1.4s" repeatCount="indefinite" />
+          <animateTransform attributeName="transform" type="translate" values="0 0; 0 -4.5" dur="2.2s" begin="1.4s" repeatCount="indefinite" />
+        </path>
+
+        <!-- Mug Body -->
+        <path class="cup-shape" d="M 0 0 L 16 0 C 16 0 17 8 15 11 C 13 14 4 14 2 11 C 0 8 0 0 0 0 Z" />
+        <!-- Mug Handle -->
+        <path d="M 15 2.5 C 18.5 2.5 19.5 4.5 19.5 7 C 19.5 9.5 17.5 10.5 15 10.5" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" fill="none" />
+
+        <!-- Pulsing Heart inside Coffee Mug -->
+        <g transform="translate(8, 5.5)">
+          <path class="heart-shape" d="M 0 -1.2 C -1.2 -2.6 -3.2 -2 -3.2 -0.5 C -3.2 1.5 0 3.2 0 3.2 C 0 3.2 3.2 1.5 3.2 -0.5 C 3.2 -2 -1.2 -2.6 0 -1.2 Z">
+            <animateTransform attributeName="transform" type="scale" values="1; 1.22; 1; 1.15; 1" keyTimes="0; 0.2; 0.4; 0.6; 1" dur="1.8s" repeatCount="indefinite" />
+          </path>
+        </g>
+      </g>
+    </g>
+
+    <!-- Typography -->
+    <g transform="translate(56, 23)">
+      <text class="text-title" x="0" y="0">Support on Ko-fi</text>
+      <text class="text-author" x="0" y="15">skrelectronicslab</text>
+    </g>
+
+    <!-- Right Animated Chevron -->
+    <g transform="translate(236, 26)">
+      <path d="M -3 -4.5 L 2 0 L -3 4.5" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <animate attributeName="stroke" values="#94a3b8; #FF5E5B; #94a3b8" dur="2.4s" repeatCount="indefinite" />
+        <animateTransform attributeName="transform" type="translate" values="0 0; 3 0; 0 0" dur="1.8s" repeatCount="indefinite" />
       </path>
     </g>
-  </g>
-
-  <!-- Typography -->
-  <g transform="translate(54, 21)">
-    <text class="btn-text-main" x="0" y="0">Support on Ko-fi</text>
-    <text class="btn-text-sub" x="0" y="15">skrelectronicslab</text>
-  </g>
-
-  <!-- Right Arrow Indicator -->
-  <g transform="translate(222, 24)">
-    <path d="M 0 -4 L 4 0 L 0 4" stroke="#94a3b8" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-      <animate attributeName="transform" type="translate" values="0 0; 3 0; 0 0" dur="2s" repeatCount="indefinite" />
-    </path>
   </g>
 </svg>
