@@ -11,7 +11,6 @@ enum AppScreen {
     SCR_PLANE_DETAIL,
     SCR_SETTINGS_MAIN,
     SCR_SETTINGS_DISPLAY,
-    SCR_SETTINGS_BRIGHTNESS,
     SCR_SETTINGS_LABELS,
     SCR_SETTINGS_ICON,
     SCR_SETTINGS_PROVIDERS,
@@ -22,8 +21,8 @@ enum AppScreen {
 
 namespace RadarDisplay {
     void begin();
+    void assertBacklight(); // Re-assert full 100% backlight – call after all init
 
-    void applyBrightness();
     void showBootStatus(const char* line1, const char* line2 = "");
     void showWifiSetupScreen(const String& apSsid, const String& apIp);
     void showConnectedScreen(const String& staIp);
@@ -50,6 +49,7 @@ namespace RadarDisplay {
 
     // Full weather card screen (entered via UP+DOWN long-press).
     void renderWeatherScreen();
+    void toggleWeatherPage();
 
     void forceLVGLRefresh();
 }

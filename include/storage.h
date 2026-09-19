@@ -22,12 +22,14 @@ struct AppSettings {
     bool autoRange;               // effective zoom computed from traffic
     String openSkyClientId;
     String openSkyClientSecret;
+    String timezone;
 };
 
 class Storage {
 public:
     static void begin();
     static AppSettings& settings();
+    static AppSettings getSnapshot();
     
     static void lock();
     static void unlock();
@@ -39,8 +41,9 @@ public:
     static void saveProviderConfig(const bool enabled[PROVIDER_COUNT], const uint8_t priority[PROVIDER_COUNT]);
     static void saveOpenSkyCredentials(const String& clientId, const String& clientSecret);
     static void saveRefreshInterval(int seconds);
+    static void saveTimezone(const String& tz);
     
-    static void saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim, uint8_t brightness,
+    static void saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim,
                             uint8_t theme = 0, bool showCompass = true, bool showRangeLabels = true, bool showTrail = true);
 
     static void saveAutoRange(bool on);   // separate key; doesn't touch other display settings

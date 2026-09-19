@@ -1,4 +1,4 @@
-﻿#include <Arduino.h>
+#include <Arduino.h>
 #include "config.h"
 #include "storage.h"
 #include "buttons.h"
@@ -7,7 +7,6 @@
 #include "api_providers.h"
 #include "webui.h"
 #include <lvgl.h>
-#include <esp_task_wdt.h>
 
 static AppScreen currentScreen = SCR_BOOT;
 
@@ -24,7 +23,6 @@ static int listSelectedIndex = 0;
 static int settingsMainIndex = 0;
 static int settingsMainScroll = 0;
 static int settingsDisplayIndex = 0;
-static int settingsBrightnessIndex = 0;
 static int settingsLabelsIndex = 0;
 static int settingsIconIndex = 0;
 static int settingsProvidersIndex = 0;
@@ -38,18 +36,11 @@ static const char* THEME_NAMES[THEME_COUNT] = {"GREEN", "CYAN", "AMBER"};
 
 // ---------------------------------------------------------------
 // Settings menu layout.
-//
-// Item 1 (Auto Range) is a direct toggle. Items 0,2,3,4,5,10,11 open a
-// dedicated sub-screen (range/brightness/labels/icon/theme/providers/
-// aircraft list). Item 12 is a one-shot action (force a data refresh).
-// Items 6,7,8,9 are single-press direct toggles handled in this list â€”
-// keeps the menu tree flat. Items 13,14,15 are info/reset/back.
 // ---------------------------------------------------------------
 #define SETTINGS_MAIN_COUNT 16
 static const char* settingsMainLabels[SETTINGS_MAIN_COUNT] = {
     "Radar Range",
     "Auto Range",
-    "Brightness",
     "Animation",
     "Labels",
     "Aircraft Icon",
@@ -59,6 +50,7 @@ static const char* settingsMainLabels[SETTINGS_MAIN_COUNT] = {
     "Trail",
     "Data Providers",
     "Aircraft List",
+    "Weather Report",
     "Refresh Now",
     "System Info",
     "Factory Reset",
@@ -70,15 +62,6 @@ static const char* settingsDisplayLabels[SETTINGS_DISPLAY_COUNT] = {
     "50 km",
     "100 km",
     "150 km",
-    "Back"
-};
-
-#define SETTINGS_BRIGHTNESS_COUNT 5
-static const char* settingsBrightnessLabels[SETTINGS_BRIGHTNESS_COUNT] = {
-    "25%",
-    "50%",
-    "75%",
-    "100%",
     "Back"
 };
 
@@ -142,7 +125,8 @@ static int effectiveZoom() {
 
     static int lastWant = -1;
     static int stableCount = 0;
-    static int applied = 1;
+    static int applied = -1;  // -1 = uninitialised; set to saved zoom on first call
+    if (applied < 0) applied = Storage::settings().zoomLevel;
     if (want == lastWant) {
         if (stableCount < 2) stableCount++;
         if (stableCount >= 2 && applied != want) applied = want;   // commit
@@ -203,6 +187,17 @@ static void sortByBearing() {
         }
         if (selectedPlaneIndex < 0) clampSelection();
     }
+    // Re-anchor detailPlaneIndex (shown on SCR_PLANE_DETAIL) by hex so
+    // the detail card never shows the wrong aircraft after a sort.
+    if (detailPlaneHex[0] != '\0') {
+        detailPlaneIndex = -1;
+        for (int i = 0; i < planeCount; i++) {
+            if (planes[i].valid && strncmp(planes[i].icaoHex, detailPlaneHex, 7) == 0) {
+                detailPlaneIndex = i;
+                break;
+            }
+        }
+    }
 }
 
 static void moveSelection(int delta) {
@@ -228,7 +223,7 @@ static void moveSelection(int delta) {
 // "display" NVS namespace. Centralized here so every settings toggle
 // below only has to mutate `s` and call this one helper.
 static void persistDisplay(AppSettings& s) {
-    Storage::saveDisplay(s.zoomLevel, s.labelsMode, s.aircraftIcon, s.showSweepAnim, s.brightness,
+    Storage::saveDisplay(s.zoomLevel, s.labelsMode, s.aircraftIcon, s.showSweepAnim,
                           s.theme, s.showCompass, s.showRangeLabels, s.showTrail);
 }
 
@@ -245,6 +240,8 @@ static void handleRadarButtons(ButtonEvent ev, ButtonId which) {
                 detailPlaneHex[7] = '\0';
                 detailScrollY = 0;
                 currentScreen = SCR_PLANE_DETAIL;
+            } else {
+                currentScreen = SCR_WEATHER;
             }
         }
     } else if (ev == BTN_EVENT_REPEAT) {
@@ -255,6 +252,11 @@ static void handleRadarButtons(ButtonEvent ev, ButtonId which) {
         if (which == BTN_ID_SELECT) {
             settingsMainIndex = 0; settingsMainScroll = 0;
             currentScreen = SCR_SETTINGS_MAIN;
+        } else if (which == BTN_ID_UP) {
+            currentScreen = SCR_WEATHER;
+        } else if (which == BTN_ID_DOWN) {
+            listSelectedIndex = 0;
+            currentScreen = SCR_PLANE_LIST;
         }
     } else if (ev == BTN_EVENT_DUAL_LONG_PRESS) {
         currentScreen = SCR_WEATHER;   // UP+DOWN held together
@@ -267,7 +269,10 @@ static void handleDetailButtons(ButtonEvent ev, ButtonId which) {
         if (which == BTN_ID_UP) {
             detailScrollY = max(0, detailScrollY - 12);
         } else if (which == BTN_ID_DOWN) {
-            detailScrollY = min(90, detailScrollY + 12);
+            detailScrollY = min(125, detailScrollY + 12);
+        } else if (which == BTN_ID_SELECT && ev == BTN_EVENT_SHORT_PRESS) {
+            selectedPlaneIndex = detailPlaneIndex;
+            currentScreen = SCR_RADAR;
         }
     } else if (ev == BTN_EVENT_LONG_PRESS && which == BTN_ID_SELECT) {
         selectedPlaneIndex = detailPlaneIndex;
@@ -276,10 +281,17 @@ static void handleDetailButtons(ButtonEvent ev, ButtonId which) {
 }
 
 static void handleListButtons(ButtonEvent ev, ButtonId which) {
+    if (planeCount <= 0) {
+        listSelectedIndex = 0;
+        if (which == BTN_ID_SELECT && (ev == BTN_EVENT_SHORT_PRESS || ev == BTN_EVENT_LONG_PRESS)) {
+            currentScreen = SCR_RADAR;
+        }
+        return;
+    }
     if (ev == BTN_EVENT_SHORT_PRESS) {
         if (which == BTN_ID_UP) listSelectedIndex = max(0, listSelectedIndex - 1);
         else if (which == BTN_ID_DOWN) listSelectedIndex = min(planeCount - 1, listSelectedIndex + 1);
-        else if (which == BTN_ID_SELECT && planeCount > 0) {
+        else if (which == BTN_ID_SELECT) {
             detailPlaneIndex = listSelectedIndex;
             strncpy(detailPlaneHex, planes[listSelectedIndex].icaoHex, 7);
             detailPlaneHex[7] = '\0';
@@ -315,47 +327,41 @@ static void handleSettingsButtons(ButtonEvent ev, ButtonId which) {
                         Storage::saveAutoRange(s.autoRange);
                         break;
                     case 2:
-                        if (s.brightness <= 64) settingsBrightnessIndex = 0;
-                        else if (s.brightness <= 128) settingsBrightnessIndex = 1;
-                        else if (s.brightness <= 192) settingsBrightnessIndex = 2;
-                        else settingsBrightnessIndex = 3;
-                        currentScreen = SCR_SETTINGS_BRIGHTNESS;
-                        break;
-                    case 3:
                         s.showSweepAnim = !s.showSweepAnim;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 4:
+                    case 3:
                         settingsLabelsIndex = s.labelsMode;
                         currentScreen = SCR_SETTINGS_LABELS;
                         break;
-                    case 5:
+                    case 4:
                         settingsIconIndex = s.aircraftIcon;
                         currentScreen = SCR_SETTINGS_ICON;
                         break;
-                    case 6: // Theme: cycle 0 -> 1 -> 2 -> 0
+                    case 5: // Theme: cycle 0 -> 1 -> 2 -> 0
                         s.theme = (s.theme + 1) % THEME_COUNT;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 7: // Compass toggle
+                    case 6: // Compass toggle
                         s.showCompass = !s.showCompass;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 8: // Range labels toggle
+                    case 7: // Range labels toggle
                         s.showRangeLabels = !s.showRangeLabels;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 9: // Trail toggle
+                    case 8: // Trail toggle
                         s.showTrail = !s.showTrail;
                         persistDisplay(s);
                         RadarDisplay::forceLVGLRefresh();
                         break;
-                    case 10: settingsProvidersIndex = 0; settingsProvidersScroll = 0; currentScreen = SCR_SETTINGS_PROVIDERS; break;
-                    case 11: listSelectedIndex = 0; currentScreen = SCR_PLANE_LIST; break;
+                    case 9: settingsProvidersIndex = 0; settingsProvidersScroll = 0; currentScreen = SCR_SETTINGS_PROVIDERS; break;
+                    case 10: listSelectedIndex = 0; currentScreen = SCR_PLANE_LIST; break;
+                    case 11: currentScreen = SCR_WEATHER; break;
                     case 12: ApiProviders::requestRefresh(); currentScreen = SCR_RADAR; break;
                     case 13: currentScreen = SCR_SYSTEM_INFO; break;
                     case 14: currentScreen = SCR_FACTORY_RESET_CONFIRM; break;
@@ -378,27 +384,6 @@ static void handleSettingsButtons(ButtonEvent ev, ButtonId which) {
                     // Manual pick overrides auto â€”switch it off
                     if (s.autoRange) { s.autoRange = false; Storage::saveAutoRange(false); }
                     persistDisplay(s);
-                    RadarDisplay::forceLVGLRefresh();
-                } else {
-                    currentScreen = SCR_SETTINGS_MAIN;
-                }
-            }
-        } else if (ev == BTN_EVENT_LONG_PRESS && which == BTN_ID_SELECT) {
-            currentScreen = SCR_SETTINGS_MAIN;
-        }
-        break;
-    }
-
-    case SCR_SETTINGS_BRIGHTNESS: {
-        if (ev == BTN_EVENT_SHORT_PRESS || ev == BTN_EVENT_REPEAT) {
-            if (which == BTN_ID_UP) settingsBrightnessIndex = (settingsBrightnessIndex - 1 + SETTINGS_BRIGHTNESS_COUNT) % SETTINGS_BRIGHTNESS_COUNT;
-            else if (which == BTN_ID_DOWN) settingsBrightnessIndex = (settingsBrightnessIndex + 1) % SETTINGS_BRIGHTNESS_COUNT;
-            else if (which == BTN_ID_SELECT && ev == BTN_EVENT_SHORT_PRESS) {
-                if (settingsBrightnessIndex < 4) {
-                    uint8_t vals[] = {64, 128, 192, 255};
-                    s.brightness = vals[settingsBrightnessIndex];
-                    persistDisplay(s);
-                    RadarDisplay::applyBrightness();
                     RadarDisplay::forceLVGLRefresh();
                 } else {
                     currentScreen = SCR_SETTINGS_MAIN;
@@ -529,24 +514,26 @@ void setup() {
     }
     lastPeriodicRefreshMs = millis();
 
-    // Hardware watchdog: if loop() ever hangs (LVGL deadlock, stuck menu
-    // handler), the ESP reboots instead of becoming a paperweight.
-    // The Arduino core already initializes the TWDT with idle tasks
-    // subscribed (so deinit/reinit logs an error) — just subscribe loopTask
-    // to the existing watchdog; its 5s idle timeout is what catches hangs.
-    esp_task_wdt_add(NULL);
-    Serial.println("[wdt] watchdog armed");
+    // Always end setup at 100% brightness — re-assert after all init is done.
+    RadarDisplay::assertBacklight();
 }
 
 void loop() {
-    esp_task_wdt_reset();
     WifiManager::loop();
 
     if (currentScreen == SCR_WIFI_SETUP) {
         static bool setupScreenDrawn = false;
         static bool connectedScreenDrawn = false;
+        static WifiState lastWs = (WifiState)-1;
         
         WifiState ws = WifiManager::getState();
+        if (ws != lastWs) {
+            lastWs = ws;
+            if (ws != WIFI_STATE_CONNECTED) {
+                setupScreenDrawn = false;
+                connectedScreenDrawn = false;
+            }
+        }
         if (ws == WIFI_STATE_CONNECTED) {
             if (!connectedScreenDrawn) {
                 RadarDisplay::showConnectedScreen(WifiManager::getStaIp());
@@ -579,10 +566,12 @@ void loop() {
             case SCR_WEATHER:
                 // any SELECT press (short or long) returns to the radar
                 if (which == BTN_ID_SELECT) currentScreen = SCR_RADAR;
+                else if (which == BTN_ID_UP || which == BTN_ID_DOWN) {
+                    RadarDisplay::toggleWeatherPage();
+                }
                 break;
             case SCR_SETTINGS_MAIN:
             case SCR_SETTINGS_DISPLAY:
-            case SCR_SETTINGS_BRIGHTNESS:
             case SCR_SETTINGS_LABELS:
             case SCR_SETTINGS_ICON:
             case SCR_SETTINGS_PROVIDERS:
@@ -614,7 +603,7 @@ void loop() {
         }
         RadarDisplay::sampleTrailHistory(planes, planeCount);
         clampSelection();
-        if (listSelectedIndex >= planeCount) listSelectedIndex = planeCount > 0 ? planeCount - 1 : 0;
+        if (listSelectedIndex >= planeCount || listSelectedIndex < 0) listSelectedIndex = planeCount > 0 ? constrain(listSelectedIndex, 0, planeCount - 1) : 0;
 
         // Re-anchor the detail view by ICAO hex
         if (currentScreen == SCR_PLANE_DETAIL && detailPlaneHex[0] != '\0') {
@@ -653,25 +642,21 @@ void loop() {
                 for (int i = 0; i < SETTINGS_MAIN_COUNT; i++) ptrs[i] = settingsMainLabels[i];
                 snprintf(labels[0], 24, "Range: %d km%s", (int)ApiProviders::ZOOM_KM[s.zoomLevel], s.autoRange ? " A" : "");
                 snprintf(labels[1], 24, "Auto Range: %s", s.autoRange ? "ON" : "OFF");
-                snprintf(labels[2], 24, "Brightness: %d%%", (int)((s.brightness * 100) / 255));
-                snprintf(labels[3], 24, "Anim: %s", s.showSweepAnim ? "ON" : "OFF");
+                snprintf(labels[2], 24, "Anim: %s", s.showSweepAnim ? "ON" : "OFF");
                 const char* lm = s.labelsMode == 0 ? "OFF" : (s.labelsMode == 1 ? "SELECTED" : "ALL");
-                snprintf(labels[4], 24, "Labels: %s", lm);
+                snprintf(labels[3], 24, "Labels: %s", lm);
                 const char* iconName = s.aircraftIcon == 0 ? "DOTS" : (s.aircraftIcon == 1 ? "ARROW" : "PLANE");
-                snprintf(labels[5], 24, "Icon: %s", iconName);
-                snprintf(labels[6], 24, "Theme: %s", THEME_NAMES[s.theme]);
-                snprintf(labels[7], 24, "Compass: %s", s.showCompass ? "ON" : "OFF");
-                snprintf(labels[8], 24, "Range Labels: %s", s.showRangeLabels ? "ON" : "OFF");
-                snprintf(labels[9], 24, "Trail: %s", s.showTrail ? "ON" : "OFF");
-                for (int i = 0; i <= 9; i++) ptrs[i] = labels[i];
+                snprintf(labels[4], 24, "Icon: %s", iconName);
+                snprintf(labels[5], 24, "Theme: %s", THEME_NAMES[s.theme]);
+                snprintf(labels[6], 24, "Compass: %s", s.showCompass ? "ON" : "OFF");
+                snprintf(labels[7], 24, "Range Labels: %s", s.showRangeLabels ? "ON" : "OFF");
+                snprintf(labels[8], 24, "Trail: %s", s.showTrail ? "ON" : "OFF");
+                for (int i = 0; i <= 8; i++) ptrs[i] = labels[i];
                 RadarDisplay::renderScrollMenu("SETTINGS", ptrs, SETTINGS_MAIN_COUNT, settingsMainIndex, settingsMainScroll);
                 break;
             }
             case SCR_SETTINGS_DISPLAY:
                 RadarDisplay::renderScrollMenu("RADAR RANGE", settingsDisplayLabels, SETTINGS_DISPLAY_COUNT, settingsDisplayIndex, 0);
-                break;
-            case SCR_SETTINGS_BRIGHTNESS:
-                RadarDisplay::renderScrollMenu("BRIGHTNESS", settingsBrightnessLabels, SETTINGS_BRIGHTNESS_COUNT, settingsBrightnessIndex, 0);
                 break;
             case SCR_SETTINGS_LABELS:
                 RadarDisplay::renderScrollMenu("LABELS", settingsLabelsLabels, SETTINGS_LABELS_COUNT, settingsLabelsIndex, 0);

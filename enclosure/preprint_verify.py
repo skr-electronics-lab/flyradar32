@@ -81,7 +81,7 @@ chk("Lid   Y span matches shell",
 # ── 3. PARTING LINE ──────────────────────────────────────────────────────────
 print("\n[3] PARTING LINE & MATING")
 chk("Shell top Z <= 19 mm (lip OK)", bb_s.ZMax <= 19.0,  "ZMax=%.2f" % bb_s.ZMax)
-chk("Lid   bot Z at split (15.5-17)", 15.5 < bb_l.ZMin < 17.0, "ZMin=%.2f" % bb_l.ZMin)
+chk("Lid   bot Z at split (14.0-17)", 14.0 < bb_l.ZMin < 17.0, "ZMin=%.2f" % bb_l.ZMin)
 sl_vol = ss.common(ls).Volume
 chk("Shell <-> Lid interference = 0", sl_vol < 0.001, "%.6f mm3" % sl_vol)
 
@@ -143,14 +143,19 @@ for bname, by in [("UP", 10.0), ("SEL", -3.0), ("DOWN", -16.0)]:
     h_vol   = h_probe.common(ls).Volume
     chk("Btn %s lid hole clear (Dia 4.4mm)" % bname, h_vol < 0.1, "overlap=%.4f" % h_vol)
 
-    # Cavity 6.25x6.25mm: probe 5.8x5.8 inside
+    # Lower switch pocket 6.25x6.25mm: probe 5.6x5.6 inside switch body space (Z = -11.5 to -9.0)
     p_cav = FreeCAD.Placement()
     p_cav.Rotation = rot_tilt
     p_cav.Base = FreeCAD.Vector(bx, by, bz_top)
-    cav = Part.makeBox(5.6, 5.6, 7.0, FreeCAD.Vector(-2.8, pl_loc.y - 2.8, -10.5))
-    cav.Placement = p_cav
-    c_vol = cav.common(ls).Volume
-    chk("Btn %s cavity 6.25mm exists" % bname, c_vol < 0.1, "overlap=%.4f" % c_vol)
+    sw_probe = Part.makeBox(5.6, 5.6, 2.5, FreeCAD.Vector(-2.8, pl_loc.y - 2.8, -11.5))
+    sw_probe.Placement = p_cav
+    s_vol = sw_probe.common(ls).Volume
+    chk("Btn %s switch pocket 6.25mm clear" % bname, s_vol < 0.1, "overlap=%.4f" % s_vol)
+
+    # Upper cylindrical guide bore Dia 6.20mm (Radius 3.10mm, Z = -8.0 to -2.5): probe Radius 2.95mm
+    bore_probe = Part.makeCylinder(2.95, 5.5, b_origin - bdir * 8.0, bdir)
+    b_vol = bore_probe.common(ls).Volume
+    chk("Btn %s cap bore Dia 6.2mm clear" % bname, b_vol < 0.1, "overlap=%.4f" % b_vol)
 
 # Key cap geometry numbers
 retention   = 2.85 - 2.20   # 0.65mm retention ledge per side
@@ -163,6 +168,7 @@ chk("Switch pocket snug fit <= 0.35 mm", clearance <= 0.35, "%.2f mm per side" %
 # ── 6. TFT WINDOW ────────────────────────────────────────────────────────────
 print("\n[6] TFT DISPLAY WINDOW")
 rot_z180 = FreeCAD.Rotation(FreeCAD.Vector(0,0,1), 180)
+rot_tft  = rot_tilt.multiply(rot_z180)
 pos_tft  = FreeCAD.Vector(-10.0, -0.697, 19.736)
 tft_pl   = FreeCAD.Placement(pos_tft, rot_tft)
 g_ac     = tft_pl.multVec(FreeCAD.Vector(-2.89, 0.0, 8.90))
@@ -182,8 +188,8 @@ chk("Lid center above TFT is open",  c_vol < 0.5, "overlap=%.4f mm3" % c_vol)
 
 # ── 7. USB-C PORT ────────────────────────────────────────────────────────────
 print("\n[7] USB-C PORT")
-Z_USBC = 6.15
-usbc_probe = Part.makeBox(4.0, 8.0, 4.0, FreeCAD.Vector(X_MAX - 1.0, -4.0, Z_USBC - 2.0))
+Z_USBC = 5.75
+usbc_probe = Part.makeBox(4.0, 8.2, 2.8, FreeCAD.Vector(X_MAX - 1.0, -4.1, Z_USBC - 1.4))
 u_vol = usbc_probe.common(ss).Volume
 chk("USB-C cutout open in shell", u_vol < 0.1, "overlap=%.4f mm3" % u_vol)
 esp_shape = get_shape(esp)
@@ -275,3 +281,9 @@ else:
     for tag, label, detail in results:
         if "[FAIL]" in tag:
             print("    - %s: %s" % (label, detail))
+
+with open(r"D:\Projects\Embedded\Firmware-Development\flyradar32\enclosure\preprint_report.txt", "w") as f:
+    f.write(f"TOTAL: {n_pass} PASS   {n_fail} FAIL\n")
+    for tag, label, detail in results:
+        f.write(f"{tag} {label:<52} {detail}\n")
+

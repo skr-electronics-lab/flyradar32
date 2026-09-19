@@ -15,6 +15,7 @@ static void loadAll() {
     prefs.begin(NVS_NS_LOC, true);
     cache.lat = prefs.getDouble("lat", DEFAULT_LAT);
     cache.lon = prefs.getDouble("lon", DEFAULT_LON);
+    cache.timezone = prefs.getString("tz", DEFAULT_TZ);
     prefs.end();
 
     prefs.begin(NVS_NS_API, true);
@@ -33,11 +34,13 @@ static void loadAll() {
     cache.openSkyClientSecret = prefs.getString("osSecret", "");
     prefs.end();
 
-    // When OpenSky credentials are not configured, ensure adsb.lol is primary (priority 0)
-    // to prevent rate-limiting (429) on anonymous OpenSky requests.
-    if (cache.openSkyClientId.isEmpty() && cache.providerPriority[PROVIDER_OPENSKY] <= cache.providerPriority[PROVIDER_ADSB_LOL]) {
-        cache.providerPriority[PROVIDER_ADSB_LOL] = 0;
+    // When OpenSky credentials are not configured, ensure anonymous OpenSky is not primary (priority 0)
+    // to prevent immediate rate-limiting (429). Keep priorities distinct [0, 1, 2].
+    if (cache.openSkyClientId.isEmpty() && cache.providerPriority[PROVIDER_OPENSKY] == 0) {
+        // Swap OpenSky with whichever provider had priority 1
+        int swapIdx = (cache.providerPriority[PROVIDER_ADSB_LOL] == 1) ? PROVIDER_ADSB_LOL : PROVIDER_AIRPLANES_LIVE;
         cache.providerPriority[PROVIDER_OPENSKY] = 1;
+        cache.providerPriority[swapIdx] = 0;
     }
 
     // Open READ-WRITE so stale keys can be removed (read-only mode
@@ -47,9 +50,8 @@ static void loadAll() {
     cache.labelsMode     = prefs.getUChar("lblMode", 2);
     cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_DOT);
     cache.showSweepAnim  = prefs.getBool("swpAnim", true);
-    cache.brightness     = prefs.getUChar("bright", 255);
-    // Legacy PIN key cleanup from older firmware — check before remove so
-    // fresh devices don't log an NVS "NOT_FOUND" error on every boot.
+    cache.brightness     = 255;
+    if (prefs.isKey("bright")) prefs.remove("bright");
     if (prefs.isKey("pin")) prefs.remove("pin");
     cache.theme          = prefs.getUChar("theme", 0);
     cache.showCompass    = prefs.getBool("cmp", true);
@@ -65,7 +67,6 @@ static void loadAll() {
     if (cache.zoomLevel < 0 || cache.zoomLevel > 2) cache.zoomLevel = 1;
     if (cache.labelsMode > 2) cache.labelsMode = 2;
     if (cache.refreshInterval < 5 || cache.refreshInterval > 300) cache.refreshInterval = 10;
-    if (cache.brightness < 100) cache.brightness = 255;
 }
 
 void Storage::begin() {
@@ -75,6 +76,13 @@ void Storage::begin() {
 
 AppSettings& Storage::settings() {
     return cache;
+}
+
+AppSettings Storage::getSnapshot() {
+    lock();
+    AppSettings copy = cache;
+    unlock();
+    return copy;
 }
 
 void Storage::lock() {
@@ -152,7 +160,16 @@ void Storage::saveRefreshInterval(int seconds) {
     unlock();
 }
 
-void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim, uint8_t brightness,
+void Storage::saveTimezone(const String& tz) {
+    lock();
+    prefs.begin(NVS_NS_LOC, false);
+    prefs.putString("tz", tz);
+    prefs.end();
+    cache.timezone = tz;
+    unlock();
+}
+
+void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim,
                            uint8_t theme, bool showCompass, bool showRangeLabels, bool showTrail) {
     if (zoomLevel < 0 || zoomLevel > 2) zoomLevel = 1;
     if (labelsMode > 2) labelsMode = 2;
@@ -165,7 +182,7 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     prefs.putUChar("lblMode", labelsMode);
     prefs.putUChar("acIcon", aircraftIcon);
     prefs.putBool("swpAnim", showSweepAnim);
-    prefs.putUChar("bright", brightness);
+    if (prefs.isKey("bright")) prefs.remove("bright");
     prefs.putUChar("theme", theme);
     prefs.putBool("cmp", showCompass);
     prefs.putBool("rlbl", showRangeLabels);
@@ -176,7 +193,7 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     cache.labelsMode = labelsMode;
     cache.aircraftIcon = aircraftIcon;
     cache.showSweepAnim = showSweepAnim;
-    cache.brightness = brightness;
+    cache.brightness = 255;
     cache.theme = theme;
     cache.showCompass = showCompass;
     cache.showRangeLabels = showRangeLabels;

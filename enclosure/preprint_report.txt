@@ -1,0 +1,90 @@
+TOTAL: 88 PASS   1 FAIL
+  [PASS] Shell width  (target 82 mm)                          82.0 mm
+  [PASS] Shell depth  (target 60 mm)                          60.0 mm
+  [PASS] Shell height (16-19 mm OK)                           18.8 mm
+  [PASS] Lid   height (13-25 mm OK)                           23.5 mm
+  [PASS] Shell XMin = X_MIN (-45.0)                           XMin=-45.00
+  [PASS] Shell XMax = X_MAX ( 37.0)                           XMax=37.00
+  [PASS] Shell YMin = Y_MIN (-34.0)                           YMin=-34.00
+  [PASS] Shell YMax = Y_MAX ( 26.0)                           YMax=26.00
+  [PASS] Lid   X span matches shell                           Lid X: -45.00 .. 37.00
+  [PASS] Lid   Y span matches shell                           Lid Y: -34.00 .. 26.00
+  [PASS] Shell top Z <= 19 mm (lip OK)                        ZMax=18.80
+  [PASS] Lid   bot Z at split (14.0-17)                       ZMin=14.50
+  [PASS] Shell <-> Lid interference = 0                       0.000000 mm3
+  [PASS] Shell FL boss solid (vol>30)                         vol=256.7 mm3
+  [PASS] Shell FL M2 hole is clear                            overlap=0.0000 mm3
+  [PASS] Shell FL counterbore clear                           overlap=0.0000 mm3
+  [PASS] Lid   FL boss solid                                  vol=49.4 mm3
+  [PASS] Lid   FL insert hole clear                           overlap=0.0000 mm3
+  [PASS] Shell FR boss solid (vol>30)                         vol=256.7 mm3
+  [PASS] Shell FR M2 hole is clear                            overlap=0.0000 mm3
+  [PASS] Shell FR counterbore clear                           overlap=0.0000 mm3
+  [PASS] Lid   FR boss solid                                  vol=49.4 mm3
+  [PASS] Lid   FR insert hole clear                           overlap=0.0000 mm3
+  [PASS] Shell RL boss solid (vol>30)                         vol=256.7 mm3
+  [PASS] Shell RL M2 hole is clear                            overlap=0.0000 mm3
+  [PASS] Shell RL counterbore clear                           overlap=0.0000 mm3
+  [PASS] Lid   RL boss solid                                  vol=49.4 mm3
+  [PASS] Lid   RL insert hole clear                           overlap=0.0000 mm3
+  [PASS] Shell RR boss solid (vol>30)                         vol=256.7 mm3
+  [PASS] Shell RR M2 hole is clear                            overlap=0.0000 mm3
+  [PASS] Shell RR counterbore clear                           overlap=0.0000 mm3
+  [PASS] Lid   RR boss solid                                  vol=49.4 mm3
+  [PASS] Lid   RR insert hole clear                           overlap=0.0000 mm3
+  [PASS] Btn UP lid hole clear (Dia 4.4mm)                    overlap=0.0000
+  [PASS] Btn UP switch pocket 6.25mm clear                    overlap=0.0000
+  [PASS] Btn UP cap bore Dia 6.2mm clear                      overlap=0.0000
+  [PASS] Btn SEL lid hole clear (Dia 4.4mm)                   overlap=0.0000
+  [PASS] Btn SEL switch pocket 6.25mm clear                   overlap=0.0000
+  [PASS] Btn SEL cap bore Dia 6.2mm clear                     overlap=0.0000
+  [PASS] Btn DOWN lid hole clear (Dia 4.4mm)                  overlap=0.0000
+  [PASS] Btn DOWN switch pocket 6.25mm clear                  overlap=0.0000
+  [PASS] Btn DOWN cap bore Dia 6.2mm clear                    overlap=0.0000
+  [PASS] Cap retention lip >= 0.6 mm                          0.65 mm
+  [PASS] Switch pocket snug fit <= 0.35 mm                    0.12 mm per side
+  [PASS] TFT window 33x27 probe clear                         overlap=0.0000 mm3
+  [PASS] Lid center above TFT is open                         overlap=0.0000 mm3
+  [PASS] USB-C cutout open in shell                           overlap=0.0000 mm3
+  [PASS] ESP32 USB-C within 2 mm of wall                      ESP XMax=36.40 wall=37.0
+  [PASS] ESP32 Y-centered (|Yc|<1.5mm)                        Yc=0.00
+  [PASS] ESP32 <-> Shell = 0                                  0.000000 mm3
+  [PASS] ESP32 <-> Lid   = 0                                  0.000000 mm3
+  [PASS] ESP32 Zbot >= FLOOR (1.8mm)                          ZMin=2.55
+  [PASS] ESP32 Ztop <= Z_SPLIT+0.3                            ZMax=8.15
+  [PASS] ESP32 <-> TFT                                        0.000000 mm3
+  [PASS] ESP32 <-> Button_UP                                  0.000000 mm3
+  [PASS] ESP32 <-> Button_SEL                                 0.000000 mm3
+  [PASS] ESP32 <-> Button_DOWN                                0.000000 mm3
+  [PASS] TFT <-> Button_UP                                    0.000000 mm3
+  [PASS] TFT <-> Button_SEL                                   0.000000 mm3
+  [PASS] TFT <-> Button_DOWN                                  0.000000 mm3
+  [PASS] Shell <-> ESP32                                      0.000000 mm3
+  [PASS] Shell <-> TFT                                        0.000000 mm3
+  [PASS] Shell <-> Button_UP                                  0.000000 mm3
+  [PASS] Shell <-> Button_SEL                                 0.000000 mm3
+  [PASS] Shell <-> Button_DOWN                                0.000000 mm3
+  [PASS] Lid <-> ESP32                                        0.000000 mm3
+  [PASS] Lid <-> TFT                                          0.000000 mm3
+  [PASS] Lid <-> Button_UP                                    0.000000 mm3
+  [PASS] Lid <-> Button_SEL                                   0.000000 mm3
+  [PASS] Lid <-> Button_DOWN                                  0.000000 mm3
+  [PASS] Lid <-> Button_Caps                                  0.000000 mm3
+  [PASS] Shell <-> Button_Caps                                0.000000 mm3
+  [PASS] Shell <-> Lid (Mating)                               0.000000 mm3
+  [PASS] Shell STL exists & >50 KB                            609.3 KB
+  [PASS] Shell STL is solid (no open edges)                   6230 pts / 12476 facets
+  [PASS] Shell STL no non-manifold edges                      
+  [PASS] Lid STL exists & >50 KB                              1010.1 KB
+  [PASS] Lid STL is solid (no open edges)                     10335 pts / 20686 facets
+  [PASS] Lid STL no non-manifold edges                        
+  [PASS] Caps STL exists & >50 KB                             571.7 KB
+  [PASS] Caps STL is solid (no open edges)                    5859 pts / 11706 facets
+  [PASS] Caps STL no non-manifold edges                       
+  [PASS] Shell flat bottom Z~0 (no support)                   ZMin=0.00
+  [PASS] Shell max height <= 19.5 mm                          ZMax=18.80
+  [FAIL] Lid prints on flat split face (Zmin~16.5)            ZMin=14.50
+  [PASS] Boss wall around M2 hole >= 1.5 mm                   2.00 mm
+  [PASS] Lid boss wall around insert >= 1.0 mm                1.60 mm
+  [PASS] Button cap retention >= 0.6 mm each side             0.65 mm
+  [PASS] Switch pocket snug fit <= 0.35 mm                    0.12 mm per side

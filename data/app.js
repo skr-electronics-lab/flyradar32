@@ -5,7 +5,7 @@
   let selectedPlane = null;
   let radarRangeKm = 100;
   let showTrails = true;
-  let showVectors = true;
+  let showVectors = false;
   let showSweepAnim = true;
   let sweepAngle = 0;
   let activeTheme = 0; // 0: Green, 1: Cyan, 2: Amber
@@ -131,6 +131,8 @@
         resizeRadarCanvas();
       } else if (targetTab === "traffic") {
         renderTrafficTable();
+      } else if (targetTab === "weather") {
+        renderWeatherPanel();
       }
     });
   });
@@ -833,14 +835,23 @@
 
       if ((s.wifiState === "ap_mode" || s.wifiState === "failed") && !window.captivePortalRedirected) {
         window.captivePortalRedirected = true;
-        const settingsTabBtn = document.querySelector('.nav-tab[data-tab="station-settings"]');
-        if (settingsTabBtn) settingsTabBtn.click();
-        const wifiCard = document.getElementById("wifiSetupCard");
-        if (wifiCard) {
-          wifiCard.scrollIntoView({ behavior: "smooth" });
-          wifiCard.style.outline = "2px solid #00FF00";
-          wifiCard.style.boxShadow = "0 0 20px rgba(0,255,0,0.4)";
-        }
+        // Auto-navigate to Settings → WiFi card after a brief delay so the DOM settles
+        setTimeout(() => {
+          const settingsTabBtn = document.querySelector('.nav-tab[data-tab="settings"]');
+          if (settingsTabBtn) settingsTabBtn.click();
+          setTimeout(() => {
+            const wifiCard = document.getElementById("wifiSetupCard");
+            if (wifiCard) {
+              wifiCard.scrollIntoView({ behavior: "smooth", block: "start" });
+              wifiCard.style.transition = "box-shadow 0.4s ease";
+              wifiCard.style.boxShadow = "0 0 0 2px var(--accent), 0 0 32px var(--accent-glow)";
+              setTimeout(() => { wifiCard.style.boxShadow = ""; }, 3500);
+              // Auto-trigger scan when opening captive portal
+              const sb = document.getElementById("scanBtn");
+              if (sb && !sb.disabled) setTimeout(() => sb.click(), 600);
+            }
+          }, 300);
+        }, 400);
       }
 
       // Update seconds ago in header
@@ -849,10 +860,248 @@
       if (refreshText) {
         refreshText.textContent = secAgo <= 1 ? "LIVE" : `${secAgo}s AGO`;
       }
+
+      renderWeatherPanel(s);
     } catch (e) {
       console.warn("Status fetch error:", e);
     } finally {
       isFetchingStatus = false;
+    }
+  }
+
+  // -------------------------------------------------------------
+  // Station Aerodrome Weather Panel
+  // -------------------------------------------------------------
+  let lastWeatherStatus = null;
+
+  function renderWeatherPanel(status) {
+    const s = status || lastWeatherStatus;
+    if (!s) return;
+    lastWeatherStatus = s;
+
+    if (s.tempC === undefined) {
+      const condLarge = document.getElementById("wxConditionLarge");
+      if (condLarge) condLarge.textContent = "SYNCHRONIZING WITH OPEN-METEO...";
+      return;
+    }
+
+    // Temperature & Condition
+    const tempLarge = document.getElementById("wxTempLarge");
+    if (tempLarge) tempLarge.textContent = Math.round(s.tempC);
+
+    const feelsEl = document.getElementById("wxFeelsText");
+    if (feelsEl) feelsEl.textContent = `${Math.round(s.feelsC !== undefined ? s.feelsC : s.tempC)}\u00B0C`;
+
+    // WMO Condition Decoder & Dynamic SVG Icon
+    const wmoMap = {
+      0: "CLEAR SKY",
+      1: "MAINLY CLEAR",
+      2: "PARTLY CLOUDY",
+      3: "OVERCAST",
+      45: "FOG / MIST",
+      48: "RIME FOG",
+      51: "LIGHT DRIZZLE",
+      53: "MODERATE DRIZZLE",
+      55: "DENSE DRIZZLE",
+      61: "SLIGHT RAIN",
+      63: "MODERATE RAIN",
+      65: "HEAVY RAIN",
+      71: "SLIGHT SNOW",
+      73: "MODERATE SNOW",
+      75: "HEAVY SNOW",
+      80: "SLIGHT SHOWERS",
+      81: "MODERATE SHOWERS",
+      82: "VIOLENT SHOWERS",
+      95: "THUNDERSTORM",
+      96: "THUNDERSTORM & HAIL",
+      99: "HEAVY THUNDERSTORM"
+    };
+    const condition = wmoMap[s.wmo] || (s.cloud > 60 ? "CLOUDY" : "FAIR");
+    const condLarge = document.getElementById("wxConditionLarge");
+    if (condLarge) condLarge.textContent = condition;
+
+    // Dynamic Weather SVG Icon
+    const iconWrap = document.getElementById("wxDynamicIcon");
+    if (iconWrap) {
+      const wmo = s.wmo || 0;
+      if (wmo >= 95) {
+        iconWrap.innerHTML = `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#FFD600" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19 16.9A5 5 0 0 0 18 7h-1.26a8 8 0 1 0-11.62 9"/>
+          <polygon points="13 11 9 17 15 17 11 23" fill="#FFD600"/>
+        </svg>`;
+      } else if ((wmo >= 51 && wmo <= 86) || (s.precip && s.precip > 0.1)) {
+        iconWrap.innerHTML = `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#29B6F6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+          <path d="M16 14v6M8 14v6M12 16v6"/>
+        </svg>`;
+      } else if (wmo === 2 || wmo === 3 || wmo === 45 || wmo === 48 || (s.cloud && s.cloud > 50)) {
+        iconWrap.innerHTML = `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#90CAF9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+        </svg>`;
+      } else {
+        iconWrap.innerHTML = `<svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#FFA726" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+        </svg>`;
+      }
+    }
+
+    // Flight Category (VFR / MVFR / IFR / LIFR)
+    const flightCat = document.getElementById("wxFlightCat");
+    const flightDesc = document.getElementById("wxFlightCatDesc");
+    const rh = s.humidity || 50;
+    const dew = Math.round(s.tempC - ((100 - rh) / 5));
+
+    if (flightCat) {
+      let cat = "VFR";
+      let desc = "Visual Flight Rules \u2022 Ceiling > 3,000 FT, Vis > 5 SM";
+      let color = "#00E676";
+      let bg = "rgba(0, 230, 118, 0.15)";
+      let border = "rgba(0, 230, 118, 0.4)";
+      if (s.wmo >= 95 || s.precip > 5.0) {
+        cat = "LIFR";
+        desc = "Low Instrument Flight Rules \u2022 Severe Weather Alert";
+        color = "#FF1744";
+        bg = "rgba(255, 23, 68, 0.15)";
+        border = "rgba(255, 23, 68, 0.4)";
+      } else if (s.cloud >= 85 || s.precip > 1.5) {
+        cat = "IFR";
+        desc = "Instrument Flight Rules \u2022 Ceiling 500-1,000 FT / Low Vis";
+        color = "#FFB300";
+        bg = "rgba(255, 179, 0, 0.15)";
+        border = "rgba(255, 179, 0, 0.4)";
+      } else if (s.cloud >= 50) {
+        cat = "MVFR";
+        desc = "Marginal VFR \u2022 Ceiling 1,000-3,000 FT AGL";
+        color = "#00E5FF";
+        bg = "rgba(0, 229, 255, 0.15)";
+        border = "rgba(0, 229, 255, 0.4)";
+      }
+      flightCat.textContent = cat;
+      flightCat.style.color = color;
+      flightCat.style.background = bg;
+      flightCat.style.borderColor = border;
+      if (flightDesc) flightDesc.textContent = desc;
+    }
+
+    // Dewpoint Spread & Estimated Cloud Ceiling AGL
+    const dewSpreadEl = document.getElementById("wxDewSpread");
+    if (dewSpreadEl) {
+      dewSpreadEl.textContent = `${Math.abs(s.tempC - dew).toFixed(1)}\u00B0C`;
+    }
+
+    const ceilingEl = document.getElementById("wxCloudCeiling");
+    if (ceilingEl) {
+      if ((s.cloud || 0) < 15) {
+        ceilingEl.textContent = "UNLIMITED";
+      } else {
+        const estCeil = Math.max(500, Math.round((s.tempC - dew) * 400));
+        ceilingEl.textContent = `~${estCeil.toLocaleString()} FT AGL`;
+      }
+    }
+
+    // Wind Compass & Stats
+    const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+    const cardIdx = Math.round(((s.windDeg % 360) / 22.5)) % 16;
+    const cardinal = dirs[cardIdx] || "N";
+
+    const windSpeedEl = document.getElementById("wxWindSpeedText");
+    if (windSpeedEl) windSpeedEl.textContent = `${Math.round(s.windKt)} kt (${Math.round(s.windKt * 1.852)} km/h)`;
+
+    const windGustEl = document.getElementById("wxWindGustText");
+    if (windGustEl) windGustEl.textContent = `${Math.round(s.gustKt || 0)} kt`;
+
+    const windDirEl = document.getElementById("wxWindDirText");
+    if (windDirEl) windDirEl.textContent = `${Math.round(s.windDeg || 0)}\u00B0`;
+
+    const windCardEl = document.getElementById("wxWindCardText");
+    if (windCardEl) windCardEl.textContent = cardinal;
+
+    const arrow = document.getElementById("wxWindArrow");
+    if (arrow) {
+      arrow.style.transform = `rotate(${Math.round(s.windDeg || 0)}deg)`;
+    }
+
+    // Runway Crosswind & Headwind Computer
+    if (window.selectedRunwayHdg === undefined) window.selectedRunwayHdg = 90;
+    const windRad = ((s.windDeg || 0) - window.selectedRunwayHdg) * (Math.PI / 180);
+    const speed = s.windKt || 0;
+    const xwind = speed * Math.sin(windRad);
+    const hwind = speed * Math.cos(windRad);
+
+    const xwVal = document.getElementById("wxCrosswindVal");
+    if (xwVal) {
+      const xwAbs = Math.abs(xwind).toFixed(1);
+      const xwSide = xwind >= 0.5 ? "LEFT" : (xwind <= -0.5 ? "RIGHT" : "DIRECT");
+      xwVal.textContent = `${xwAbs} KT [${xwSide}]`;
+      xwVal.style.color = Math.abs(xwind) > 15 ? "#FF1744" : (Math.abs(xwind) > 8 ? "#FFB300" : "#00E676");
+    }
+
+    const hwVal = document.getElementById("wxHeadwindVal");
+    if (hwVal) {
+      const hwAbs = Math.abs(hwind).toFixed(1);
+      const hwType = hwind >= 0 ? "HEAD" : "TAIL";
+      hwVal.textContent = `${hwAbs} KT ${hwType}`;
+      hwVal.style.color = hwind < -5 ? "#FF1744" : "#00E676";
+    }
+
+    const rwyLine = document.getElementById("wxRunwayLine");
+    if (rwyLine) {
+      rwyLine.style.transform = `rotate(${window.selectedRunwayHdg}deg)`;
+    }
+
+    // Atmospheric Telemetry
+    const pressEl = document.getElementById("wxPressureVal");
+    if (pressEl) pressEl.textContent = `${Math.round(s.pressure || 1013)} hPa`;
+
+    const pressInHg = document.getElementById("wxPressureInHg");
+    if (pressInHg) {
+      const p = s.pressure || 1013;
+      const isaDiff = Math.round(p - 1013.25);
+      const diffStr = isaDiff >= 0 ? `+${isaDiff}` : `${isaDiff}`;
+      pressInHg.textContent = `${(p * 0.02953).toFixed(2)} inHg \u2022 ${diffStr} ISA`;
+    }
+
+    const humEl = document.getElementById("wxHumidityVal");
+    if (humEl) humEl.textContent = `${Math.round(s.humidity || 0)}%`;
+
+    const dewPointEl = document.getElementById("wxDewPoint");
+    if (dewPointEl) dewPointEl.textContent = `Dewpoint: ${dew}\u00B0C`;
+
+    const cloudEl = document.getElementById("wxCloudVal");
+    if (cloudEl) cloudEl.textContent = `${Math.round(s.cloud || 0)}%`;
+
+    const cloudCovEl = document.getElementById("wxCloudCoverage");
+    if (cloudCovEl) {
+      const c = s.cloud || 0;
+      cloudCovEl.textContent = c < 15 ? "SKC (Clear Sky 0/8)" : (c < 35 ? "FEW (Few Clouds 2/8)" : (c < 65 ? "SCT (Scattered 4/8)" : (c < 85 ? "BKN (Broken 6/8)" : "OVC (Overcast 8/8)")));
+    }
+
+    const precipEl = document.getElementById("wxPrecipVal");
+    if (precipEl) precipEl.textContent = `${(s.precip || 0).toFixed(1)} mm`;
+
+    const precipRateEl = document.getElementById("wxPrecipRate");
+    if (precipRateEl) {
+      const pr = s.precip || 0;
+      precipRateEl.textContent = pr > 2.5 ? "Heavy Hourly Accum" : (pr > 0.5 ? "Moderate Hourly Accum" : (pr > 0 ? "Light Precipitation" : "Nil Hourly Accumulation"));
+    }
+
+    // Raw METAR generation
+    const rawMetar = document.getElementById("wxRawMetar");
+    if (rawMetar) {
+      const wDeg = String(Math.round(s.windDeg || 0)).padStart(3, '0');
+      const wKt = String(Math.round(s.windKt || 0)).padStart(2, '0');
+      const tSign = s.tempC < 0 ? "M" : "";
+      const tVal = String(Math.abs(Math.round(s.tempC))).padStart(2, '0');
+      const dSign = dew < 0 ? "M" : "";
+      const dVal = String(Math.abs(dew)).padStart(2, '0');
+      const qnh = String(Math.round(s.pressure || 1013)).padStart(4, '0');
+      rawMetar.textContent = `METAR FLYR32 AUTO ${wDeg}${wKt}KT ${tSign}${tVal}/${dSign}${dVal} Q${qnh}=`;
+    }
+
+    const desc = document.getElementById("wxStationDesc");
+    if (desc && s.time) {
+      desc.textContent = `Station METAR observation synchronized at ${s.time} via Open-Meteo.`;
     }
   }
 
@@ -1007,8 +1256,6 @@
       const rangeLabelsToggle = document.getElementById("rangeLabelsToggle");
       const trailToggle = document.getElementById("trailToggle");
       const refreshSelect = document.getElementById("refreshSelect");
-      const brightnessSlider = document.getElementById("brightnessSlider");
-      const brightVal = document.getElementById("brightVal");
 
       if (latInput) latInput.value = s.lat;
       if (lonInput) lonInput.value = s.lon;
@@ -1030,14 +1277,31 @@
         updateProviderUI(s.primaryProvider);
       }
 
-      if (brightnessSlider) {
-        brightnessSlider.value = s.brightness || 255;
-        if (brightVal) brightVal.textContent = `${Math.round((s.brightness || 255) / 2.55)}%`;
-      }
-
       // Sync Active Theme Swatch
       activeTheme = s.theme || 0;
       applyTheme(activeTheme);
+
+      // Station Timezone
+      const tzSelect = document.getElementById("tzSelect");
+      const customTzGroup = document.getElementById("customTzGroup");
+      const customTzInput = document.getElementById("customTzInput");
+      if (tzSelect && s.timezone) {
+        let found = false;
+        for (let opt of tzSelect.options) {
+          if (opt.value === s.timezone) {
+            tzSelect.value = s.timezone;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          tzSelect.value = "CUSTOM";
+          if (customTzGroup) customTzGroup.style.display = "block";
+          if (customTzInput) customTzInput.value = s.timezone;
+        } else {
+          if (customTzGroup) customTzGroup.style.display = "none";
+        }
+      }
     } catch (e) {
       console.warn("Settings load error:", e);
     }
@@ -1104,16 +1368,7 @@
     });
   }
 
-  // Brightness Slider auto-save
-  const brightnessSlider = document.getElementById("brightnessSlider");
-  const brightVal = document.getElementById("brightVal");
-  if (brightnessSlider) {
-    brightnessSlider.addEventListener("input", () => {
-      const val = parseInt(brightnessSlider.value, 10);
-      if (brightVal) brightVal.textContent = `${Math.round(val / 2.55)}%`;
-      triggerAutoSaveDisplay({ brightness: val });
-    });
-  }
+
 
   // Auto Range toggle (device-side auto zoom)
   document.getElementById("autoRangeToggle")?.addEventListener("change", (e) => {
@@ -1193,40 +1448,172 @@
     });
   }
 
+  // Timezone Auto-Save
+  const tzSelect = document.getElementById("tzSelect");
+  const customTzGroup = document.getElementById("customTzGroup");
+  const customTzInput = document.getElementById("customTzInput");
+
+  async function saveTimezoneValue(tz) {
+    if (!tz) return;
+    try {
+      await apiPost("/api/settings/timezone", { timezone: tz });
+      showToast(`Station Timezone updated: ${tz}`);
+    } catch (e) {
+      showToast("Failed to save timezone: " + e.message, true);
+    }
+  }
+
+  tzSelect?.addEventListener("change", (e) => {
+    if (e.target.value === "CUSTOM") {
+      if (customTzGroup) customTzGroup.style.display = "block";
+    } else {
+      if (customTzGroup) customTzGroup.style.display = "none";
+      saveTimezoneValue(e.target.value);
+    }
+  });
+
+  let tzDebounce = null;
+  customTzInput?.addEventListener("input", (e) => {
+    clearTimeout(tzDebounce);
+    tzDebounce = setTimeout(() => {
+      saveTimezoneValue(e.target.value.trim());
+    }, 600);
+  });
+
   // Danger Zone Actions
   document.getElementById("disconnectBtn")?.addEventListener("click", async () => {
-    if (!confirm("Forget Wi-Fi credentials? The device will restart in setup AP mode.")) return;
-    const btn = document.getElementById("disconnectBtn");
-    if (btn) { btn.disabled = true; btn.textContent = "Forgetting..."; }
-    showToast("Forgetting Wi-Fi... Device will reboot into setup mode in ~3s");
-    try {
-      await apiPost("/api/wifi/clear", {});
-    } catch (e) {
-      // Expected: device reboots mid-request, fetch throws NetworkError — that's fine.
-    }
-    // Show countdown — device reboots within ~400ms of the request
-    showToast("✓ Done! Connect to the FlyRadar32-XXXX Wi-Fi AP that appears in ~10s");
-    if (btn) { btn.textContent = "Restarting..."; }
+    showConfirmModal("Forget Wi-Fi credentials? The device will restart in setup AP mode.", async () => {
+      const btn = document.getElementById("disconnectBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "Forgetting..."; }
+      showToast("Forgetting Wi-Fi... Device will reboot into setup mode in ~3s");
+      try {
+        await apiPost("/api/wifi/clear", {});
+      } catch (e) {
+        // Expected: device reboots mid-request
+      }
+      showToast("✓ Done! Connect to the FlyRadar32-XXXX Wi-Fi AP that appears in ~10s");
+      if (btn) { btn.textContent = "Restarting..."; }
+    });
   });
 
   document.getElementById("resetBtn")?.addEventListener("click", async () => {
-    if (!confirm("Factory Reset: ALL settings (Wi-Fi, location, providers) will be erased. Continue?")) return;
-    const btn = document.getElementById("resetBtn");
-    if (btn) { btn.disabled = true; btn.textContent = "Resetting..."; }
-    showToast("Factory reset in progress... Device rebooting in ~3s");
-    try {
-      await apiPost("/api/factory-reset", {});
-    } catch (e) {
-      // Expected: device reboots and closes connection.
-    }
-    showToast("✓ Factory reset complete. Connect to new FlyRadar32-XXXX AP in ~10s");
-    if (btn) { btn.textContent = "Reset Done"; }
+    showConfirmModal("Factory Reset: ALL settings (Wi-Fi, location, providers) will be permanently erased. This cannot be undone.", async () => {
+      const btn = document.getElementById("resetBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "Resetting..."; }
+      showToast("Factory reset in progress... Device rebooting in ~3s");
+      try {
+        await apiPost("/api/factory-reset", {});
+      } catch (e) {
+        // Expected: device reboots and closes connection.
+      }
+      showToast("✓ Factory reset complete. Connect to new FlyRadar32-XXXX AP in ~10s");
+      if (btn) { btn.textContent = "Reset Done"; }
+    });
   });
 
 
   // -------------------------------------------------------------
-  // Wi-Fi Scan & Connect Handlers
+  // WiFi Connection Success Modal (replaces browser alert)
   // -------------------------------------------------------------
+  function showWifiSuccessModal(ssid) {
+    // Remove any existing modal
+    const existingModal = document.getElementById("wifiSuccessModal");
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement("div");
+    modal.id = "wifiSuccessModal";
+    modal.style.cssText = `
+      position:fixed; inset:0; z-index:9999;
+      background:rgba(0,0,0,0.82); backdrop-filter:blur(8px);
+      display:flex; align-items:center; justify-content:center;
+      animation:fadeInModal 0.25s ease;
+    `;
+
+    modal.innerHTML = `
+      <style>
+        @keyframes fadeInModal { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
+        @keyframes spinCheck { to{stroke-dashoffset:0} }
+        .wm-card {
+          background: linear-gradient(145deg, #0a1628, #060f1e);
+          border: 1px solid var(--accent, #00ff00);
+          border-radius: 16px;
+          box-shadow: 0 0 40px var(--accent-glow, rgba(0,255,0,0.2)), 0 20px 60px rgba(0,0,0,0.5);
+          padding: 36px 40px;
+          max-width: 460px;
+          width: 90vw;
+          text-align: center;
+          font-family: 'Chakra Petch', 'Inter', sans-serif;
+        }
+        .wm-check {
+          width:64px; height:64px; margin:0 auto 16px;
+          display:flex; align-items:center; justify-content:center;
+          border-radius:50%; background:rgba(0,255,0,0.1);
+          border:2px solid var(--accent,#00ff00);
+        }
+        .wm-check svg { stroke:var(--accent,#00ff00); }
+        .wm-title { font-size:1.3rem; font-weight:700; color:var(--accent,#00ff00); margin-bottom:8px; letter-spacing:0.08em; }
+        .wm-ssid { font-size:0.95rem; color:#b0ffc0; margin-bottom:20px; }
+        .wm-steps { text-align:left; background:rgba(0,255,0,0.04); border-radius:8px; padding:14px 18px; margin-bottom:20px; }
+        .wm-step { font-size:0.82rem; color:#8bc; font-family:'JetBrains Mono',monospace; margin:4px 0; }
+        .wm-step .s-done { color:var(--accent,#00ff00); margin-right:6px; }
+        .wm-mdns { font-size:1rem; font-family:'JetBrains Mono',monospace; color:var(--accent,#00ff00);
+                   background:rgba(0,255,0,0.07); border:1px solid rgba(0,255,0,0.3); border-radius:6px;
+                   padding:8px 16px; margin-bottom:20px; display:block; }
+        .wm-ok-btn {
+          background:var(--accent,#00ff00); color:#000; font-weight:700; font-size:0.9rem;
+          border:none; border-radius:8px; padding:10px 32px; cursor:pointer; letter-spacing:0.06em;
+          transition:opacity 0.2s;
+        }
+        .wm-ok-btn:hover { opacity:0.85; }
+      </style>
+      <div class="wm-card">
+        <div class="wm-check">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <div class="wm-title">✓ CONNECTED!</div>
+        <div class="wm-ssid">Switching to <strong>${esc(ssid)}</strong>...</div>
+        <div class="wm-steps">
+          <div class="wm-step"><span class="s-done">✓</span> Credentials saved to hardware</div>
+          <div class="wm-step"><span class="s-done">✓</span> ESP32 switching to Station mode</div>
+          <div class="wm-step"><span class="s-done">✓</span> Setup AP closing in ~5s</div>
+        </div>
+        <strong style="display:block;font-size:0.78rem;color:#8bc;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;">Reconnect your device to <em>${esc(ssid)}</em>, then open:</strong>
+        <code class="wm-mdns">http://flyradar32.local</code>
+        <button class="wm-ok-btn" onclick="document.getElementById('wifiSuccessModal')?.remove()">Got it</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+  }
+
+  // -------------------------------------------------------------
+  // Themed Confirm Dialog (replaces window.confirm)
+  // -------------------------------------------------------------
+  function showConfirmModal(message, onConfirm) {
+    const existing = document.getElementById("confirmModal");
+    if (existing) existing.remove();
+    const modal = document.createElement("div");
+    modal.id = "confirmModal";
+    modal.style.cssText = `position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;`;
+    modal.innerHTML = `
+      <div style="background:linear-gradient(145deg,#0c1a2e,#060f1e);border:1px solid rgba(255,100,100,0.4);border-radius:14px;padding:28px 32px;max-width:400px;width:88vw;font-family:'Chakra Petch','Inter',sans-serif;">
+        <div style="font-size:1.05rem;font-weight:700;color:#ff6b6b;margin-bottom:12px;">⚠ Confirm Action</div>
+        <div style="font-size:0.9rem;color:#cde;line-height:1.5;margin-bottom:22px;">${esc(message)}</div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button id="cModalCancel" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#aaa;border-radius:7px;padding:8px 22px;cursor:pointer;font-size:0.88rem;">Cancel</button>
+          <button id="cModalOk" style="background:#ff4444;border:none;color:#fff;border-radius:7px;padding:8px 22px;cursor:pointer;font-weight:700;font-size:0.88rem;">Confirm</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    document.getElementById("cModalCancel").addEventListener("click", () => modal.remove());
+    document.getElementById("cModalOk").addEventListener("click", () => { modal.remove(); onConfirm(); });
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+  }
+
+  // Shared WiFi UI refs
   const scanBtn = document.getElementById("scanBtn");
   const connectBtn = document.getElementById("connectBtn");
   const ssidInput = document.getElementById("ssidInput");
@@ -1237,57 +1624,105 @@
 
   if (scanBtn) {
     let scanActive = false;
+    let scanAttempts = 0;
+
+    const updateScanStatus = (msg, count = null) => {
+      if (scanBtn) { scanBtn.disabled = true; scanBtn.textContent = msg; }
+      if (count !== null && scanCount) scanCount.textContent = `(${count})`;
+    };
+
+    const renderScanResults = (nets) => {
+      if (!netList) return;
+      if (nets.length === 0) {
+        netList.innerHTML = `<p class='text-dim' style='padding:10px 0;text-align:center;'>No networks found nearby.</p>`;
+        return;
+      }
+      netList.innerHTML = nets.sort((a, b) => b.rssi - a.rssi).map(n => {
+        const strength = n.rssi > -55 ? 4 : n.rssi > -67 ? 3 : n.rssi > -75 ? 2 : 1;
+        const bars = Array.from({length:4},(_,i)=>`<span style="width:3px;height:${5+i*4}px;background:${i<strength?'var(--accent,#00ff00)':'rgba(255,255,255,0.12)'};border-radius:1px;display:inline-block;vertical-align:bottom;margin:0 1px;"></span>`).join('');
+        return `
+          <div class="net-item" data-ssid="${esc(n.ssid)}" style="display:flex;align-items:center;gap:8px;">
+            <div style="display:flex;align-items:flex-end;gap:1px;">${bars}</div>
+            <span class="net-name" style="flex:1;">${esc(n.ssid)}</span>
+            <span class="net-rssi" style="font-size:0.78rem;color:#667;">${n.rssi} dBm ${n.secure ? '🔒' : ''}</span>
+          </div>`;
+      }).join("");
+      netList.querySelectorAll(".net-item").forEach(item => {
+        item.addEventListener("click", () => {
+          if (ssidInput) ssidInput.value = item.dataset.ssid;
+          if (passInput) passInput.focus();
+          if (scanCard) scanCard.style.display = "none";
+        });
+      });
+    };
+
     const pollScan = async () => {
       try {
+        updateScanStatus("Reading results...");
         const res = await apiGet("/api/scan");
-        if (res.scanning) {
-          if (scanCount) scanCount.textContent = "(scanning...)";
-          setTimeout(pollScan, 800);
+        if (res && res.scanning) {
+          scanAttempts++;
+          if (scanAttempts > 20) {
+            showToast("Scan timed out — try again", true);
+            if (scanCard) scanCard.style.display = "block";
+            if (netList) netList.innerHTML = `<p class='text-dim' style='padding:12px;text-align:center;'>Scan timed out. Please try again.</p>`;
+            scanBtn.disabled = false;
+            scanBtn.textContent = "Scan Again";
+            scanActive = false;
+            return;
+          }
+          updateScanStatus(`Scanning... (${scanAttempts})`);
+          if (netList) {
+            netList.innerHTML = `
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:0.82rem;">
+                <div style="width:28px;height:28px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+                <div style="color:var(--accent);font-weight:600;">Searching 2.4 GHz spectrum... (${scanAttempts})</div>
+                <div style="font-size:0.75rem;color:#889;">Scanning all 14 wireless channels for AP beacons</div>
+              </div>`;
+          }
+          setTimeout(pollScan, 900);
           return;
         }
         const nets = Array.isArray(res) ? res : [];
         if (scanCount) scanCount.textContent = `(${nets.length})`;
-        if (nets.length === 0) {
-          if (netList) netList.innerHTML = "<p class='text-dim' style='padding:8px'>No networks found.</p>";
-        } else {
-          netList.innerHTML = nets.sort((a, b) => b.rssi - a.rssi).map(n => `
-            <div class="net-item" data-ssid="${esc(n.ssid)}">
-              <span class="net-name">${esc(n.ssid)}</span>
-              <span class="net-rssi">${n.rssi} dBm ${n.secure ? '🔒' : ''}</span>
-            </div>`).join("");
-          netList.querySelectorAll(".net-item").forEach(item => {
-            item.addEventListener("click", () => {
-              if (ssidInput) ssidInput.value = item.dataset.ssid;
-              if (passInput) passInput.focus();
-              if (scanCard) scanCard.style.display = "none";
-            });
-          });
-        }
+        renderScanResults(nets);
         if (scanCard) scanCard.style.display = "block";
+        scanBtn.disabled = false;
+        scanBtn.textContent = "Scan Again";
+        scanActive = false;
       } catch (e) {
         showToast("Wi-Fi scan failed: " + e.message, true);
         if (scanCard) scanCard.style.display = "block";
-      } finally {
+        if (netList) netList.innerHTML = `<p class='text-dim' style='padding:12px;text-align:center;'>Scan error: ${esc(e.message)}</p>`;
         scanBtn.disabled = false;
         scanBtn.textContent = "Scan";
+        scanActive = false;
       }
     };
 
     scanBtn.addEventListener("click", async () => {
       if (scanActive) return;
       scanActive = true;
-      scanBtn.disabled = true;
-      scanBtn.textContent = "Scanning...";
-      if (scanCard) scanCard.style.display = "none";
-      if (netList) netList.innerHTML = "";
+      scanAttempts = 0;
+      if (scanCard) scanCard.style.display = "block";
+      if (netList) {
+        netList.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:24px 10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;font-size:0.82rem;">
+            <div style="width:28px;height:28px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+            <div style="color:var(--accent);font-weight:600;">Initializing Wi-Fi Scan...</div>
+            <div style="font-size:0.75rem;color:#889;">Requesting radio channel sweep from ESP32</div>
+          </div>`;
+      }
+      updateScanStatus("Starting scan...", "...");
       try {
-        await apiGet("/api/scan");   // kick off the async scan
-        setTimeout(pollScan, 800);   // then poll until done
+        await apiGet("/api/scan"); // kick off async scan
+        updateScanStatus("Scanning... (1)");
+        setTimeout(pollScan, 1100);
       } catch (e) {
         showToast("Wi-Fi scan failed: " + e.message, true);
+        if (netList) netList.innerHTML = `<p class='text-dim' style='padding:12px;text-align:center;'>Scan error: ${esc(e.message)}</p>`;
         scanBtn.disabled = false;
         scanBtn.textContent = "Scan";
-      } finally {
         scanActive = false;
       }
     });
@@ -1302,7 +1737,7 @@
       connectBtn.textContent = "Connecting...";
       try {
         await apiPost("/api/wifi/connect", { ssid, password: pass });
-        alert(`Success! Connecting to network '${ssid}'...\n\nESP32 is now switching to Station mode and closing setup AP.\n\nPlease reconnect your device to '${ssid}' and open:\nhttp://flyradar32.local`);
+        showWifiSuccessModal(ssid);
         showToast(`Wi-Fi saved! Connect to '${ssid}' and visit http://flyradar32.local`);
       } catch (e) {
         showToast("Connect failed: " + e.message, true);
@@ -1468,6 +1903,48 @@
   // -------------------------------------------------------------
   // Initialization & Continuous Realtime Loops
   // -------------------------------------------------------------
+  function initRunwayButtons() {
+    const pills = document.getElementById("runwayPills");
+    if (!pills) return;
+    pills.querySelectorAll(".rwy-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        pills.querySelectorAll(".rwy-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        window.selectedRunwayHdg = parseInt(btn.dataset.hdg, 10) || 90;
+        if (lastWeatherStatus) updateWeatherUI(lastWeatherStatus);
+      });
+    });
+  }
+
+  initRunwayButtons();
+
+  // Immediate Captive Portal Detection & Setup Auto-Navigation
+  const isCaptiveHost = 
+    window.location.hostname === "192.168.4.1" ||
+    window.location.hostname.includes("connecttest") ||
+    window.location.hostname.includes("gstatic") ||
+    window.location.hostname.includes("apple.com") ||
+    window.location.search.includes("setup");
+
+  if (isCaptiveHost && !window.captivePortalRedirected) {
+    window.captivePortalRedirected = true;
+    setTimeout(() => {
+      const settingsTabBtn = document.querySelector('.nav-tab[data-tab="settings"]');
+      if (settingsTabBtn) settingsTabBtn.click();
+      setTimeout(() => {
+        const wifiCard = document.getElementById("wifiSetupCard");
+        if (wifiCard) {
+          wifiCard.scrollIntoView({ behavior: "smooth", block: "start" });
+          wifiCard.style.transition = "box-shadow 0.4s ease";
+          wifiCard.style.boxShadow = "0 0 0 2px var(--accent), 0 0 32px var(--accent-glow)";
+          setTimeout(() => { wifiCard.style.boxShadow = ""; }, 3500);
+          const sb = document.getElementById("scanBtn");
+          if (sb && !sb.disabled) setTimeout(() => sb.click(), 400);
+        }
+      }, 250);
+    }, 200);
+  }
+
   loadSettings();
   fetchAircraft();
   fetchStatus();

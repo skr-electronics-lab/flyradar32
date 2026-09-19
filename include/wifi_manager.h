@@ -38,4 +38,5 @@ namespace WifiManager {
     bool  timeSynced();
     String getClockTime();       // HH:MM
     String getClockDateTime();   // YYYY-MM-DD HH:MM
+    void   applyTimezone(const String& tz);
 }

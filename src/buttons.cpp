@@ -47,10 +47,15 @@ ButtonEvent Buttons::poll(ButtonId& outWhich) {
         return BTN_EVENT_NONE;
     }
     if (dualArmed) {
-        // combo released: swallow the release events
-        dualArmed = false;
-        btns[BTN_ID_UP].pressed = btns[BTN_ID_DOWN].pressed = false;
-        btns[BTN_ID_UP].longHandled = btns[BTN_ID_DOWN].longHandled = true;
+        // Wait until BOTH buttons are physically released before disarming,
+        // preventing the trailing button from triggering a phantom short-press.
+        if (!down[BTN_ID_UP] && !down[BTN_ID_DOWN]) {
+            dualArmed = false;
+            btns[BTN_ID_UP].pressed = btns[BTN_ID_DOWN].pressed = false;
+            btns[BTN_ID_UP].longHandled = btns[BTN_ID_DOWN].longHandled = true;
+        } else {
+            btns[BTN_ID_UP].longHandled = btns[BTN_ID_DOWN].longHandled = true;
+        }
         return BTN_EVENT_NONE;
     }
 

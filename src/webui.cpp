@@ -19,13 +19,20 @@ typedef std::function<void(AsyncWebServerRequest*, JsonDocument&)> JsonHandler;
 static ArBodyHandlerFunction jsonBody() {
     return [](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
         if (total > JSON_BODY_MAX) {
-            // Too large â€” mark as rejected so handleJsonRequest() refuses it.
-            if (index == 0 && !request->_tempObject) request->_tempObject = nullptr;
+            if (index == 0 && request->_tempObject) {
+                delete (String*)request->_tempObject;
+                request->_tempObject = nullptr;
+            }
             return;
         }
-        if (index == 0) request->_tempObject = new String();
+        if (index == 0) {
+            if (request->_tempObject) delete (String*)request->_tempObject;
+            request->_tempObject = new String();
+        }
         String* body = (String*)request->_tempObject;
-        if (body) body->concat((const char*)data, len);
+        if (body && len > 0) {
+            body->concat((const char*)data, len);
+        }
     };
 }
 
@@ -98,14 +105,14 @@ static void registerStatusRoutes() {
     // ponytail: scan state lives in WifiManager via WiFi.scanComplete();
     // no extra server-side session state.
     server.on("/api/scan", HTTP_GET, [](AsyncWebServerRequest* request) {
-        static ScannedNetwork nets[20];
+        ScannedNetwork nets[20];
         int n = WifiManager::pollScan(nets, 20);
         if (n == WifiManager::SCAN_RUNNING || n == WifiManager::SCAN_STARTED) {
             request->send(200, "application/json", "{\"scanning\":true}");
             return;
         }
         if (n == WifiManager::SCAN_FAILED) {
-            // (re)start for the next poll — failure also covers "never started"
+            // Start scan on failure / initial poll
             WifiManager::startScanAsync();
             request->send(200, "application/json", "{\"scanning\":true}");
             return;
@@ -121,28 +128,22 @@ static void registerStatusRoutes() {
         String out;
         serializeJson(doc, out);
         request->send(200, "application/json", out);
-        // auto-arm the next scan so a fresh Scan click starts immediately
-        WifiManager::startScanAsync();
     });
 
     server.on("/api/aircraft", HTTP_GET, [](AsyncWebServerRequest* request) {
-        static AircraftPoint planes[MAX_PLANES];
+        static AircraftPoint planesBuffer[MAX_PLANES];
         int count = 0;
-        ApiProviders::getLatest(planes, count);
+        ApiProviders::getLatest(planesBuffer, count);
         ApiProviders::Status pst = ApiProviders::getStatus();
 
-        // Snapshot settings under the lock — lat/lon are 64-bit and a torn
-        // read would emit garbage coordinates.
-        Storage::lock();
-        AppSettings& s = Storage::settings();
+        AppSettings s = Storage::getSnapshot();
         int zoomLevel = s.zoomLevel;
         double lat = s.lat, lon = s.lon;
-        Storage::unlock();
 
         float curRangeKm = ApiProviders::ZOOM_KM[zoomLevel >= 0 && zoomLevel < 3 ? zoomLevel : 1];
 
         String out;
-        out.reserve(4096);
+        out.reserve(6144);
         out += "{\"count\":"; out += count;
         out += ",\"provider\":\""; out += (pst.lastProviderUsed.isEmpty() ? "" : pst.lastProviderUsed); out += "\"";
         out += ",\"lastFetchOk\":"; out += (pst.lastFetchOk ? "true" : "false");
@@ -155,23 +156,23 @@ static void registerStatusRoutes() {
 
         bool first = true;
         for (int i = 0; i < count && i < MAX_PLANES; i++) {
-            if (!planes[i].valid) continue;
+            if (!planesBuffer[i].valid) continue;
             if (!first) out += ",";
             first = false;
-            out += "{\"hex\":\""; out += planes[i].icaoHex; out += "\"";
-            const char* fl = planes[i].flight[0] ? planes[i].flight : planes[i].icaoHex;
+            out += "{\"hex\":\""; out += planesBuffer[i].icaoHex; out += "\"";
+            const char* fl = planesBuffer[i].flight[0] ? planesBuffer[i].flight : planesBuffer[i].icaoHex;
             out += ",\"flight\":\""; out += fl; out += "\"";
-            out += ",\"type\":\""; out += planes[i].aircraftType; out += "\"";
-            out += ",\"desc\":\""; out += planes[i].desc; out += "\"";
-            out += ",\"reg\":\""; out += planes[i].registration; out += "\"";
-            out += ",\"op\":\""; out += planes[i].operatorName; out += "\"";
-            out += ",\"alt\":"; out += planes[i].altitudeFt;
-            out += ",\"spd\":"; out += (int)planes[i].speedKt;
-            out += ",\"track\":"; out += (int)planes[i].trackDeg;
-            out += ",\"dst\":"; out += (int)planes[i].distanceKm;
-            out += ",\"brg\":"; out += (int)planes[i].bearingDeg;
-            out += ",\"sqk\":\""; out += planes[i].squawk; out += "\"";
-            out += ",\"gnd\":"; out += (planes[i].onGround ? "true" : "false");
+            out += ",\"type\":\""; out += planesBuffer[i].aircraftType; out += "\"";
+            out += ",\"desc\":\""; out += planesBuffer[i].desc; out += "\"";
+            out += ",\"reg\":\""; out += planesBuffer[i].registration; out += "\"";
+            out += ",\"op\":\""; out += planesBuffer[i].operatorName; out += "\"";
+            out += ",\"alt\":"; out += planesBuffer[i].altitudeFt;
+            out += ",\"spd\":"; out += (int)planesBuffer[i].speedKt;
+            out += ",\"track\":"; out += (int)planesBuffer[i].trackDeg;
+            out += ",\"dst\":"; out += (int)planesBuffer[i].distanceKm;
+            out += ",\"brg\":"; out += (int)planesBuffer[i].bearingDeg;
+            out += ",\"sqk\":\""; out += planesBuffer[i].squawk; out += "\"";
+            out += ",\"gnd\":"; out += (planesBuffer[i].onGround ? "true" : "false");
             out += "}";
         }
         out += "]}";
@@ -248,7 +249,6 @@ static void registerSettingsRoutes() {
         doc["labelsMode"] = s.labelsMode;
         doc["aircraftIcon"] = s.aircraftIcon;
         doc["showSweepAnim"] = s.showSweepAnim;
-        doc["brightness"] = s.brightness;
         doc["theme"] = s.theme;
         doc["showCompass"] = s.showCompass;
         doc["showRangeLabels"] = s.showRangeLabels;
@@ -265,12 +265,24 @@ static void registerSettingsRoutes() {
         doc["primaryProvider"] = primIdx;
         doc["refreshInterval"] = s.refreshInterval;
         doc["openSkyClientId"] = s.openSkyClientId;
+        doc["timezone"] = s.timezone.isEmpty() ? DEFAULT_TZ : s.timezone;
         Storage::unlock();
 
         String out;
         serializeJson(doc, out);
         request->send(200, "application/json", out);
     });
+
+    server.on("/api/settings/timezone", HTTP_POST, [](AsyncWebServerRequest* request) {
+        handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
+            String tz = doc["timezone"] | "";
+            if (!tz.isEmpty()) {
+                Storage::saveTimezone(tz);
+                WifiManager::applyTimezone(tz);
+            }
+            sendOk(request);
+        });
+    }, nullptr, jsonBody());
 
     server.on("/api/settings/opensky", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
@@ -353,7 +365,6 @@ static void registerSettingsRoutes() {
             uint8_t lm = doc.containsKey("labelsMode") ? doc["labelsMode"].as<uint8_t>() : s.labelsMode;
             uint8_t ai = doc.containsKey("aircraftIcon") ? doc["aircraftIcon"].as<uint8_t>() : s.aircraftIcon;
             bool sw = doc.containsKey("showSweepAnim") ? doc["showSweepAnim"].as<bool>() : s.showSweepAnim;
-            uint8_t br = doc.containsKey("brightness") ? doc["brightness"].as<uint8_t>() : s.brightness;
             uint8_t th = doc.containsKey("theme") ? doc["theme"].as<uint8_t>() : s.theme;
             bool cmp = doc.containsKey("showCompass") ? doc["showCompass"].as<bool>() : s.showCompass;
             bool rlbl = doc.containsKey("showRangeLabels") ? doc["showRangeLabels"].as<bool>() : s.showRangeLabels;
@@ -362,9 +373,8 @@ static void registerSettingsRoutes() {
             // A manual zoom pick overrides auto-range
             if (doc.containsKey("zoomLevel") && ar) ar = false;
             Storage::unlock();
-            Storage::saveDisplay(zl, lm, ai, sw, br, th, cmp, rlbl, trl);
+            Storage::saveDisplay(zl, lm, ai, sw, th, cmp, rlbl, trl);
             if (ar != s.autoRange) Storage::saveAutoRange(ar);
-            RadarDisplay::applyBrightness();
             sendOk(request);
         });
     }, nullptr, jsonBody());
@@ -435,7 +445,9 @@ void WebUI::begin() {
     server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncWebServerResponse *response = request->beginResponse(200, "text/css", STYLE_CSS_GZ, STYLE_CSS_GZ_LEN);
         response->addHeader("Content-Encoding", "gzip");
-        response->addHeader("Cache-Control", "no-cache, must-revalidate");
+        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Pragma", "no-cache");
+        response->addHeader("Expires", "0");
         response->addHeader("Connection", "close");
         request->send(response);
     });
@@ -443,7 +455,9 @@ void WebUI::begin() {
     server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request) {
         AsyncWebServerResponse *response = request->beginResponse(200, "application/javascript", APP_JS_GZ, APP_JS_GZ_LEN);
         response->addHeader("Content-Encoding", "gzip");
-        response->addHeader("Cache-Control", "no-cache, must-revalidate");
+        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Pragma", "no-cache");
+        response->addHeader("Expires", "0");
         response->addHeader("Connection", "close");
         request->send(response);
     });

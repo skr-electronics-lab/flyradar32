@@ -8,7 +8,7 @@
 
 /*Memory manager settings*/
 #define LV_MEM_CUSTOM 0
-#define LV_MEM_SIZE (16U * 1024U)          /*[bytes] Reduced from 48K to 16K to free up heap for mbedTLS (WiFiClientSecure)*/
+#define LV_MEM_SIZE (16U * 1024U)          /*[bytes] 16KB pool for LVGL objects, animations, and scrolling text*/
 #define LV_MEM_ADR 0                       /*0: allocate automatically*/
 #define LV_MEM_AUTO_DEFRAG  1
 
@@ -18,6 +18,7 @@
 #define LV_TICK_CUSTOM_SYS_TIME_EXPR (millis())
 
 /*Fonts*/
+#define LV_FONT_MONTSERRAT_10 1
 #define LV_FONT_MONTSERRAT_12 1
 #define LV_FONT_MONTSERRAT_14 1
 #define LV_FONT_MONTSERRAT_16 1

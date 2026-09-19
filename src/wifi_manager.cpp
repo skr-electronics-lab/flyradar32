@@ -1,4 +1,4 @@
-﻿#include "wifi_manager.h"
+#include "wifi_manager.h"
 #include "config.h"
 #include "storage.h"
 #include <WiFi.h>
@@ -6,6 +6,10 @@
 #include <ESPmDNS.h>
 #include <esp_mac.h>
 #include <time.h>
+
+static SemaphoreHandle_t wifiMutex = nullptr;
+static inline void lockWifi() { if (wifiMutex) xSemaphoreTake(wifiMutex, portMAX_DELAY); }
+static inline void unlockWifi() { if (wifiMutex) xSemaphoreGive(wifiMutex); }
 
 static DNSServer dnsServer;
 static WifiState state = WIFI_STATE_AP_MODE;
@@ -17,6 +21,7 @@ static bool apActive = false;
 static bool mdnsStarted = false;
 
 static void startApMode() {
+    lockWifi();
     WiFi.persistent(false);
     WiFi.mode(WIFI_AP);
     uint8_t mac[6];
@@ -29,6 +34,7 @@ static void startApMode() {
     dnsServer.start(53, "*", WiFi.softAPIP());
     apActive = true;
     state = WIFI_STATE_AP_MODE;
+    unlockWifi();
 }
 
 static void startMdns() {
@@ -44,24 +50,35 @@ static void startMdns() {
 static bool ntpStarted = false;
 static void startNtp() {
     if (ntpStarted) return;
-    configTzTime(DEFAULT_TZ, "pool.ntp.org", "time.nist.gov");
+    String tz = Storage::getSnapshot().timezone;
+    if (tz.isEmpty()) tz = DEFAULT_TZ;
+    configTzTime(tz.c_str(), "pool.ntp.org", "time.nist.gov");
+    ntpStarted = true;
+}
+
+void WifiManager::applyTimezone(const String& tz) {
+    String useTz = tz.isEmpty() ? DEFAULT_TZ : tz;
+    configTzTime(useTz.c_str(), "pool.ntp.org", "time.nist.gov");
     ntpStarted = true;
 }
 
 static void stopApMode() {
+    lockWifi();
     if (apActive) {
         dnsServer.stop();
         WiFi.softAPdisconnect(true);
         apActive = false;
     }
+    unlockWifi();
 }
 
 void WifiManager::begin() {
+    if (!wifiMutex) wifiMutex = xSemaphoreCreateMutex();
     WiFi.persistent(false);
     WiFi.setAutoReconnect(true);
     WiFi.disconnect(true);
 
-    AppSettings& s = Storage::settings();
+    AppSettings s = Storage::getSnapshot();
     WiFi.setHostname(MDNS_NAME);
 
     if (s.staSsid.length() > 0) {
@@ -84,6 +101,7 @@ void WifiManager::begin() {
 }
 
 void WifiManager::startConnect(const String& ssid, const String& password) {
+    lockWifi();
     if (apActive) {
         WiFi.mode(WIFI_AP_STA);
     } else {
@@ -92,49 +110,60 @@ void WifiManager::startConnect(const String& ssid, const String& password) {
     WiFi.begin(ssid.c_str(), password.c_str());
     connectStartedMs = millis();
     state = WIFI_STATE_CONNECTING;
+    unlockWifi();
 }
 
 void WifiManager::loop() {
     if (apActive) dnsServer.processNextRequest();
 
-    if (state == WIFI_STATE_CONNECTING) {
+    lockWifi();
+    WifiState curState = state;
+    unsigned long curConnectStart = connectStartedMs;
+    unlockWifi();
+
+    if (curState == WIFI_STATE_CONNECTING) {
         if (WiFi.status() == WL_CONNECTED) {
+            lockWifi();
             state = WIFI_STATE_CONNECTED;
             lastError = "";
+            unlockWifi();
             stopApMode();
             startMdns();
             startNtp();
-        } else if (millis() - connectStartedMs > CONNECT_TIMEOUT_MS) {
+        } else if (millis() - curConnectStart > CONNECT_TIMEOUT_MS) {
+            lockWifi();
             state = WIFI_STATE_FAILED;
             lastError = "Connection failed or timed out";
-            if (!apActive) startApMode();
+            bool needAp = !apActive;
+            unlockWifi();
+            if (needAp) startApMode();
         }
-    } else if (state == WIFI_STATE_CONNECTED) {
+    } else if (curState == WIFI_STATE_CONNECTED) {
         static unsigned long downSinceMs = 0;
         if (WiFi.status() != WL_CONNECTED) {
-            // WiFi.status() can briefly report non-CONNECTED during roaming
-            // scans â€” require ~5 s of continuous down before a real reconnect
-            // so we don't spam WiFi.reconnect() on blips.
             if (downSinceMs == 0) downSinceMs = millis();
             else if (millis() - downSinceMs > 5000UL) {
                 downSinceMs = 0;
                 Serial.println("[WiFi] Lost connection, attempting reconnect...");
+                lockWifi();
                 state = WIFI_STATE_CONNECTING;
                 connectStartedMs = millis();
+                unlockWifi();
                 WiFi.reconnect();
             }
         } else {
             downSinceMs = 0;
         }
-    } else if (state == WIFI_STATE_FAILED || state == WIFI_STATE_AP_MODE) {
+    } else if (curState == WIFI_STATE_FAILED || curState == WIFI_STATE_AP_MODE) {
         static unsigned long nextStaRetryMs = 0;
-        if (nextStaRetryMs == 0) nextStaRetryMs = millis();
-        if (millis() - nextStaRetryMs > 60000UL && WiFi.softAPgetStationNum() == 0) {
-            AppSettings& s = Storage::settings();
-            if (s.staSsid.length() > 0) {
+        AppSettings s = Storage::getSnapshot();
+        if (s.staSsid.length() > 0) {
+            // Only initialise the timer once; don't reset it on every loop call.
+            if (nextStaRetryMs == 0) nextStaRetryMs = millis();
+            if (millis() - nextStaRetryMs > 60000UL && WiFi.softAPgetStationNum() == 0) {
                 startConnect(s.staSsid, s.staPassword);
+                nextStaRetryMs = millis(); // reset only after an actual attempt
             }
-            nextStaRetryMs = millis();
         }
     }
 }
@@ -175,15 +204,34 @@ int WifiManager::pollScan(ScannedNetwork out[], int maxResults) {
     return count;
 }
 
-WifiState WifiManager::getState() { return state; }
-String WifiManager::getApSsid() { return apSsid; }
+WifiState WifiManager::getState() {
+    lockWifi();
+    WifiState s = state;
+    unlockWifi();
+    return s;
+}
+
+String WifiManager::getApSsid() {
+    lockWifi();
+    String s = apSsid;
+    unlockWifi();
+    return s;
+}
+
 String WifiManager::getApIp() { return WiFi.softAPIP().toString(); }
 String WifiManager::getStaIp() { return WiFi.localIP().toString(); }
-String WifiManager::getLastError() { return lastError; }
+
+String WifiManager::getLastError() {
+    lockWifi();
+    String s = lastError;
+    unlockWifi();
+    return s;
+}
 
 bool WifiManager::timeSynced() {
     return ntpStarted && time(nullptr) > 1700000000; // post-2023 epoch = real time
 }
+
 String WifiManager::getClockTime() {
     if (!timeSynced()) return "";
     time_t now = time(nullptr);
@@ -193,6 +241,7 @@ String WifiManager::getClockTime() {
     strftime(buf, sizeof(buf), "%H:%M", &t);
     return String(buf);
 }
+
 String WifiManager::getClockDateTime() {
     if (!timeSynced()) return "";
     time_t now = time(nullptr);

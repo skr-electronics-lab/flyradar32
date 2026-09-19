@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>FlyRadar32 &mdash; SKR Electronics Lab</title>
-<link rel="stylesheet" href="style.css?v=1.0.0">
+<link rel="stylesheet" href="style.css?v=1.2.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,400;0,600;0,700;1,500&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -104,10 +104,16 @@
       <span>Flight Board</span>
       <span class="badge" id="trafficBadge">0</span>
     </button>
-    <button class="nav-tab" data-tab="settings">
+    <button class="nav-tab" data-tab="weather">
       <svg class="tab-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+      </svg>
+      <span>Station Weather</span>
+    </button>
+    <button class="nav-tab" data-tab="settings">
+      <svg class="tab-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
         <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
       </svg>
       <span>Station Settings</span>
     </button>
@@ -134,7 +140,7 @@
               <button class="range-btn" data-range="150">150 KM</button>
             </div>
             <button class="hud-toggle-btn active" id="trailToggleBtn" title="Toggle Breadcrumb Trails">Trail</button>
-            <button class="hud-toggle-btn active" id="vectorToggleBtn" title="Toggle Heading Vectors">Vectors</button>
+            <button class="hud-toggle-btn" id="vectorToggleBtn" title="Toggle Heading Vectors">Vectors</button>
             <button class="hud-toggle-btn" id="mapToggleBtn" title="Toggle Real Map Overlay (OpenStreetMap)">🗺 Map</button>
           </div>
         </div>
@@ -150,6 +156,7 @@
             <div class="legend-item"><span class="legend-dot dot-high"></span> &gt; 28k ft (Cruise)</div>
             <div class="legend-item"><span class="legend-dot dot-mid"></span> 10k - 28k ft (Transit)</div>
             <div class="legend-item"><span class="legend-dot dot-low"></span> &lt; 10k ft (Approach)</div>
+            <div class="legend-item"><span class="legend-dot dot-gnd"></span> Surface / GND</div>
           </div>
           <div class="scope-zoom-controls">
             <button class="scope-zoom-btn" id="scopeZoomInBtn" title="Zoom In (+)">+</button>
@@ -299,6 +306,217 @@
     </div>
   </section>
 
+  <!-- ================= TAB: STATION WEATHER ================= -->
+  <section class="cockpit-panel" id="panel-weather">
+    <!-- Weather Station Header Banner -->
+    <div class="card glass-card wx-banner-card">
+      <div class="wx-banner-left">
+        <div class="card-title-row">
+          <svg class="section-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+          </svg>
+          <h3>Aerodrome Weather Station (METAR / Open-Meteo)</h3>
+          <span class="wx-status-pill" id="wxStatusBadge">LIVE METAR</span>
+        </div>
+        <p class="card-desc" id="wxStationDesc">Surface meteorological observations synchronized for FlyRadar32 aerodrome reference.</p>
+      </div>
+      <div class="wx-raw-metar-box">
+        <span class="metar-tag">STATION METAR:</span>
+        <code id="wxRawMetar" class="font-mono">METAR FLYR32 AUTO --KT Q----=</code>
+      </div>
+    </div>
+
+    <!-- 3-Column Cockpit Avionics Grid -->
+    <div class="weather-cockpit-grid">
+      <!-- 1. Surface Observations & Flight Rules -->
+      <div class="card glass-card wx-surface-card">
+        <div class="card-title-row">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/>
+          </svg>
+          <h3>Surface Meteorology & Flight Rules</h3>
+        </div>
+
+        <div class="wx-hero-content">
+          <div class="wx-hero-icon-wrap" id="wxDynamicIcon">
+            <!-- Dynamic SVG weather icon injected by JS -->
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </div>
+          <div class="wx-hero-temp">
+            <span class="wx-temp-number" id="wxTempLarge">--</span>
+            <span class="wx-temp-unit">&deg;C</span>
+          </div>
+        </div>
+
+        <div class="wx-flight-rule-strip">
+          <div class="wx-condition-badge" id="wxFlightCat">VFR</div>
+          <div class="wx-condition-details">
+            <div class="wx-condition-text" id="wxConditionLarge">ACQUIRING METAR...</div>
+            <div class="wx-flight-cat-desc" id="wxFlightCatDesc">Visual Flight Rules &bull; Ceiling &gt; 3,000 FT, Vis &gt; 5 SM</div>
+          </div>
+        </div>
+
+        <div class="wx-surface-substats">
+          <div class="wx-substat-item">
+            <span class="substat-label">Sensible Temp</span>
+            <span class="substat-val font-mono" id="wxFeelsText">--&deg;C</span>
+          </div>
+          <div class="wx-substat-item">
+            <span class="substat-label">Estimated Base</span>
+            <span class="substat-val font-mono" id="wxCloudCeiling">-- FT AGL</span>
+          </div>
+          <div class="wx-substat-item">
+            <span class="substat-label">Dewpoint Spread</span>
+            <span class="substat-val font-mono" id="wxDewSpread">--&deg;C</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Wind Vector & Runway Crosswind Computer -->
+      <div class="card glass-card wx-wind-card">
+        <div class="card-title-row">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="12 2 15 9 12 7 9 9 12 2" fill="currentColor"/>
+          </svg>
+          <h3>Wind Vector & Crosswind Computer</h3>
+        </div>
+
+        <div class="wx-wind-body">
+          <div class="wx-compass-container">
+            <div class="wx-compass-dial">
+              <span class="compass-marker marker-n">N</span>
+              <span class="compass-marker marker-ne">NE</span>
+              <span class="compass-marker marker-e">E</span>
+              <span class="compass-marker marker-se">SE</span>
+              <span class="compass-marker marker-s">S</span>
+              <span class="compass-marker marker-sw">SW</span>
+              <span class="compass-marker marker-w">W</span>
+              <span class="compass-marker marker-nw">NW</span>
+              <!-- Runway Centerline Overlay -->
+              <div class="wx-runway-line" id="wxRunwayLine"></div>
+              <!-- Rotating Wind Arrow -->
+              <div class="wx-wind-arrow" id="wxWindArrow">
+                <div class="arrow-head"></div>
+                <div class="arrow-shaft"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="wx-wind-stats">
+            <div class="wx-stat-row">
+              <span class="stat-k">Wind Velocity</span>
+              <span class="stat-v" id="wxWindSpeedText">-- kt</span>
+            </div>
+            <div class="wx-stat-row">
+              <span class="stat-k">Wind Gusts</span>
+              <span class="stat-v" id="wxWindGustText">-- kt</span>
+            </div>
+            <div class="wx-stat-row">
+              <span class="stat-k">Heading</span>
+              <span class="stat-v font-mono" id="wxWindDirText">--&deg;</span>
+            </div>
+            <div class="wx-stat-row">
+              <span class="stat-k">Cardinal</span>
+              <span class="stat-v" id="wxWindCardText">CALM</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Runway Crosswind Resolver -->
+        <div class="wx-runway-computer">
+          <div class="runway-selector-bar">
+            <span class="runway-title">ACTIVE RUNWAY:</span>
+            <div class="runway-pills" id="runwayPills">
+              <button type="button" class="rwy-btn active" data-hdg="90">09 / 27</button>
+              <button type="button" class="rwy-btn" data-hdg="180">18 / 36</button>
+              <button type="button" class="rwy-btn" data-hdg="40">04 / 22</button>
+              <button type="button" class="rwy-btn" data-hdg="130">13 / 31</button>
+            </div>
+          </div>
+          <div class="crosswind-display">
+            <div class="xw-tile">
+              <span class="xw-lbl">Crosswind</span>
+              <span class="xw-val font-mono" id="wxCrosswindVal">0 KT</span>
+            </div>
+            <div class="xw-tile">
+              <span class="xw-lbl">Head / Tail</span>
+              <span class="xw-val font-mono" id="wxHeadwindVal">0 KT HEAD</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Atmospheric Telemetry & Moisture Profile -->
+      <div class="card glass-card wx-metrics-card">
+        <div class="card-title-row">
+          <svg class="section-svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+          <h3>Atmospheric Telemetry & Moisture</h3>
+        </div>
+
+        <div class="wx-metrics-grid">
+          <!-- Altimeter QNH -->
+          <div class="wx-metric-tile">
+            <div class="wx-tile-header">
+              <div class="wx-tile-label">Altimeter (QNH)</div>
+              <svg class="wx-tile-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="m14 10-4 4"/>
+                <path d="M12 6v2"/>
+                <path d="M6 12h2"/>
+                <path d="M16 12h2"/>
+              </svg>
+            </div>
+            <div class="wx-tile-value" id="wxPressureVal">-- hPa</div>
+            <div class="wx-tile-sub font-mono" id="wxPressureInHg">-- inHg &bull; STD ISA</div>
+          </div>
+
+          <!-- Relative Humidity -->
+          <div class="wx-metric-tile">
+            <div class="wx-tile-header">
+              <div class="wx-tile-label">Relative Humidity</div>
+              <svg class="wx-tile-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#29B6F6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
+            </div>
+            <div class="wx-tile-value" id="wxHumidityVal">--%</div>
+            <div class="wx-tile-sub font-mono" id="wxDewPoint">Dewpoint: --&deg;C</div>
+          </div>
+
+          <!-- Cloud Coverage -->
+          <div class="wx-metric-tile">
+            <div class="wx-tile-header">
+              <div class="wx-tile-label">Cloud Coverage</div>
+              <svg class="wx-tile-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B0BEC5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+              </svg>
+            </div>
+            <div class="wx-tile-value" id="wxCloudVal">--%</div>
+            <div class="wx-tile-sub" id="wxCloudCoverage">Clear Sky</div>
+          </div>
+
+          <!-- Precipitation -->
+          <div class="wx-metric-tile">
+            <div class="wx-tile-header">
+              <div class="wx-tile-label">Precipitation</div>
+              <svg class="wx-tile-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#42A5F5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                <path d="M16 14v6M8 14v6M12 16v6"/>
+              </svg>
+            </div>
+            <div class="wx-tile-value" id="wxPrecipVal">0.0 mm</div>
+            <div class="wx-tile-sub" id="wxPrecipRate">Hourly Accumulation</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ================= TAB 3: UNIFIED STATION CONFIGURATION ================= -->
   <section class="cockpit-panel" id="panel-settings">
     <!-- Top Configuration Header with Auto-Save Badge -->
@@ -364,6 +582,27 @@
           </div>
         </div>
 
+        <div class="form-group">
+          <label for="tzSelect">Station Timezone</label>
+          <select id="tzSelect">
+            <option value="IST-5:30">India Standard Time (IST, UTC+5:30)</option>
+            <option value="UTC0">UTC / Zulu (UTC+0)</option>
+            <option value="EST5EDT,M3.2.0,M11.1.0">US Eastern (EST/EDT)</option>
+            <option value="CST6CDT,M3.2.0,M11.1.0">US Central (CST/CDT)</option>
+            <option value="MST7MDT,M3.2.0,M11.1.0">US Mountain (MST/MDT)</option>
+            <option value="PST8PDT,M3.2.0,M11.1.0">US Pacific (PST/PDT)</option>
+            <option value="GMT0BST,M3.5.0/1,M10.5.0">UK / London (GMT/BST)</option>
+            <option value="CET-1CEST,M3.5.0,M10.5.0/3">Central European (CET/CEST)</option>
+            <option value="JST-9">Japan / Tokyo (JST, UTC+9)</option>
+            <option value="AEST-10AEDT,M10.1.0,M4.1.0/3">Sydney / Melbourne (AEST)</option>
+            <option value="CUSTOM">Custom POSIX TZ...</option>
+          </select>
+        </div>
+        <div class="form-group" id="customTzGroup" style="display:none;">
+          <label for="customTzInput">Custom POSIX Timezone String</label>
+          <input type="text" id="customTzInput" placeholder="e.g. IST-5:30">
+        </div>
+
         <div class="provider-status-list" id="providerStatusList">
           <div class="provider-item active" data-provider="1" title="Click to set as Primary">
             <div class="provider-status-dot cyan"></div>
@@ -422,11 +661,6 @@
               <span>Amber Retro</span>
             </div>
           </div>
-        </div>
-
-        <div class="form-group">
-          <label for="brightnessSlider">TFT Screen Backlight: <span id="brightVal" class="font-mono">100%</span></label>
-          <input type="range" id="brightnessSlider" min="15" max="255" value="255" class="slider-range">
         </div>
 
         <div class="form-grid-2">
@@ -616,6 +850,6 @@
 <!-- Floating Toast Notification -->
 <div id="toast" class="toast">Settings updated successfully</div>
 
-<script src="app.js?v=1.0.0"></script>
+<script src="app.js?v=1.2.0"></script>
 </body>
 </html>
