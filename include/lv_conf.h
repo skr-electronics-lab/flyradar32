@@ -35,6 +35,7 @@
 
 /*Widgets*/
 #define LV_USE_ARC 1
+#define LV_USE_BAR 1
 #define LV_USE_CANVAS 1
 #define LV_USE_LABEL 1
 #define LV_USE_LIST 1

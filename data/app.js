@@ -1273,6 +1273,14 @@
       if (autoRangeToggle) autoRangeToggle.checked = Boolean(s.autoRange);
       if (refreshSelect) refreshSelect.value = s.refreshInterval;
 
+      if (s.brightness !== undefined) {
+        const br = Number(s.brightness);
+        const brSlider = document.getElementById("brightnessSlider");
+        const brVal = document.getElementById("brightnessVal");
+        if (brSlider) brSlider.value = br;
+        if (brVal) brVal.textContent = `${br}%`;
+      }
+
       if (s.primaryProvider !== undefined) {
         updateProviderUI(s.primaryProvider);
       }
@@ -1369,6 +1377,17 @@
   }
 
 
+
+  // Hardware Backlight Brightness slider instant auto-save
+  const brightnessSlider = document.getElementById("brightnessSlider");
+  const brightnessVal = document.getElementById("brightnessVal");
+  if (brightnessSlider) {
+    brightnessSlider.addEventListener("input", (e) => {
+      const val = Number(e.target.value);
+      if (brightnessVal) brightnessVal.textContent = `${val}%`;
+      triggerAutoSaveDisplay({ brightness: val });
+    });
+  }
 
   // Auto Range toggle (device-side auto zoom)
   document.getElementById("autoRangeToggle")?.addEventListener("change", (e) => {

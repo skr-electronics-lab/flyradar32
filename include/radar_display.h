@@ -11,6 +11,7 @@ enum AppScreen {
     SCR_PLANE_DETAIL,
     SCR_SETTINGS_MAIN,
     SCR_SETTINGS_DISPLAY,
+    SCR_SETTINGS_BRIGHTNESS,
     SCR_SETTINGS_LABELS,
     SCR_SETTINGS_ICON,
     SCR_SETTINGS_PROVIDERS,
@@ -21,7 +22,8 @@ enum AppScreen {
 
 namespace RadarDisplay {
     void begin();
-    void assertBacklight(); // Re-assert full 100% backlight – call after all init
+    void setBrightness(uint8_t brightnessPercent);
+    void assertBacklight(); // Re-assert backlight duty – call after all init
 
     void showBootStatus(const char* line1, const char* line2 = "");
     void showWifiSetupScreen(const String& apSsid, const String& apIp);
@@ -43,6 +45,7 @@ namespace RadarDisplay {
     void sampleTrailHistory(const AircraftPoint planes[], int count);
 
     void renderScrollMenu(const char* title, const char* items[], int itemCount, int selectedIndex, int scrollOffset);
+    void renderBrightnessMenu(uint8_t brightnessPercent);
 
     void renderSystemInfo(const String& ip, const String& wifiSsid);
     void renderFactoryResetConfirm();

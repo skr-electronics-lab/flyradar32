@@ -249,6 +249,7 @@ static void registerSettingsRoutes() {
         doc["labelsMode"] = s.labelsMode;
         doc["aircraftIcon"] = s.aircraftIcon;
         doc["showSweepAnim"] = s.showSweepAnim;
+        doc["brightness"] = s.brightness;
         doc["theme"] = s.theme;
         doc["showCompass"] = s.showCompass;
         doc["showRangeLabels"] = s.showRangeLabels;
@@ -366,6 +367,7 @@ static void registerSettingsRoutes() {
             uint8_t ai = doc.containsKey("aircraftIcon") ? doc["aircraftIcon"].as<uint8_t>() : s.aircraftIcon;
             bool sw = doc.containsKey("showSweepAnim") ? doc["showSweepAnim"].as<bool>() : s.showSweepAnim;
             uint8_t th = doc.containsKey("theme") ? doc["theme"].as<uint8_t>() : s.theme;
+            uint8_t br = doc.containsKey("brightness") ? doc["brightness"].as<uint8_t>() : s.brightness;
             bool cmp = doc.containsKey("showCompass") ? doc["showCompass"].as<bool>() : s.showCompass;
             bool rlbl = doc.containsKey("showRangeLabels") ? doc["showRangeLabels"].as<bool>() : s.showRangeLabels;
             bool trl = doc.containsKey("showTrail") ? doc["showTrail"].as<bool>() : s.showTrail;
@@ -373,7 +375,8 @@ static void registerSettingsRoutes() {
             // A manual zoom pick overrides auto-range
             if (doc.containsKey("zoomLevel") && ar) ar = false;
             Storage::unlock();
-            Storage::saveDisplay(zl, lm, ai, sw, th, cmp, rlbl, trl);
+            Storage::saveDisplay(zl, lm, ai, sw, th, cmp, rlbl, trl, br);
+            RadarDisplay::setBrightness(br);
             if (ar != s.autoRange) Storage::saveAutoRange(ar);
             sendOk(request);
         });

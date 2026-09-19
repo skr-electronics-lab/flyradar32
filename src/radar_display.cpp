@@ -96,6 +96,8 @@ static lv_obj_t* wx_p1_baro_main = nullptr;
 static lv_obj_t* wx_p1_baro_sub = nullptr;
 static lv_obj_t* wx_p1_sky_main = nullptr;
 static lv_obj_t* wx_p1_sky_sub = nullptr;
+static lv_obj_t* br_bar_obj = nullptr;
+static lv_obj_t* br_val_label = nullptr;
 
 static bool wx_was_valid = false;
 static time_t wx_last_fetched_at = 0;
@@ -106,6 +108,8 @@ static void clearLVGL() {
     list_obj = nullptr;
     title_label = nullptr;
     detail_cont = nullptr;
+    br_bar_obj = nullptr;
+    br_val_label = nullptr;
     wx_cond_icon = nullptr;
     wx_cond_label = nullptr;
     wx_cat_badge = nullptr;
@@ -208,18 +212,30 @@ static uint16_t altitudeColor(int altFt, bool onGround, const ThemePalette& th) 
     return th.sweep;                           // cruise / green (matches radar beam)
 }
 
+#define TFT_LEDC_FREQ     5000
+#define TFT_LEDC_RES      8
+
+static void applyBacklightDuty(uint8_t brightnessPercent) {
+    if (brightnessPercent < 10) brightnessPercent = 10;
+    if (brightnessPercent > 100) brightnessPercent = 100;
+    uint32_t duty = (uint32_t)brightnessPercent * 255 / 100;
+    ledcWrite(TFT_BLK, duty);
+}
+
 // Backlight is Active-HIGH on standard ST7735 breakouts: GPIO HIGH = transistor ON = LED 100% brightness.
 static void initBacklight() {
-    pinMode(TFT_BLK, OUTPUT);
+    ledcAttach(TFT_BLK, TFT_LEDC_FREQ, TFT_LEDC_RES);
     gpio_set_drive_capability((gpio_num_t)TFT_BLK, GPIO_DRIVE_CAP_3); // Max drive strength (up to ~40mA)
-    digitalWrite(TFT_BLK, HIGH); // HIGH = full brightness
+    applyBacklightDuty(Storage::settings().brightness);
+}
+
+void RadarDisplay::setBrightness(uint8_t brightnessPercent) {
+    applyBacklightDuty(brightnessPercent);
 }
 
 // Public re-assert — call from setup() after all other init is done.
 void RadarDisplay::assertBacklight() {
-    pinMode(TFT_BLK, OUTPUT);
-    gpio_set_drive_capability((gpio_num_t)TFT_BLK, GPIO_DRIVE_CAP_3);
-    digitalWrite(TFT_BLK, HIGH);
+    applyBacklightDuty(Storage::settings().brightness);
 }
 
 // ---------------------------------------------------------------------
@@ -542,6 +558,52 @@ void RadarDisplay::renderFactoryResetConfirm() {
         lv_obj_align(cancel, LV_ALIGN_BOTTOM_MID, 0, -2);
 
         current_menu_title = "RESET";
+    }
+}
+
+void RadarDisplay::renderBrightnessMenu(uint8_t brightnessPercent) {
+    if (is_radar_active) { is_radar_active = false; }
+    static uint8_t lastRenderedVal = 255;
+
+    if (current_menu_title != "BRIGHTNESS" || br_bar_obj == nullptr) {
+        lv_obj_t * card = buildCard("BACKLIGHT", getLVThemeColor());
+
+        br_bar_obj = lv_bar_create(card);
+        lv_obj_set_size(br_bar_obj, CARD_W - 28, 14);
+        lv_obj_align(br_bar_obj, LV_ALIGN_TOP_MID, 0, 36);
+        lv_bar_set_range(br_bar_obj, 10, 100);
+        lv_obj_set_style_bg_color(br_bar_obj, lv_color_hex(UI_ROW_BG), 0);
+        lv_obj_set_style_bg_color(br_bar_obj, getLVThemeColor(), LV_PART_INDICATOR);
+        lv_obj_set_style_radius(br_bar_obj, 3, 0);
+        lv_obj_set_style_radius(br_bar_obj, 3, LV_PART_INDICATOR);
+
+        br_val_label = lv_label_create(card);
+        lv_obj_set_style_text_font(br_val_label, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_color(br_val_label, lv_color_hex(UI_TEXT_MAIN), 0);
+        lv_obj_align(br_val_label, LV_ALIGN_TOP_MID, 0, 56);
+
+        lv_obj_t * sel_hint = lv_label_create(card);
+        lv_label_set_text(sel_hint, "UP/DOWN = adjust");
+        lv_obj_set_style_text_font(sel_hint, &lv_font_montserrat_10, 0);
+        lv_obj_set_style_text_color(sel_hint, getLVThemeColor(), 0);
+        lv_obj_align(sel_hint, LV_ALIGN_BOTTOM_MID, 0, -16);
+
+        lv_obj_t * back_hint = lv_label_create(card);
+        lv_label_set_text(back_hint, "SELECT = save & exit");
+        lv_obj_set_style_text_font(back_hint, &lv_font_montserrat_10, 0);
+        lv_obj_set_style_text_color(back_hint, lv_color_hex(UI_TEXT_DIM), 0);
+        lv_obj_align(back_hint, LV_ALIGN_BOTTOM_MID, 0, -2);
+
+        current_menu_title = "BRIGHTNESS";
+        lastRenderedVal = 255;
+    }
+
+    if (lastRenderedVal != brightnessPercent && br_bar_obj != nullptr && br_val_label != nullptr) {
+        lv_bar_set_value(br_bar_obj, brightnessPercent, LV_ANIM_OFF);
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d %%", brightnessPercent);
+        lv_label_set_text(br_val_label, buf);
+        lastRenderedVal = brightnessPercent;
     }
 }
 

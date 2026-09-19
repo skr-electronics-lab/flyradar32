@@ -50,15 +50,16 @@ static void loadAll() {
     cache.labelsMode     = prefs.getUChar("lblMode", 2);
     cache.aircraftIcon   = prefs.getUChar("acIcon", AIRCRAFT_ICON_DOT);
     cache.showSweepAnim  = prefs.getBool("swpAnim", true);
-    cache.brightness     = 255;
-    if (prefs.isKey("bright")) prefs.remove("bright");
-    if (prefs.isKey("pin")) prefs.remove("pin");
+    cache.brightness     = prefs.getUChar("bright", 100);
     cache.theme          = prefs.getUChar("theme", 0);
     cache.showCompass    = prefs.getBool("cmp", true);
     cache.showRangeLabels= prefs.getBool("rlbl", true);
     cache.showTrail      = prefs.getBool("trail", true);
     cache.autoRange      = prefs.getBool("autoRng", false);
     prefs.end();
+
+    if (cache.brightness < 10) cache.brightness = 10;
+    if (cache.brightness > 100) cache.brightness = 100;
 
     // Defensive clamping in case NVS holds stale/out-of-range values
     // from a previous firmware version.
@@ -170,11 +171,13 @@ void Storage::saveTimezone(const String& tz) {
 }
 
 void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIcon, bool showSweepAnim,
-                           uint8_t theme, bool showCompass, bool showRangeLabels, bool showTrail) {
+                           uint8_t theme, bool showCompass, bool showRangeLabels, bool showTrail, uint8_t brightness) {
     if (zoomLevel < 0 || zoomLevel > 2) zoomLevel = 1;
     if (labelsMode > 2) labelsMode = 2;
     if (aircraftIcon >= AIRCRAFT_ICON_COUNT) aircraftIcon = AIRCRAFT_ICON_DOT;
     if (theme >= THEME_COUNT) theme = 0;
+    if (brightness < 10) brightness = 10;
+    if (brightness > 100) brightness = 100;
 
     lock();
     prefs.begin(NVS_NS_DISPLAY, false);
@@ -182,7 +185,7 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     prefs.putUChar("lblMode", labelsMode);
     prefs.putUChar("acIcon", aircraftIcon);
     prefs.putBool("swpAnim", showSweepAnim);
-    if (prefs.isKey("bright")) prefs.remove("bright");
+    prefs.putUChar("bright", brightness);
     prefs.putUChar("theme", theme);
     prefs.putBool("cmp", showCompass);
     prefs.putBool("rlbl", showRangeLabels);
@@ -193,11 +196,22 @@ void Storage::saveDisplay(int zoomLevel, uint8_t labelsMode, uint8_t aircraftIco
     cache.labelsMode = labelsMode;
     cache.aircraftIcon = aircraftIcon;
     cache.showSweepAnim = showSweepAnim;
-    cache.brightness = 255;
+    cache.brightness = brightness;
     cache.theme = theme;
     cache.showCompass = showCompass;
     cache.showRangeLabels = showRangeLabels;
     cache.showTrail = showTrail;
+    unlock();
+}
+
+void Storage::saveBrightness(uint8_t brightness) {
+    if (brightness < 10) brightness = 10;
+    if (brightness > 100) brightness = 100;
+    lock();
+    prefs.begin(NVS_NS_DISPLAY, false);
+    prefs.putUChar("bright", brightness);
+    prefs.end();
+    cache.brightness = brightness;
     unlock();
 }
 
