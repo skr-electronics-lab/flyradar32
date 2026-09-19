@@ -39,28 +39,11 @@ FlyRadar32 is a standalone desktop aviation instrument powered by an ESP32 dual-
 
 FlyRadar32 segregates workloads across both symmetric Xtensa LX6 CPU cores using FreeRTOS tasks to guarantee deterministic screen refresh rates regardless of network latency:
 
-```
-                  CORE 0 (Networking & Ingestion)              CORE 1 (UI & Rendering Engine)
-             +---------------------------------------+    +------------------------------------+
-             | WiFi / TCP / TLS Network Stack        |    | LVGL / Canvas Graphic Pipeline     |
-             |                                       |    |                                    |
-ADS-B APIs --+-> API Ingestion Engine                |    | 60 Hz Polar Sweep Engine           |
-(HTTPS REST) |   - airplanes.live                    |    | Real-Time Target Vector Rendering  |
-             |   - adsb.lol                          |    | Dynamic Range Rings (5-100 NM)     |
-             |   - OpenSky Network (OAuth2)          |    +-----------------+------------------+
-             |                                       |                      ^
-             | Circuit Breaker & Health Monitor      |                      |
-             +-------------------+-------------------+                      |
-                                 |                                          |
-                                 +-----> Thread-Safe Target Ring Buffer ----+
-                                 |       (FreeRTOS Mutex Protected)         |
-                                 v                                          v
-             +---------------------------------------+    +------------------------------------+
-             | AsyncWebServer (Port 80)              |    | Physical 3-Button State Machine    |
-             | - Gzip Static LittleFS Assets         |    | - Debounce & Long-Press Detection  |
-             | - JSON Telemetry REST Endpoints       |    | - Cursor Target Selection          |
-             +---------------------------------------+    +------------------------------------+
-```
+<div align="center">
+
+![FlyRadar32 System Architecture](assets/system_architecture.svg)
+
+</div>
 
 - **Core 0 (Networking & Telemetry Pipeline):**
   Executes HTTP/TLS REST requests, handles JSON deserialization, runs the automated failover circuit breaker across ADS-B data providers, and serves the embedded web dashboard.

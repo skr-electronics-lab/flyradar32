@@ -1,0 +1,164 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" width="100%" height="100%" fill="none" role="img" aria-label="FlyRadar32 System Architecture">
+  <defs>
+    <style>
+      .bg { fill: #090d16; }
+      .core-box-0 { fill: #0f172a; stroke: #0284c7; stroke-width: 1.5; rx: 12px; }
+      .core-box-1 { fill: #0f172a; stroke: #ea580c; stroke-width: 1.5; rx: 12px; }
+      .ipc-box { fill: #111827; stroke: #8b5cf6; stroke-width: 1.5; rx: 10px; }
+      .sub-card { fill: #1e293b; stroke: #334155; stroke-width: 1; rx: 8px; }
+      .sub-card-active { fill: #1e293b; stroke: #475569; stroke-width: 1.2; rx: 8px; }
+      .card-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 12px; font-weight: 700; fill: #f8fafc; letter-spacing: 0.3px; }
+      .card-desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10.5px; font-weight: 400; fill: #94a3b8; }
+      .core-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; }
+      .core-title-0 { fill: #38bdf8; }
+      .core-title-1 { fill: #fb923c; }
+      .ipc-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 700; fill: #c084fc; letter-spacing: 0.4px; }
+      .bus-label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 9.5px; font-weight: 600; fill: #64748b; letter-spacing: 0.2px; }
+      .arrow-blue { stroke: #38bdf8; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .arrow-orange { stroke: #fb923c; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .arrow-purple { stroke: #c084fc; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .arrow-muted { stroke: #475569; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+    </style>
+    <marker id="arr-blue" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1 L 7 4 L 1 7 Z" fill="#38bdf8" />
+    </marker>
+    <marker id="arr-orange" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1 L 7 4 L 1 7 Z" fill="#fb923c" />
+    </marker>
+    <marker id="arr-purple" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 1 1 L 7 4 L 1 7 Z" fill="#c084fc" />
+    </marker>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect class="bg" width="960" height="520" rx="14" />
+  <rect x="1" y="1" width="958" height="518" rx="13" stroke="#1e293b" stroke-width="1.5" />
+
+  <!-- Header Section -->
+  <g transform="translate(32, 28)">
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800" fill="#f8fafc" letter-spacing="0.5">ESP32 FREERTOS DUAL-CORE EXECUTION ARCHITECTURE</text>
+    <text font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="500" fill="#64748b" y="20">DETERMINISTIC 60 FPS GRAPHICS ISOLATED FROM ASYNCHRONOUS NETWORK I/O</text>
+  </g>
+
+  <!-- ==================== CORE 0 CONTAINER ==================== -->
+  <g transform="translate(32, 64)">
+    <rect class="core-box-0" width="370" height="424" />
+    <rect x="12" y="12" width="10" height="10" rx="3" fill="#0284c7" />
+    <text class="core-title core-title-0" x="30" y="22">CORE 0: NETWORKING &amp; TELEMETRY</text>
+    <text class="card-desc" x="30" y="36">High-Priority Network Tasks &amp; Failover Ingestion</text>
+
+    <!-- Card 1: Multi-Provider Ingestion -->
+    <g transform="translate(16, 50)">
+      <rect class="sub-card" width="338" height="74" />
+      <text class="card-title" x="14" y="22">ADS-B Ingestion Engine</text>
+      <text class="card-desc" x="14" y="40">airplanes.live | adsb.lol | OpenSky Network</text>
+      <text class="card-desc" x="14" y="56">HTTPS REST Streams, JSON Deserializer &amp; OAuth2</text>
+    </g>
+
+    <!-- Card 2: Circuit Breaker -->
+    <g transform="translate(16, 138)">
+      <rect class="sub-card" width="338" height="70" />
+      <text class="card-title" x="14" y="22">Fault-Tolerant Circuit Breaker</text>
+      <text class="card-desc" x="14" y="40">Automatic 3-strike failure detector</text>
+      <text class="card-desc" x="14" y="56">Exponential backoff cooldown (5-cycle bypass)</text>
+    </g>
+
+    <!-- Card 3: Embedded Web Server -->
+    <g transform="translate(16, 222)">
+      <rect class="sub-card" width="338" height="84" />
+      <text class="card-title" x="14" y="22">Asynchronous Web Server (Port 80)</text>
+      <text class="card-desc" x="14" y="40">Gzip-compressed LittleFS embedded web dashboard</text>
+      <text class="card-desc" x="14" y="56">REST API: /api/status, /api/config, /api/wifi</text>
+      <text class="card-desc" x="14" y="72">Zero external CDN dependencies</text>
+    </g>
+
+    <!-- Card 4: Provisioning & WiFi Stack -->
+    <g transform="translate(16, 320)">
+      <rect class="sub-card" width="338" height="88" />
+      <text class="card-title" x="14" y="22">Network Provisioning Engine</text>
+      <text class="card-desc" x="14" y="40">Station Mode Wi-Fi with auto-reconnect</text>
+      <text class="card-desc" x="14" y="56">Captive portal AP (FlyRadar32-XXXX) fallback</text>
+      <text class="card-desc" x="14" y="72">mDNS responder (flyradar32.local)</text>
+    </g>
+  </g>
+
+  <!-- ==================== CENTER IPC BUFFER ==================== -->
+  <g transform="translate(422, 114)">
+    <!-- Ring Buffer -->
+    <rect class="ipc-box" width="116" height="154" />
+    <text class="ipc-title" x="14" y="24">THREAD-SAFE</text>
+    <text class="ipc-title" x="14" y="38">IPC BUFFER</text>
+    <line x1="14" y1="46" x2="102" y2="46" stroke="#334155" stroke-width="1" />
+    <text class="card-desc" x="14" y="64" fill="#cbd5e1" font-weight="600">Ring Buffer</text>
+    <text class="card-desc" x="14" y="80">Active targets</text>
+    <text class="card-desc" x="14" y="96">FreeRTOS</text>
+    <text class="card-desc" x="14" y="112">Mutex Lock</text>
+    <text class="card-desc" x="14" y="132" font-size="9.5" fill="#a855f7">Zero-Copy</text>
+
+    <!-- NVS Flash Storage -->
+    <g transform="translate(0, 184)">
+      <rect class="ipc-box" width="116" height="140" />
+      <text class="ipc-title" x="14" y="24">NON-VOLATILE</text>
+      <text class="ipc-title" x="14" y="38">STORAGE (NVS)</text>
+      <line x1="14" y1="46" x2="102" y2="46" stroke="#334155" stroke-width="1" />
+      <text class="card-desc" x="14" y="64">Preferences API</text>
+      <text class="card-desc" x="14" y="80">Home Lat/Lon</text>
+      <text class="card-desc" x="14" y="96">Wi-Fi Secrets</text>
+      <text class="card-desc" x="14" y="112">Radar Range</text>
+      <text class="card-desc" x="14" y="128">Display Theme</text>
+    </g>
+  </g>
+
+  <!-- ==================== CORE 1 CONTAINER ==================== -->
+  <g transform="translate(558, 64)">
+    <rect class="core-box-1" width="370" height="424" />
+    <rect x="12" y="12" width="10" height="10" rx="3" fill="#ea580c" />
+    <text class="core-title core-title-1" x="30" y="22">CORE 1: GRAPHICS &amp; HARDWARE I/O</text>
+    <text class="card-desc" x="30" y="36">Dedicated 60 FPS Sweep &amp; User Interface Engine</text>
+
+    <!-- Card 1: Coordinate Math -->
+    <g transform="translate(16, 50)">
+      <rect class="sub-card" width="338" height="74" />
+      <text class="card-title" x="14" y="22">Coordinate Projection Math</text>
+      <text class="card-desc" x="14" y="40">WGS-84 Geodetic to localized polar conversion</text>
+      <text class="card-desc" x="14" y="56">Slant range calculation &amp; true bearing extrapolation</text>
+    </g>
+
+    <!-- Card 2: 60Hz Radar Sweep -->
+    <g transform="translate(16, 138)">
+      <rect class="sub-card" width="338" height="70" />
+      <text class="card-title" x="14" y="22">60 Hz Vector Sweep Engine</text>
+      <text class="card-desc" x="14" y="40">PPI continuous sweep beam &amp; range rings (5-100 NM)</text>
+      <text class="card-desc" x="14" y="56">Heading vectors, altitude color bands &amp; trails</text>
+    </g>
+
+    <!-- Card 3: Physical Input -->
+    <g transform="translate(16, 222)">
+      <rect class="sub-card" width="338" height="84" />
+      <text class="card-title" x="14" y="22">Tactile 3-Button State Machine</text>
+      <text class="card-desc" x="14" y="40">UP / DOWN: Traverse targets along polar bearing</text>
+      <text class="card-desc" x="14" y="56">SELECT: Short press (inspect) / Long press (menu)</text>
+      <text class="card-desc" x="14" y="72">Software debounce with internal pull-ups (GPIO 25, 26, 27)</text>
+    </g>
+
+    <!-- Card 4: SPI Display Driver -->
+    <g transform="translate(16, 320)">
+      <rect class="sub-card" width="338" height="88" />
+      <text class="card-title" x="14" y="22">ST7735 1.8" SPI Display Driver</text>
+      <text class="card-desc" x="14" y="40">Hardware VSPI @ 27 MHz (DMA / Direct Write)</text>
+      <text class="card-desc" x="14" y="56">Double-buffered canvas compositing (128x160 RGB)</text>
+      <text class="card-desc" x="14" y="72">PWM hardware brightness control (GPIO 15)</text>
+    </g>
+  </g>
+
+  <!-- ==================== INTERCONNECT ARROWS ==================== -->
+  <!-- Core 0 to IPC Buffer -->
+  <path class="arrow-blue" d="M 386 190 L 418 190" marker-end="url(#arr-blue)" />
+  <!-- IPC Buffer to Core 1 -->
+  <path class="arrow-purple" d="M 542 190 L 570 190" marker-end="url(#arr-purple)" />
+
+  <!-- Core 0 to NVS -->
+  <path class="arrow-blue" d="M 386 350 L 418 350" marker-end="url(#arr-blue)" />
+  <!-- Core 1 to NVS -->
+  <path class="arrow-orange" d="M 570 350 L 542 350" marker-end="url(#arr-orange)" />
+</svg>
