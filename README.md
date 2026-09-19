@@ -23,7 +23,7 @@ FlyRadar32 is a standalone desktop aviation instrument powered by an ESP32 dual-
 - [System Architecture](#system-architecture)
 - [Key Features](#key-features)
 - [Hardware Specification and BOM](#hardware-specification-and-bom)
-- [Wiring and Pin Assignment](#wiring-and-pin-assignment)
+- [Circuit Diagram and Pinout](#circuit-diagram-and-pinout)
 - [3D Printable Enclosure](#3d-printable-enclosure)
 - [Embedded Web Dashboard](#embedded-web-dashboard)
 - [Firmware Build and Deployment](#firmware-build-and-deployment)
@@ -74,7 +74,7 @@ ADS-B APIs --+-> API Ingestion Engine                |    | 60 Hz Polar Sweep En
 - **Live Multi-Target ADS-B Tracking:** Decodes ICAO 24-bit transponder addresses, callsigns, barometric/geometric altitude, ground speed (knots), track heading (degrees), and vertical rate (feet/min).
 - **Tri-Tier Provider Redundancy:** Integrates `airplanes.live`, `adsb.lol`, and `OpenSky Network`. An automated circuit breaker detects consecutive network timeouts (3 strikes) and applies a cooldown backoff to prevent API starvation.
 - **Precision Polar Radar Graphics:** Plan Position Indicator (PPI) with a continuous sweep line, concentric range rings (5, 10, 25, 50, 100 NM), cardinal compass headings, and target history breadcrumb trails.
-- **Self-Contained Embedded Web Dashboard:** Zero-dependency responsive control panel served directly from ESP32 flash with live radar maps, target flight board, coordinate calibration, Wi-Fi management, and display preferences.
+- **Self-Contained Embedded Web Dashboard:** Zero-dependency responsive control panel served directly from ESP32 flash with live radar maps, target flight board, weather telemetry, coordinate calibration, Wi-Fi management, and display preferences.
 - **Captive Portal Field Deployment:** Launches an autonomous setup Access Point (`FlyRadar32-XXXX`) if configured Wi-Fi credentials fail, automatically redirecting connected mobile or desktop browsers to the provisioning console.
 - **Non-Volatile Configuration Memory:** Home coordinates, range limits, display brightness, screen themes, and API credentials persist across power cycles in ESP32 Non-Volatile Storage (NVS).
 
@@ -92,14 +92,22 @@ ADS-B APIs --+-> API Ingestion Engine                |    | 60 Hz Polar Sweep En
 
 ---
 
-## Wiring and Pin Assignment
+## Circuit Diagram and Pinout
+
+<div align="center">
+
+![FlyRadar32 Circuit Diagram](assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg)
+
+</div>
+
+### Pinout Mapping
 
 | Function | ESP32 GPIO | Peripheral Pin | Description |
 |----------|------------|----------------|-------------|
 | Display SCLK | GPIO 18 | SCK / CLK | Hardware VSPI Clock (27 MHz) |
 | Display MOSI | GPIO 23 | SDA / DIN | Hardware VSPI Data |
 | Display CS | GPIO 5 | CS | Chip Select (Active Low) |
-| Display DC | GPIO 2 | DC / A0 | Data / Command Select |
+| Display DC | GPIO 2 | DC / AO | Data / Command Select |
 | Display RST | GPIO 4 | RES / RESET | Hardware Reset |
 | Display BL | GPIO 15 | BL / LED | Backlight Control |
 | Display VCC | 3V3 Rail | VCC | 3.3V Power Rail |
@@ -151,12 +159,17 @@ FlyRadar32 serves an asynchronous, zero-dependency web interface directly from i
 
 | Live Radar Scope | Air Traffic Flight Board |
 |:---:|:---:|
-| ![Live Radar Scope](assets/web_radar_scope.png) | ![Air Traffic Flight Board](assets/web_flight_board.png) |
+| ![Live Radar Scope](assets/flyradar_web_radar_tab_ss.png) | ![Air Traffic Flight Board](assets/flyradar_web_flightboard_tab_ss.png) |
+
+| Station Weather | Station Settings |
+|:---:|:---:|
+| ![Station Weather](assets/flyradar_web_station_weather_tab_ss.png) | ![Station Settings](assets/flyradar_web_settings_tab_ss.png) |
 
 </div>
 
 - **Live Scope:** Real-time canvas radar scope displaying aircraft positions, heading vectors, altitude color bands, and range scaling.
 - **Flight Board:** Tabular air traffic ledger with callsign search, hex code, altitude, speed, heading, and distance sorting.
+- **Station Weather:** Live local barometric and meteorological telemetry report.
 - **Station Settings:** Coordinate calibration, Wi-Fi network switching, refresh intervals, and display themes.
 
 ---
