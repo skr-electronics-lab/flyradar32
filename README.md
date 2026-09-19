@@ -2,13 +2,19 @@
 
 ### Autonomous Desktop ADS-B Flight Radar and Avionics Ground Station
 
-FlyRadar32 is a standalone, dedicated desktop aviation instrument powered by an ESP32 dual-core microcontroller and a 1.8-inch ST7735 SPI display. It aggregates real-time ADS-B transponder telemetry from global flight tracking networks, computes spatial trajectories, and renders a 60 FPS sweeping PPI (Plan Position Indicator) radar display without requiring an external computer or cloud intermediary.
+FlyRadar32 is a standalone desktop aviation instrument powered by an ESP32 dual-core microcontroller and a 1.8-inch ST7735 SPI display. It aggregates real-time ADS-B transponder telemetry from global flight tracking networks, computes spatial trajectories, and renders a sweeping 60 FPS PPI (Plan Position Indicator) radar display without requiring an external computer or cloud intermediary.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: ESP32](https://img.shields.io/badge/Hardware-ESP32--WROOM--32-red.svg)](https://www.espressif.com/)
 [![Framework: PlatformIO](https://img.shields.io/badge/Build-PlatformIO-orange.svg)](https://platformio.org/)
 [![Display: ST7735](https://img.shields.io/badge/Display-ST7735%201.8%22%20SPI-purple.svg)](include/radar_display.h)
 [![Support: Ko-fi](https://img.shields.io/badge/Support-Ko--fi-ff5e5b.svg)](https://ko-fi.com/skrelectronicslab)
+
+<div align="center">
+
+![FlyRadar32 Desktop Radar Console](assets/enclosure_hero.png)
+
+</div>
 
 ---
 
@@ -18,11 +24,11 @@ FlyRadar32 is a standalone, dedicated desktop aviation instrument powered by an 
 - [Key Features](#key-features)
 - [Hardware Specification and BOM](#hardware-specification-and-bom)
 - [Wiring and Pin Assignment](#wiring-and-pin-assignment)
-- [Aviation Telemetry and Mathematics](#aviation-telemetry-and-mathematics)
-- [Enclosure and 3D Fabrication](#enclosure-and-3d-fabrication)
+- [3D Printable Enclosure](#3d-printable-enclosure)
+- [Embedded Web Dashboard](#embedded-web-dashboard)
 - [Firmware Build and Deployment](#firmware-build-and-deployment)
 - [First Boot and Captive Portal](#first-boot-and-captive-portal)
-- [Embedded REST API Specification](#embedded-rest-api-specification)
+- [REST API Specification](#rest-api-specification)
 - [GitHub Repository Topics](#github-repository-topics)
 - [Author and Support](#author-and-support)
 - [License](#license)
@@ -65,18 +71,12 @@ ADS-B APIs --+-> API Ingestion Engine                |    | 60 Hz Polar Sweep En
 
 ## Key Features
 
-- **Live Multi-Target ADS-B Tracking:**
-  Decodes ICAO 24-bit transponder addresses, callsigns, barometric/geometric altitude, ground speed (knots), track heading (degrees), and vertical rate (feet/min).
-- **Tri-Tier Provider Redundancy:**
-  Integrates `airplanes.live`, `adsb.lol`, and `OpenSky Network` (supporting anonymous queries and OAuth2 client credentials). A circuit breaker detects consecutive network failures (3 strikes) and applies a 5-cycle exponential backoff cooldown to prevent API starvation.
-- **Precision Polar Radar Graphics:**
-  Simulates a marine/air-traffic Plan Position Indicator (PPI) with a sweeping phosphorescence sweep line, concentric nautical mile range rings (5, 10, 25, 50, 100 NM), cardinal compass headings, and target history breadcrumb trails.
-- **Self-Contained Embedded Web Dashboard:**
-  Hosts a zero-dependency responsive control panel directly from ESP32 flash (Gzip-compressed LittleFS assets). Provides live radar maps, target lists, coordinate calibration, Wi-Fi management, and display preferences.
-- **Captive Portal Field Deployment:**
-  Launches an autonomous setup Access Point (`FlyRadar32-XXXX`) if configured Wi-Fi credentials fail, automatically redirecting connected mobile or desktop browsers to the provisioning console.
-- **Non-Volatile Configuration Memory:**
-  All user preferences (home latitude/longitude, range limits, display brightness, screen themes, and API credentials) persist across power cycles in ESP32 Non-Volatile Storage (NVS).
+- **Live Multi-Target ADS-B Tracking:** Decodes ICAO 24-bit transponder addresses, callsigns, barometric/geometric altitude, ground speed (knots), track heading (degrees), and vertical rate (feet/min).
+- **Tri-Tier Provider Redundancy:** Integrates `airplanes.live`, `adsb.lol`, and `OpenSky Network`. An automated circuit breaker detects consecutive network timeouts (3 strikes) and applies a cooldown backoff to prevent API starvation.
+- **Precision Polar Radar Graphics:** Plan Position Indicator (PPI) with a continuous sweep line, concentric range rings (5, 10, 25, 50, 100 NM), cardinal compass headings, and target history breadcrumb trails.
+- **Self-Contained Embedded Web Dashboard:** Zero-dependency responsive control panel served directly from ESP32 flash with live radar maps, target flight board, coordinate calibration, Wi-Fi management, and display preferences.
+- **Captive Portal Field Deployment:** Launches an autonomous setup Access Point (`FlyRadar32-XXXX`) if configured Wi-Fi credentials fail, automatically redirecting connected mobile or desktop browsers to the provisioning console.
+- **Non-Volatile Configuration Memory:** Home coordinates, range limits, display brightness, screen themes, and API credentials persist across power cycles in ESP32 Non-Volatile Storage (NVS).
 
 ---
 
@@ -87,141 +87,96 @@ ADS-B APIs --+-> API Ingestion Engine                |    | 60 Hz Polar Sweep En
 | Microcontroller | ESP32-WROOM-32 (30-Pin DevKit, 4MB Flash) | 1 | Espressif Systems |
 | Display | 1.8" TFT ST7735 (128x160 RGB, 4-Wire SPI) | 1 | Black-Tab / Red-Tab |
 | User Input | 6x6x3.8mm Momentary Tactile Push Buttons | 3 | SPST Through-Hole |
-| Enclosure | 3-Piece Precision FDM Chassis (PETG / PLA+) | 1 Set | [enclosure/](enclosure/) |
+| Enclosure | 3-Piece Precision FDM Chassis (PETG / PLA) | 1 Set | [enclosure/](enclosure/) |
 | Power Source | 5V USB-C or Micro-USB (500mA minimum) | 1 | Standard USB Port |
-
-### Electrical Characteristics
-
-- **Logic Level:** 3.3V DC (All GPIOs and SPI lines)
-- **Nominal Operating Current:** 115 mA (Display at 80% brightness, Wi-Fi connected)
-- **Peak Current:** 220 mA (During 802.11b/g/n RF packet transmission)
 
 ---
 
 ## Wiring and Pin Assignment
 
-The ST7735 display and push buttons connect directly to the ESP32 GPIO headers. Internal pull-up resistors are utilized for the button inputs, eliminating external discrete components.
-
-### Pinout Mapping
-
-| Function | ESP32 GPIO | Peripheral Pin | Notes |
-|----------|------------|----------------|-------|
+| Function | ESP32 GPIO | Peripheral Pin | Description |
+|----------|------------|----------------|-------------|
 | Display SCLK | GPIO 18 | SCK / CLK | Hardware VSPI Clock (27 MHz) |
-| Display MOSI | GPIO 23 | SDA / DIN | Hardware VSPI Master Out Slave In |
+| Display MOSI | GPIO 23 | SDA / DIN | Hardware VSPI Data |
 | Display CS | GPIO 5 | CS | Chip Select (Active Low) |
-| Display DC | GPIO 2 | DC / A0 | Data / Command Selection |
-| Display RST | GPIO 4 | RES / RESET | Hardware Display Reset |
-| Display BL | GPIO 15 | BL / LED | Backlight Anode (PWM Brightness Control) |
+| Display DC | GPIO 2 | DC / A0 | Data / Command Select |
+| Display RST | GPIO 4 | RES / RESET | Hardware Reset |
+| Display BL | GPIO 15 | BL / LED | Backlight Control |
 | Display VCC | 3V3 Rail | VCC | 3.3V Power Rail |
 | Display GND | GND Rail | GND | Common Ground |
-| Button UP | GPIO 25 | Pin 1 to GPIO, Pin 2 to GND | Target cursor traverse (Clockwise) |
-| Button DOWN | GPIO 26 | Pin 1 to GPIO, Pin 2 to GND | Target cursor traverse (Counter-clockwise) |
-| Button SELECT | GPIO 27 | Pin 1 to GPIO, Pin 2 to GND | Short-press: Detail / Long-press: Menu |
+| Button UP | GPIO 25 | Pin 1 to GPIO, Pin 2 to GND | Target cursor clockwise traverse |
+| Button DOWN | GPIO 26 | Pin 1 to GPIO, Pin 2 to GND | Target cursor counter-clockwise traverse |
+| Button SELECT | GPIO 27 | Pin 1 to GPIO, Pin 2 to GND | Short: Detail / Long: Menu |
 
-> **Critical Strapping Pin Notice:**
-> Never connect buttons or load resistors to GPIO 0, GPIO 12, or GPIO 15 that force unexpected logic levels during power-on. Pulling GPIO 0 low during boot triggers ROM download mode instead of firmware execution.
-
-### Wiring Diagram
-
-```
-         ESP32-WROOM-32                             ST7735 1.8" SPI TFT
-      +-------------------+                         +-----------------+
-      |               3V3 |------------------------>| VCC             |
-      |               GND |------------------------>| GND             |
-      |            GPIO18 |------------------------>| SCK (Clock)     |
-      |            GPIO23 |------------------------>| SDA (MOSI)      |
-      |             GPIO5 |------------------------>| CS (Chip Select)|
-      |             GPIO2 |------------------------>| DC (Data/Cmd)   |
-      |             GPIO4 |------------------------>| RES (Reset)     |
-      |            GPIO15 |------------------------>| BL (Backlight)  |
-      |                   |                         +-----------------+
-      |            GPIO25 |----+
-      |            GPIO26 |--+ |                    TACTILE BUTTONS
-      |            GPIO27 |+ | |                    +-----------------+
-      +-------------------++ | +------------------->| [UP]     -> GND |
-                           | +--------------------->| [DOWN]   -> GND |
-                           +----------------------->| [SELECT] -> GND |
-                                                    +-----------------+
-```
+> **Strapping Pin Notice:** Do not connect pull-down loads or switches to GPIO 0, GPIO 12, or GPIO 15 that force unexpected boot logic levels.
 
 ---
 
-## Aviation Telemetry and Mathematics
+## 3D Printable Enclosure
 
-### Coordinate Projection (Equirectangular to Polar)
-
-To project geodetic WGS-84 coordinates $(\text{lat}_{\text{target}}, \text{lon}_{\text{target}})$ onto a localized polar radar display centered at observer coordinates $(\text{lat}_0, \text{lon}_0)$, the firmware evaluates local planar offsets in nautical miles:
-
-$$\Delta y = (\text{lat}_{\text{target}} - \text{lat}_0) \times 60.0$$
-
-$$\Delta x = (\text{lon}_{\text{target}} - \text{lon}_0) \times 60.0 \times \cos\left(\frac{\text{lat}_0 \times \pi}{180.0}\right)$$
-
-The slant range $\rho$ (nautical miles) and true azimuth $\theta$ (radians) are derived as:
-
-$$\rho = \sqrt{\Delta x^2 + \Delta y^2}$$
-
-$$\theta = \text{atan2}(\Delta x, \Delta y)$$
-
-### Screen Rasterization Mapping
-
-Given a radar display radius $R_{\text{screen}} = 56\text{ pixels}$ and an active range setting $R_{\text{max}}$ (e.g., 25 NM), screen coordinates $(X_s, Y_s)$ relative to screen center $(X_0, Y_0)$ are calculated as:
-
-$$r = \left(\frac{\rho}{R_{\text{max}}}\right) \times R_{\text{screen}}$$
-
-$$X_s = X_0 + r \cdot \sin(\theta)$$
-
-$$Y_s = Y_0 - r \cdot \cos(\theta)$$
-
-Targets exceeding $R_{\text{max}}$ are clipped from the primary PPI sweep and placed in the peripheral target queue.
-
----
-
-## Enclosure and 3D Fabrication
-
-The console chassis is specifically optimized for additive manufacturing (FDM), featuring an ergonomic 15-degree instrument slant, internally reinforced snap-latch joints, zero exterior screw fasteners, and anti-fallout button actuators.
+The desktop enclosure features an ergonomic 15-degree instrument slant, internal snap-latch joints, zero exterior screws, and anti-fallout button actuators.
 
 All 3D models and print documentation are located in the [enclosure/](enclosure/) directory:
 
-- `enclosure/flyradar32_shell.stl`: Base chassis with integrated PCB cradle and USB port collar.
-- `enclosure/flyradar32_lid.stl`: 15-degree angled faceplate with flush display bezel and snap catches.
-- `enclosure/flyradar32_button_caps.stl`: Set of 3 tactile switch keycaps with wide retention flanges.
-- `enclosure/FlyRadar32_Enclosure.FCStd`: Master parametric CAD model (FreeCAD).
+<div align="center">
 
-### Recommended Slicer Settings
+| Internal Seating | Transparent Assembly |
+|:---:|:---:|
+| ![Internal Seating](assets/enclosure_internal.png) | ![Transparent Assembly](assets/enclosure_transparent.png) |
+
+</div>
+
+### Printable Files
+
+- [`enclosure/flyradar32_shell.stl`](enclosure/flyradar32_shell.stl) — Bottom chassis with ESP32 board rails and USB collar.
+- [`enclosure/flyradar32_lid.stl`](enclosure/flyradar32_lid.stl) — Top bezel with 15° instrument tilt and display aperture.
+- [`enclosure/flyradar32_button_caps.stl`](enclosure/flyradar32_button_caps.stl) — 3x tactile actuator keycaps with retention lips.
+- [`enclosure/FlyRadar32_Enclosure.FCStd`](enclosure/FlyRadar32_Enclosure.FCStd) — Master parametric CAD file (FreeCAD).
+
+### Print Parameters
 
 - **Layer Height:** 0.20 mm (0.16 mm for keycaps)
-- **Wall Perimeters:** 3 walls minimum (1.2 mm solid perimeter)
+- **Walls / Perimeters:** 3
 - **Infill:** 20% Gyroid or Grid
-- **Material:** PETG (recommended for thermal and snap elasticity) or PLA+
-- **Support Structures:** None required (All geometries engineered with self-supporting 45-degree overhangs)
+- **Material:** PETG or PLA
+- **Supports:** None required (All geometries self-supporting <= 45°)
 
-Refer to [enclosure/README.md](enclosure/README.md) for full mechanical dimensions, tolerances, and assembly steps.
+---
+
+## Embedded Web Dashboard
+
+FlyRadar32 serves an asynchronous, zero-dependency web interface directly from internal LittleFS flash storage.
+
+<div align="center">
+
+| Live Radar Scope | Air Traffic Flight Board |
+|:---:|:---:|
+| ![Live Radar Scope](assets/web_radar_scope.png) | ![Air Traffic Flight Board](assets/web_flight_board.png) |
+
+</div>
+
+- **Live Scope:** Real-time canvas radar scope displaying aircraft positions, heading vectors, altitude color bands, and range scaling.
+- **Flight Board:** Tabular air traffic ledger with callsign search, hex code, altitude, speed, heading, and distance sorting.
+- **Station Settings:** Coordinate calibration, Wi-Fi network switching, refresh intervals, and display themes.
 
 ---
 
 ## Firmware Build and Deployment
 
-### Development Prerequisites
-
-- [PlatformIO Core (CLI)](https://docs.platformio.org/en/latest/core/installation/index.html) or [VS Code with PlatformIO IDE Extension](https://platformio.org/install/ide?install=vscode)
-- Git
-
-### Build Pipeline
-
-The firmware build script ([scripts/compress_web.py](scripts/compress_web.py)) automatically compresses HTML, CSS, and JavaScript assets from [data/](data/) into Gzip byte arrays inside `include/web_assets_gz.h` prior to compilation.
+PlatformIO automatically compresses web assets from `data/` into Gzip byte arrays during compilation.
 
 ```bash
 # Clone the repository
 git clone https://github.com/skrelectronicslab/flyradar32.git
 cd flyradar32
 
-# Compile firmware binary
+# Compile firmware
 pio run
 
 # Flash firmware over USB
 pio run --target upload
 
-# Launch serial telemetry monitor (115200 baud)
+# Open serial telemetry monitor (115200 baud)
 pio run --target monitor
 ```
 
@@ -229,26 +184,16 @@ pio run --target monitor
 
 ## First Boot and Captive Portal
 
-1. **Initial Power-On:**
-   Upon first startup without configured Wi-Fi credentials, the device initializes an Access Point:
-   - **SSID:** `FlyRadar32-XXXX` (where `XXXX` is derived from the ESP32 MAC address)
-   - **Default Passphrase:** `radar1234`
-2. **Configuration Handshake:**
-   Connect a computer or smartphone to the Access Point. A captive portal redirect automatically opens `http://192.168.4.1`.
-3. **Provisioning Settings:**
-   - **Wi-Fi Tab:** Scan nearby SSIDs, input your local network passphrase, and save.
-   - **Location Tab:** Input your observer latitude and longitude (supports direct decimal coordinate paste or browser geolocation).
-   - **Display & Provider Tab:** Configure radar refresh rate (5s to 60s), default range scale, and API provider order.
-4. **Autonomous Operation:**
-   The device transitions to station mode, displays its assigned local network IP address on the screen, and immediately begins live radar tracking.
+1. **Power-On:** If no Wi-Fi credentials are saved, the device hosts an Access Point named `FlyRadar32-XXXX` (passphrase: `radar1234`).
+2. **Setup Portal:** Connect to the AP from a mobile phone or laptop. The browser automatically navigates to `http://192.168.4.1`.
+3. **Configure:** Select your Wi-Fi SSID, enter the password, and set your observer coordinates.
+4. **Operation:** The device connects to your network, displays its assigned IP address on the screen, and starts tracking live aircraft.
 
 ---
 
-## Embedded REST API Specification
+## REST API Specification
 
 FlyRadar32 exposes a lightweight HTTP REST API for integration into Home Assistant, Node-RED, or custom telemetry dashboards:
-
-### Endpoints
 
 | Method | Endpoint | Description | Sample Output / Payload |
 |--------|----------|-------------|-------------------------|
@@ -263,10 +208,10 @@ FlyRadar32 exposes a lightweight HTTP REST API for integration into Home Assista
 
 ## GitHub Repository Topics
 
-When configuring this repository on GitHub, add the following tags under **Repository Details -> Topics** for optimal indexing across embedded systems, aviation, and open-source communities:
+Add the following tags in your GitHub repository settings under **About -> Topics**:
 
-```
-esp32, ads-b, flight-radar, avionics, radar-display, st7735, freertos, platformio, embedded-systems, cplusplus, 3d-printing, freecad, opensky-network, iot, open-source-hardware
+```text
+esp32, ads-b, flight-radar, aviation, radar-display, st7735, freertos, platformio, embedded-systems, cplusplus, 3d-printing, freecad, opensky-network, iot, open-source-hardware
 ```
 
 ---
@@ -281,7 +226,7 @@ FlyRadar32 is designed and developed by **Raihan (SK Raihan)**.
 - **X (Twitter):** [@skrelectronics](https://twitter.com/skrelectronics)
 - **Email:** `skrelectronicslab@gmail.com`
 
-If this open-source hardware project assists your engineering workflows, telemetry setups, or aviation exploration, support ongoing development on Ko-fi:
+If you enjoy this open-source project and want to support ongoing development, consider buying a coffee on Ko-fi:
 
 <div align="center">
 
@@ -293,4 +238,4 @@ If this open-source hardware project assists your engineering workflows, telemet
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). You are free to inspect, modify, fork, distribute, and manufacture hardware based on these specifications.
+This project is licensed under the [MIT License](LICENSE).
