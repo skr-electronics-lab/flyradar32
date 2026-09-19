@@ -23,7 +23,7 @@ FlyRadar32 is a standalone desktop aviation instrument powered by an ESP32 dual-
 - [System Architecture](#system-architecture)
 - [Key Features](#key-features)
 - [Hardware Specification and BOM](#hardware-specification-and-bom)
-- [Circuit Diagram and Pinout](#circuit-diagram-and-pinout)
+- [Circuit Diagram and Physical Prototype](#circuit-diagram-and-physical-prototype)
 - [3D Printable Enclosure](#3d-printable-enclosure)
 - [Embedded Web Dashboard](#embedded-web-dashboard)
 - [Firmware Build and Deployment](#firmware-build-and-deployment)
@@ -75,11 +75,13 @@ FlyRadar32 segregates workloads across both symmetric Xtensa LX6 CPU cores using
 
 ---
 
-## Circuit Diagram and Pinout
+## Circuit Diagram and Physical Prototype
 
 <div align="center">
 
-![FlyRadar32 Circuit Diagram](assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg)
+| Schematic Wiring Diagram | Live Breadboard Prototype |
+|:---:|:---:|
+| ![FlyRadar32 Circuit Diagram](assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg) | ![FlyRadar32 Live Breadboard Prototype](assets/breadboard_image.jpeg) |
 
 </div>
 
