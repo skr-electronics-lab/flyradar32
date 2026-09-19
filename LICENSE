@@ -1,21 +1,22 @@
-MIT License
+Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)
 
-Copyright (c) 2026 SKR Electronics Lab
+Copyright (c) 2026 SK Raihan (SKR Electronics Lab)
+Website: https://skrelectronicslab.com
+YouTube: https://youtube.com/@skr_electronics_lab
+Twitter/X: https://twitter.com/skrelectronics
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+========================================================================
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+========================================================================
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+You are free to:
+- Share: Copy and redistribute the material in any medium or format for personal, educational, and non-commercial maker projects.
+- Build: Assemble hardware, flash firmware, 3D-print enclosures, and operate physical FlyRadar32 units for personal non-commercial use.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Under the following terms:
+1. Attribution: You must give appropriate credit to SK Raihan (SKR Electronics Lab), provide a link to the original project repository (https://github.com/skr-electronics-lab/flyradar32), and preserve all copyright notices.
+2. NonCommercial: You may not use this material, source code, firmware binary, circuit schematics, or 3D CAD enclosure models for commercial purposes, manufacturing for commercial sale, or monetization without prior explicit written authorization.
+3. NoDerivatives: If you remix, transform, or build upon the material, you may NOT distribute the modified material claiming it as your own design or project. Rebranding or claiming ownership of this work is strictly prohibited.
+4. No Additional Restrictions: You may not apply legal terms or technological measures that legally restrict others from doing anything this license permits.
+
+THE SOFTWARE, FIRMWARE, AND HARDWARE DESIGNS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY.

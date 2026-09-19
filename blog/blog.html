@@ -4,10 +4,10 @@
   .flyradar-blog-wrapper {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     color: #4b5563; 
-    line-height: 1.75;
+    line-height: 1.8;
     max-width: 920px;
     margin: 0 auto;
-    padding: 20px 15px;
+    padding: 24px 16px;
     background-color: transparent;
     -webkit-font-smoothing: antialiased;
   }
@@ -34,12 +34,12 @@
     text-decoration: underline;
   }
 
-  /* Content Cards */
+  /* Card Containers */
   .skr-card {
     background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 32px 36px;
+    border-radius: 10px;
+    padding: 34px 38px;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
     margin-bottom: 2.25rem;
   }
@@ -71,6 +71,7 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     display: inline-block;
+    margin-bottom: 1rem;
   }
 
   .skr-pill-tab {
@@ -100,7 +101,7 @@
     border-collapse: collapse;
     text-align: left;
     font-size: 0.92rem;
-    min-width: 580px;
+    min-width: 620px;
   }
 
   .skr-table th {
@@ -120,7 +121,7 @@
     border-bottom: 1px solid #e5e7eb;
   }
 
-  /* Information Alerts */
+  /* Alerts */
   .skr-alert {
     background: #f9fafb;
     border-left: 4px solid #ff5a00;
@@ -143,7 +144,7 @@
     margin: 0;
   }
 
-  /* Code & Syntax Displays */
+  /* Code Syntax Blocks */
   .skr-code {
     background: #0f172a;
     color: #f8fafc;
@@ -157,158 +158,387 @@
     margin: 1.25rem 0;
   }
 
-  /* Figures and Captions */
+  /* Clean Image Figures with Direct Lightbox Click */
   .skr-figure {
-    margin: 1.75rem 0;
+    margin: 2rem 0;
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     background: #ffffff;
-  }
-
-  .skr-figure figcaption {
-    text-align: center;
-    padding: 12px 16px;
-    font-size: 0.85rem;
-    color: #6b7280;
-    border-top: 1px solid #e5e7eb;
-    background: #fafafa;
-    font-weight: 500;
+    cursor: zoom-in;
   }
 
   .skr-figure img {
     width: 100%;
     height: auto;
     display: block;
-    cursor: zoom-in;
     transition: transform 0.25s ease;
   }
 
-  .skr-figure img:hover {
-    transform: scale(1.015);
+  .skr-figure:hover img {
+    transform: scale(1.01);
   }
 
-  /* Two-column Image Grid */
-  .skr-grid-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.25rem;
-    margin: 1.5rem 0;
-  }
-
-  /* Firmware Flasher Container */
-  .skr-flasher-wrap {
-    background: #fafafa;
-    border: 2px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 44px 36px;
+  .skr-figure figcaption {
     text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    margin: 2rem 0;
+    padding: 12px 18px;
+    font-size: 0.88rem;
+    color: #6b7280;
+    border-top: 1px solid #e5e7eb;
+    background: #fafafa;
+    font-weight: 500;
   }
+
+  /* Flasher Callout Wrapper (Clean without artificial bars) */
+  .skr-flasher-wrap {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 40px 36px;
+    text-align: center;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin: 2.5rem 0;
+  }
+
   .skr-flasher-wrap h3 {
     font-size: 1.45rem;
     margin-bottom: 0.5rem;
     color: #111827;
+    font-weight: 700;
   }
+
   .skr-flasher-wrap p {
     color: #6b7280;
     margin-bottom: 2rem;
     max-width: 600px;
     margin-left: auto;
     margin-right: auto;
+    font-size: 0.98rem;
   }
 
-  /* Standard Action Buttons */
-  .skr-btn-primary {
-    display: inline-block;
+  /* Clean, Bold Custom Flash Button */
+  .custom-flash-btn {
+    background: linear-gradient(135deg, #ff8c00, #e65200);
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 18px 44px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 4px 16px rgba(230, 82, 0, 0.35);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+    overflow: hidden;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-decoration: none !important;
+  }
+
+  .custom-flash-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: skewX(-20deg);
+    animation: shine 3s infinite;
+  }
+
+  @keyframes shine {
+    0% { left: -100%; }
+    20% { left: 200%; }
+    100% { left: 200%; }
+  }
+
+  .custom-flash-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(230, 82, 0, 0.5);
+  }
+
+  .custom-flash-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* Step System */
+  .skr-steps-timeline {
+    position: relative;
+    margin: 2rem 0;
+  }
+
+  .skr-step-item {
+    position: relative;
+    padding-left: 60px;
+    margin-bottom: 2rem;
+  }
+
+  .skr-step-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 22px;
+    top: 46px;
+    bottom: -28px;
+    width: 2px;
+    background: #e5e7eb;
+  }
+
+  .skr-step-node {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     background: #ff5a00;
-    color: #ffffff !important;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+  }
+
+  .skr-step-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 24px 26px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  }
+
+  .skr-step-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .skr-step-title {
+    font-size: 1.18rem;
     font-weight: 700;
-    font-size: 0.95rem;
-    padding: 13px 30px;
-    border-radius: 6px;
-    text-decoration: none !important;
+    color: #111827;
+    margin: 0;
+  }
+
+  .skr-step-tag {
+    background: #f3f4f6;
+    color: #4b5563;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 3px 8px rgba(255, 90, 0, 0.25);
-    transition: background 0.2s ease, transform 0.2s ease;
-    margin-right: 12px;
-    margin-top: 8px;
+    border: 1px solid #e5e7eb;
   }
 
-  .skr-btn-primary:hover {
-    background: #e65200;
-    transform: translateY(-1px);
+  /* Copyable Parameter Box */
+  .skr-param-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 1.25rem 0;
   }
 
-  .skr-btn-dark {
-    display: inline-block;
-    background: #111827;
-    color: #ffffff !important;
-    font-weight: 700;
-    font-size: 0.95rem;
-    padding: 13px 30px;
+  .skr-param-box {
+    background: #0f172a;
+    border: 1px solid #1e293b;
     border-radius: 6px;
-    text-decoration: none !important;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .skr-param-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .skr-param-label {
+    font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    box-shadow: 0 3px 8px rgba(17, 24, 39, 0.2);
-    transition: background 0.2s ease, transform 0.2s ease;
-    margin-top: 8px;
+    color: #94a3b8;
+    font-weight: 600;
   }
 
-  .skr-btn-dark:hover {
-    background: #1f2937;
-    transform: translateY(-1px);
+  .skr-param-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: #38bdf8;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Lightbox Modal */
+  .skr-copy-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    color: #e2e8f0;
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    text-decoration: none !important;
+  }
+
+  .skr-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff !important;
+  }
+
+  .skr-copy-btn svg {
+    width: 13px;
+    height: 13px;
+    fill: currentColor;
+  }
+
+  /* Social Branded Buttons with SVGs */
+  .skr-social-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 1.75rem 0;
+  }
+
+  .skr-social-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    color: #ffffff !important;
+  }
+
+  .skr-social-btn:hover {
+    transform: translateY(-2px);
+    text-decoration: none !important;
+  }
+
+  .skr-social-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  .skr-btn-github {
+    background: #181717;
+    box-shadow: 0 4px 12px rgba(24, 23, 23, 0.25);
+  }
+  .skr-btn-github:hover {
+    box-shadow: 0 6px 16px rgba(24, 23, 23, 0.35);
+  }
+
+  .skr-btn-youtube {
+    background: #ff0000;
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.25);
+  }
+  .skr-btn-youtube:hover {
+    box-shadow: 0 6px 16px rgba(255, 0, 0, 0.35);
+  }
+
+  .skr-btn-twitter {
+    background: #000000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  .skr-btn-twitter:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+  }
+
+  .skr-btn-kofi {
+    background: #ff5e5b;
+    box-shadow: 0 4px 12px rgba(255, 94, 91, 0.3);
+  }
+  .skr-btn-kofi:hover {
+    box-shadow: 0 6px 16px rgba(255, 94, 91, 0.4);
+  }
+
+  /* Support Callout Box */
+  .skr-support-box {
+    background: #fff8f5;
+    border: 1px solid #ffd8c7;
+    border-radius: 10px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 2rem 0;
+  }
+
+  /* Clean Full-Screen Lightbox Popup */
   .skr-img-modal {
     display: none; 
     position: fixed; 
-    z-index: 99999; 
+    z-index: 999999; 
     left: 0; 
     top: 0; 
     width: 100%; 
     height: 100%; 
-    background-color: rgba(15, 23, 42, 0.92); 
+    background-color: rgba(10, 15, 29, 0.92); 
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    opacity: 0;
-    transition: opacity 0.25s ease;
     align-items: center;
     justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    cursor: zoom-out;
   }
+
   .skr-img-modal.show {
     display: flex;
-    opacity: 1;
   }
+
   .skr-img-modal-content {
-    max-width: 92%;
+    max-width: 92vw;
     max-height: 90vh;
     border-radius: 8px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    transform: scale(0.96);
-    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
     object-fit: contain;
+    cursor: default;
   }
-  .skr-img-modal.show .skr-img-modal-content {
-    transform: scale(1);
-  }
+
   .skr-img-modal-close {
     position: absolute;
-    top: 24px;
-    right: 32px;
-    color: #cbd5e1;
-    font-size: 42px;
-    font-weight: 700;
+    top: 20px;
+    right: 28px;
+    color: #e2e8f0;
+    font-size: 40px;
+    font-weight: 600;
     cursor: pointer;
-    transition: color 0.2s;
     line-height: 1;
-    z-index: 100000;
+    transition: color 0.2s ease;
+    user-select: none;
   }
+
   .skr-img-modal-close:hover {
     color: #ffffff;
   }
@@ -317,12 +547,27 @@
     .skr-card {
       padding: 22px 18px;
     }
-    .skr-grid-2 {
+    .skr-param-grid {
       grid-template-columns: 1fr;
-      gap: 1rem;
+    }
+    .skr-step-item {
+      padding-left: 48px;
+    }
+    .skr-step-node {
+      width: 36px;
+      height: 36px;
+      font-size: 0.9rem;
+    }
+    .skr-step-item:not(:last-child)::before {
+      left: 17px;
     }
     .skr-flasher-wrap {
-      padding: 28px 16px;
+      padding: 30px 16px;
+    }
+    .custom-flash-btn {
+      width: 100%;
+      padding: 16px 20px;
+      font-size: 1.1rem;
     }
   }
 </style>
@@ -332,58 +577,65 @@
 
 <div class="flyradar-blog-wrapper">
 
-  <!-- Header & Ko-fi Support Banner -->
-  <div style="margin-bottom: 2.75rem;">
-    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; margin-bottom: 1.25rem;">
-      <span class="skr-badge">Embedded Firmware & Hardware</span>
-      <a href="https://ko-fi.com/skrelectronicslab" target="_blank" rel="noopener" style="display: inline-block; text-decoration: none;">
-        <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/kofi_button.svg" alt="Support on Ko-fi" style="height: 38px; width: auto; display: block; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" />
-      </a>
-    </div>
-
+  <!-- Header Section -->
+  <div style="margin-bottom: 2rem;">
+    <span class="skr-badge">Embedded Firmware & Hardware</span>
     <h1 style="font-size: 2.5rem; font-weight: 800; line-height: 1.22; margin-bottom: 1.25rem;">
       FlyRadar32: Standalone ESP32 ADS-B Aircraft Radar & Desktop Flight Tracker
     </h1>
 
     <p style="font-size: 1.15rem; color: #4b5563; max-width: 860px; line-height: 1.75; margin: 0;">
-      Commercial and private aircraft continuously broadcast position coordinates, altitude, velocity, and transponder telemetry over 1090 MHz ADS-B. In this complete build tutorial, we construct FlyRadar32: a dedicated standalone desktop aircraft radar station powered by an ESP32, an 8-pin 1.8-inch ST7735 SPI color TFT, non-blocking hardware LEDC PWM backlight dimming, a 4-tier fault-tolerant ADS-B telemetry engine, and a custom FreeCAD 3D-printed desktop enclosure.
+      Commercial and private aircraft continuously broadcast their real-time coordinates, altitude, velocity, and transponder telemetry over 1090 MHz ADS-B. In this complete step-by-step tutorial, we build FlyRadar32: an autonomous desktop aircraft radar station powered by an ESP32, an 8-pin 1.8-inch ST7735 SPI color TFT, non-blocking hardware LEDC PWM backlight dimming, a 4-tier fault-tolerant ADS-B telemetry engine, and a custom FreeCAD 3D-printed desktop console.
     </p>
+  </div>
+
+  <!-- Non-Intrusive Ko-fi Support Banner -->
+  <div class="skr-support-box">
+    <div>
+      <strong style="color: #111827; font-size: 1rem; display: block;">Enjoying this open-source project?</strong>
+      <span style="font-size: 0.9rem; color: #6b7280;">Support future firmware development, circuit guides, and maker tools on Ko-fi.</span>
+    </div>
+    <a href="https://ko-fi.com/skrelectronicslab" target="_blank" rel="noopener" style="display: inline-block; text-decoration: none;">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/kofi_button.svg" alt="Support on Ko-fi" style="height: 38px; width: auto; display: block;" />
+    </a>
   </div>
 
   <!-- Table of Contents Card -->
   <div class="skr-card">
     <div class="skr-pill-tab">Table of Contents</div>
     <ol style="list-style-type: decimal; padding-left: 1.5rem; line-height: 2.1; font-weight: 500;">
-      <li><a href="#intro">1. Introduction to FlyRadar32 & Architecture</a></li>
+      <li><a href="#intro">1. Introduction to FlyRadar32 & System Architecture</a></li>
       <li><a href="#components">2. Bill of Materials (BOM) & Required Components</a></li>
-      <li><a href="#circuit">3. Complete Circuit Schematic & Pin Interconnects</a></li>
-      <li><a href="#prototype">4. Live Breadboard Prototype Verification</a></li>
-      <li><a href="#web-flasher">5. In-Browser Web Serial Firmware Installation</a></li>
-      <li><a href="#enclosure">6. FreeCAD 3D Desktop Enclosure & Assembly</a></li>
-      <li><a href="#freertos-engine">7. FreeRTOS Dual-Core Architecture & Radar Math</a></li>
-      <li><a href="#multi-provider">8. Multi-Provider ADS-B Failover Network</a></li>
-      <li><a href="#pwm-dimming">9. Hardware LEDC PWM Backlight Dimming</a></li>
-      <li><a href="#web-cockpit">10. Onboard Web Cockpit & First-Boot Configuration</a></li>
-      <li><a href="#conclusion">11. Conclusion, Downloads & Open Source Resources</a></li>
+      <li><a href="#circuit">3. Circuit Schematic & Verified Hardware Pinout</a></li>
+      <li><a href="#prototype">4. Live Breadboard Prototype Testing</a></li>
+      <li><a href="#flasher">5. In-Browser One-Click Firmware Flashing (Web Serial)</a></li>
+      <li><a href="#setup-steps">6. Step-by-Step First Boot & Wi-Fi Configuration</a></li>
+      <li><a href="#api-setup">7. OpenSky API Setup & Location Coordinates</a></li>
+      <li><a href="#on-device-features">8. How to Use Every Feature & Screen on the Device</a></li>
+      <li><a href="#weather-diagnostics">9. Accessing Live Weather & Station Diagnostics</a></li>
+      <li><a href="#freertos-engine">10. FreeRTOS Dual-Core Architecture & Radar Math</a></li>
+      <li><a href="#pwm-dimming">11. Hardware LEDC PWM Backlight Dimming</a></li>
+      <li><a href="#enclosure">12. FreeCAD 3D Enclosure Assembly Guide</a></li>
+      <li><a href="#conclusion">13. Conclusion, Downloads & Community Resources</a></li>
     </ol>
   </div>
 
-  <!-- 1. Intro -->
+  <!-- 1. Intro & Architecture -->
   <div id="intro" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1rem;">1. Introduction to FlyRadar32 & Architecture</h2>
+    <h2 style="font-size: 1.45rem; margin-bottom: 1rem;">1. Introduction to FlyRadar32 & System Architecture</h2>
     <p>
-      Browser flight tracking maps and mobile apps are suitable for checking an occasional flight, but keeping an open browser tab consumes workstation screen space and battery. FlyRadar32 is an autonomous physical instrument engineered to run 24/7 on your desk or workshop bench.
+      Browser flight tracking maps and mobile apps are suitable for checking an occasional flight, but keeping an open browser tab consumes workstation screen space and laptop battery. FlyRadar32 is an autonomous physical instrument engineered to run 24/7 on your desk or workshop bench.
     </p>
     <p>
       The ESP32 connects directly to your 2.4 GHz local Wi-Fi, queries live ADS-B flight feeds within your configurable geographic radius, calculates exact distance and bearing using spherical trigonometry (Haversine & Great Circle bearing), and sweeps active aircraft across a full 360-degree radar PPI screen.
     </p>
 
     <!-- Vector System Architecture Diagram -->
-    <figure class="skr-figure">
-      <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/system_architecture.svg')" style="cursor: zoom-in; padding: 18px; background: #ffffff;">
-        <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/system_architecture.svg" alt="FlyRadar32 System Architecture Diagram" />
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/system_architecture.svg')">
+      <div style="padding: 24px; background: #ffffff;">
+        <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/system_architecture.svg" alt="FlyRadar32 System Architecture Diagram" />
       </div>
-      <figcaption>Figure 1: FlyRadar32 End-to-End System Architecture & Telemetry Pipeline</figcaption>
+      <figcaption>Figure 1: FlyRadar32 End-to-End System Architecture & Telemetry Pipeline (Click to Enlarge)</figcaption>
     </figure>
   </div>
 
@@ -411,7 +663,7 @@
           </tr>
           <tr>
             <td><strong style="color: #111827;">ST7735 1.8" Color TFT</strong></td>
-            <td>128x160 resolution, 8-pin SPI interface, red PCB</td>
+            <td>128x160 native resolution, 8-pin SPI interface, red PCB</td>
             <td>1</td>
             <td>High-contrast color display for the radar sweep, flight list, and telemetry UI.</td>
           </tr>
@@ -419,7 +671,7 @@
             <td><strong style="color: #111827;">Tactile Push Buttons</strong></td>
             <td>6x6x7mm momentary push buttons</td>
             <td>3</td>
-            <td>Physical navigation buttons: UP (GPIO 32), SELECT (GPIO 33), and DOWN (GPIO 25).</td>
+            <td>Physical navigation buttons: UP, SELECT, and DOWN controls.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">Self-Tapping Screws</strong></td>
@@ -438,11 +690,11 @@
     </div>
   </div>
 
-  <!-- 3. Circuit Diagrams -->
+  <!-- 3. Circuit Diagrams (VERIFIED ACTUAL PINS) -->
   <div id="circuit" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">3. Complete Circuit Schematic & Pin Interconnects</h2>
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">3. Circuit Schematic & Verified Hardware Pinout</h2>
     <p>
-      The 8-pin ST7735 SPI display connects to the ESP32 hardware SPI bus (MOSI on GPIO 23, SCLK on GPIO 18). The display backlight pin (BLK) is wired to GPIO 21 to enable hardware PWM brightness control:
+      The ST7735 SPI display and navigation buttons connect to the ESP32 according to the exact hardware definitions in the FlyRadar32 firmware (<code>config.h</code>). The display backlight (BLK) is controlled via hardware PWM on <strong>GPIO 15</strong>, and the three push buttons use the ESP32 internal pull-up resistors:
     </p>
     
     <div class="skr-table-container">
@@ -452,6 +704,7 @@
             <th>Module Pin</th>
             <th>ESP32 GPIO</th>
             <th>Signal Type</th>
+            <th>Firmware Definition</th>
             <th>Wiring Function</th>
           </tr>
         </thead>
@@ -460,122 +713,135 @@
             <td><strong style="color: #111827;">VCC</strong></td>
             <td>VIN (5V) / 3V3</td>
             <td>Power</td>
+            <td>Power Supply</td>
             <td>Module logic and backlight supply.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">GND</strong></td>
             <td>GND</td>
             <td>Ground</td>
+            <td>Ground Bus</td>
             <td>Common circuit ground.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">CS</strong></td>
             <td>GPIO 5</td>
             <td>Digital Output</td>
+            <td><code>TFT_CS</code></td>
             <td>SPI Chip Select line (Active LOW).</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">RESET</strong></td>
             <td>GPIO 4</td>
             <td>Digital Output</td>
+            <td><code>TFT_RST</code></td>
             <td>Hardware display reset pulse.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">A0 / DC</strong></td>
             <td>GPIO 2</td>
             <td>Digital Output</td>
+            <td><code>TFT_DC</code></td>
             <td>Data / Command selection.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">SDA / MOSI</strong></td>
             <td>GPIO 23</td>
             <td>Hardware SPI</td>
+            <td><code>TFT_MOSI</code></td>
             <td>Master Out Slave In data line (27 MHz).</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">SCK / SCLK</strong></td>
             <td>GPIO 18</td>
             <td>Hardware SPI</td>
+            <td><code>TFT_SCLK</code></td>
             <td>SPI Serial Clock output.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">LED / BLK</strong></td>
-            <td>GPIO 21</td>
+            <td>GPIO 15</td>
             <td>LEDC PWM</td>
+            <td><code>TFT_BLK</code></td>
             <td>Hardware PWM dimming (5,000 Hz, 0-100%).</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">Button UP</strong></td>
-            <td>GPIO 32</td>
+            <td>GPIO 25</td>
             <td>Input Pull-Up</td>
-            <td>Scroll menu up / increase setting value.</td>
-          </tr>
-          <tr>
-            <td><strong style="color: #111827;">Button SELECT</strong></td>
-            <td>GPIO 33</td>
-            <td>Input Pull-Up</td>
-            <td>Toggle radar view mode / confirm selection.</td>
+            <td><code>BTN_UP</code></td>
+            <td>Scroll up / previous aircraft / weather screen.</td>
           </tr>
           <tr>
             <td><strong style="color: #111827;">Button DOWN</strong></td>
-            <td>GPIO 25</td>
+            <td>GPIO 26</td>
             <td>Input Pull-Up</td>
-            <td>Scroll menu down / decrease setting value.</td>
+            <td><code>BTN_DOWN</code></td>
+            <td>Scroll down / next aircraft / open flight list.</td>
+          </tr>
+          <tr>
+            <td><strong style="color: #111827;">Button SELECT</strong></td>
+            <td>GPIO 27</td>
+            <td>Input Pull-Up</td>
+            <td><code>BTN_SELECT</code></td>
+            <td>Confirm / aircraft details / open settings.</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Schematic Image with Click-to-Zoom Modal -->
-    <figure class="skr-figure">
-      <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg')">
-        <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg" alt="FlyRadar32 Circuit Schematic Diagram" />
-      </div>
-      <figcaption>Figure 2: FlyRadar32 Complete Circuit Schematic & Pin Wiring Interconnections</figcaption>
+    <!-- Schematic Image with Direct Lightbox Click -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/FlyRadar32%20Diagram%201.8%20Inch%20TFT.jpg" alt="FlyRadar32 Circuit Schematic Diagram" />
+      <figcaption>Figure 2: FlyRadar32 Complete Circuit Schematic & Pin Wiring Interconnections (Click to Enlarge)</figcaption>
     </figure>
   </div>
 
   <!-- 4. Prototype Verification -->
   <div id="prototype" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">4. Live Breadboard Prototype Verification</h2>
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">4. Live Breadboard Prototype Testing</h2>
     <p>
-      Before assembling the electronics into the 3D enclosure, the complete circuit was prototyped and verified on a solderless breadboard. This step confirms SPI display timing, backlight PWM dimming, button debouncing, and Wi-Fi reception under real operating conditions:
+      Before mounting parts into the 3D console, assemble the circuit on a solderless breadboard. This allows verifying display communication at 27 MHz SPI, testing tactile button response, and confirming Wi-Fi reception on your local network:
     </p>
 
-    <!-- Breadboard Photo with Click-to-Zoom Modal -->
-    <figure class="skr-figure">
-      <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/breadboard_image.jpeg')">
-        <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/breadboard_image.jpeg" alt="FlyRadar32 Live Breadboard Prototype" />
-      </div>
-      <figcaption>Figure 3: Live Working Prototype on Workbench: ESP32 Connected to 1.8" ST7735 Color TFT</figcaption>
+    <!-- Breadboard Photo with Direct Lightbox Click -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/breadboard_image.jpeg')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/breadboard_image.jpeg" alt="FlyRadar32 Live Breadboard Prototype" />
+      <figcaption>Figure 3: Live Working Prototype on Workbench: ESP32 Connected to 1.8" ST7735 Color TFT (Click to Enlarge)</figcaption>
     </figure>
 
     <div class="skr-alert">
-      <strong>Prototyping Recommendation</strong>
-      <p>Keep the SPI jumper wires between the ESP32 and the ST7735 under 15 cm in length. Operating the SPI bus at 27 MHz with long breadboard jumper wires can introduce signal ringing or screen artifacts.</p>
+      <strong>Wiring Tip</strong>
+      <p>Ensure your USB cable provides clean 5V power. Under heavy Wi-Fi transmission bursts, low-quality thin USB cables can cause voltage drops and unexpected brownout resets.</p>
     </div>
   </div>
 
-  <!-- 5. Web Flasher -->
-  <div id="web-flasher" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">5. In-Browser Web Serial Firmware Installation</h2>
+  <!-- 5. Web Flasher with Clean Custom Flash Button & Light Theme -->
+  <div id="flasher" class="skr-card">
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">5. In-Browser One-Click Firmware Flashing (Web Serial)</h2>
     <p>
-      You do not need to install PlatformIO, Python, esptool, or the Arduino IDE to get FlyRadar32 running. With our built-in <strong>Web Serial Flasher</strong> powered by <code>esp-flash-button</code>, you can flash the complete pre-compiled factory firmware directly from this webpage.
+      No software installation, Python scripts, or Arduino IDE configuration is required. With our Web Serial Flasher powered by <code>esp-flash-button</code>, you can flash the factory firmware binary directly onto your ESP32 from Google Chrome or Microsoft Edge.
     </p>
     <p>
-      Connect your ESP32 to your computer using a USB data cable (ensure you are using Google Chrome, Microsoft Edge, or an Opera browser with Web Serial support), and click the install button below:
+      Connect your ESP32 to your computer using a USB data cable and click the button below:
     </p>
     
     <div class="skr-flasher-wrap">
       <h3>One-Click Factory Firmware Install</h3>
       <p>Connect your ESP32 via USB and click below to flash the v1.0.0 FlyRadar32 factory firmware directly in your browser.</p>
       
-      <!-- Native ESP Flash Button with Light Theme -->
-      <div style="display: flex; justify-content: center; align-items: center; margin: 1.5rem 0;">
+      <!-- Clean, Professional Flash Button -->
+      <div style="display: flex; justify-content: center; align-items: center; margin: 1.75rem 0;">
         <esp-flash-button 
+          id="espFlashEngine"
           manifest="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/firmware/manifest.json"
-          label="Install FlyRadar32 Firmware"
           theme="light">
+          <button slot="activate" id="skrFlashBtn" class="custom-flash-btn" type="button" onclick="triggerWebFlash(event)">
+            <svg viewBox="0 0 24 24">
+              <path d="M13 2L3 14h8l-2 8 10-12h-8l2-8z"/>
+            </svg>
+            <span>Flash Firmware</span>
+          </button>
         </esp-flash-button>
       </div>
 
@@ -585,56 +851,274 @@
     </div>
 
     <div class="skr-alert" style="background: #f0fdf4; border-color: #22c55e;">
-      <strong style="color: #166534;">Flashing Completed?</strong>
-      <p style="color: #15803d;">Once the progress bar reaches 100% and displays the verified checkmark, use the built-in Serial Monitor to watch the ESP32 boot. Proceed to Section 10 to configure your Wi-Fi credentials and home radar coordinates.</p>
+      <strong style="color: #166534;">Firmware Flashed Successfully?</strong>
+      <p style="color: #15803d;">Once the flasher displays the green success checkmark, the ESP32 reboots automatically and creates its setup Wi-Fi access point. Follow the step-by-step setup below.</p>
     </div>
   </div>
 
-  <!-- 6. Enclosure Design & CAD -->
-  <div id="enclosure" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">6. FreeCAD 3D Desktop Enclosure & Assembly</h2>
-    <p>
-      The FlyRadar32 enclosure was designed parametrically in FreeCAD specifically for desktop visibility. It features an inclined 20-degree faceplate angle, internal screw mounting bosses for the ST7735, a snap-in cradle for the ESP32, and tactile button shafts:
+  <!-- 6. Step-by-Step Process Flow -->
+  <div id="setup-steps" class="skr-card">
+    <h2 style="font-size: 1.45rem; margin-bottom: 0.5rem;">6. Step-by-Step First Boot & Wi-Fi Configuration</h2>
+    <p style="color: #6b7280; margin-bottom: 2rem;">
+      Follow these structured steps after flashing to pair FlyRadar32 with your home Wi-Fi and configure the station:
     </p>
 
-    <div class="skr-grid-2">
-      <!-- Hero View -->
-      <figure class="skr-figure" style="margin: 0;">
-        <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/enclosure_hero.png')">
-          <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/enclosure_hero.png" alt="FreeCAD 3D Enclosure Isometric View" />
+    <div class="skr-steps-timeline">
+      
+      <!-- Step 1 -->
+      <div class="skr-step-item">
+        <div class="skr-step-node">01</div>
+        <div class="skr-step-card">
+          <div class="skr-step-header">
+            <h3 class="skr-step-title">Connect to FlyRadar32 Setup Hotspot</h3>
+            <span class="skr-step-tag">AP MODE ACTIVE</span>
+          </div>
+          <p>
+            Upon first boot (or whenever previously saved Wi-Fi is unreachable), the ESP32 starts an isolated 2.4 GHz Wi-Fi Access Point. Connect using your phone, tablet, or laptop:
+          </p>
+          <div class="skr-param-grid">
+            <div class="skr-param-box">
+              <div class="skr-param-info">
+                <span class="skr-param-label">Network SSID</span>
+                <span class="skr-param-val" id="valSsid">FlyRadar32-XXXX</span>
+              </div>
+              <button type="button" class="skr-copy-btn" onclick="copyText('valSsid', this)">
+                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+            <div class="skr-param-box">
+              <div class="skr-param-info">
+                <span class="skr-param-label">Hotspot Password</span>
+                <span class="skr-param-val" id="valPass">radar1234</span>
+              </div>
+              <button type="button" class="skr-copy-btn" onclick="copyText('valPass', this)">
+                <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                <span>Copy</span>
+              </button>
+            </div>
+          </div>
+          <p style="font-size: 0.88rem; color: #6b7280; margin-bottom: 0;">
+            <em>Note: If your smartphone notifies you that the network has "No Internet Access", choose <strong>Keep Connected</strong> to continue configuration.</em>
+          </p>
         </div>
-        <figcaption>Figure 4: Assembled FreeCAD Console Shell</figcaption>
-      </figure>
+      </div>
 
-      <!-- Internal Seating -->
-      <figure class="skr-figure" style="margin: 0;">
-        <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/enclosure_internal.png')">
-          <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/enclosure_internal.png" alt="Internal Seating and Display Pillars" />
+      <!-- Step 2 -->
+      <div class="skr-step-item">
+        <div class="skr-step-node">02</div>
+        <div class="skr-step-card">
+          <div class="skr-step-header">
+            <h3 class="skr-step-title">Open the Captive Portal & Scan Networks</h3>
+            <span class="skr-step-tag">GATEWAY CONFIG</span>
+          </div>
+          <p>
+            A captive portal browser login page will pop up automatically. If it does not appear within 5 seconds, open your browser and enter the default gateway:
+          </p>
+          <div class="skr-param-box" style="margin-bottom: 1.25rem;">
+            <div class="skr-param-info">
+              <span class="skr-param-label">Portal Gateway Address</span>
+              <span class="skr-param-val" id="valPortal">http://192.168.4.1</span>
+            </div>
+            <a href="http://192.168.4.1" target="_blank" rel="noopener" class="skr-copy-btn">
+              <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+              <span>Open</span>
+            </a>
+          </div>
+          <p style="margin-bottom: 0;">
+            Click <strong>Scan Networks</strong>, select your home 2.4 GHz Wi-Fi SSID, enter your home password, and click <strong>Save & Connect</strong>. The ESP32 writes the credentials into non-volatile NVS storage and automatically reboots.
+          </p>
         </div>
-        <figcaption>Figure 5: Internal Display Mounts & ESP32 Cradle</figcaption>
-      </figure>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="skr-step-item">
+        <div class="skr-step-node">03</div>
+        <div class="skr-step-card">
+          <div class="skr-step-header">
+            <h3 class="skr-step-title">Access the Local Web Cockpit</h3>
+            <span class="skr-step-tag">STATION DASHBOARD</span>
+          </div>
+          <p>
+            Re-connect your phone or laptop back to your normal home Wi-Fi network. Open any web browser and navigate to the mDNS URL:
+          </p>
+          <div class="skr-param-box" style="margin-bottom: 1.25rem;">
+            <div class="skr-param-info">
+              <span class="skr-param-label">Local mDNS Web Dashboard</span>
+              <span class="skr-param-val" id="valMdns">http://flyradar32.local</span>
+            </div>
+            <a href="http://flyradar32.local" target="_blank" rel="noopener" class="skr-copy-btn">
+              <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+              <span>Open</span>
+            </a>
+          </div>
+          <p style="margin-bottom: 0;">
+            The ST7735 TFT display also prints its assigned local IP address (e.g. <code>192.168.1.120</code>) on the bottom boot line in case your local network router does not support mDNS zero-configuration.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 7. API Setup & Coordinates -->
+  <div id="api-setup" class="skr-card">
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">7. OpenSky API Setup & Location Coordinates</h2>
+    <p>
+      To track aircraft flying directly over your house or workplace, FlyRadar32 needs your geographic coordinates:
+    </p>
+
+    <h3 style="font-size: 1.1rem; color: #111827; margin-top: 1.25rem;">Setting Home Coordinates</h3>
+    <ol>
+      <li>Open Google Maps or GPS-Coordinates.net, right-click on your house or city, and copy your <strong>Latitude</strong> and <strong>Longitude</strong> (e.g. <code>22.5726</code>, <code>88.3639</code>).</li>
+      <li>In the FlyRadar32 web cockpit (<code>http://flyradar32.local</code>), click on the <strong>Settings</strong> tab.</li>
+      <li>Enter your Latitude and Longitude under "Station Location" and click <strong>Save Location</strong>.</li>
+      <li>The radar engine will immediately calculate a bounding box around your position and request live telemetry.</li>
+    </ol>
+
+    <h3 style="font-size: 1.1rem; color: #111827; margin-top: 1.5rem;">OpenSky Network API Credentials (Optional)</h3>
+    <p>
+      FlyRadar32 works out of the box with community feeds (adsb.lol and airplanes.live). If you also want to use the academic OpenSky Network provider:
+    </p>
+    <ol>
+      <li>Create a free community account at <a href="https://opensky-network.org" target="_blank" rel="noopener">opensky-network.org</a>.</li>
+      <li>Go to your profile settings and generate API credentials (Client ID and Client Secret).</li>
+      <li>In the FlyRadar32 Settings tab, scroll to the "OpenSky Credentials" card, paste your credentials, and click <strong>Save Credentials</strong>.</li>
+    </ol>
+  </div>
+
+  <!-- 8. On-Device Features & Controls -->
+  <div id="on-device-features" class="skr-card">
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">8. How to Use Every Feature & Screen on the Device</h2>
+    <p>
+      FlyRadar32 is operated entirely using the three physical push buttons on the front console:
+    </p>
+
+    <div class="skr-table-container">
+      <table class="skr-table">
+        <thead>
+          <tr>
+            <th>Current Screen</th>
+            <th>Button Action</th>
+            <th>Resulting Function</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Short Press <strong>UP / DOWN</strong></td>
+            <td>Cycle through aircraft. Selected plane is highlighted with a cyan ring and its telemetry is locked in the right sidebar.</td>
+          </tr>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Short Press <strong>SELECT</strong></td>
+            <td>Opens the <strong>Flight Detail Screen</strong> for the selected aircraft (Call sign, ICAO hex, registration, altitude, speed, squawk).</td>
+          </tr>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Short Press <strong>SELECT</strong> (No plane selected)</td>
+            <td>Opens the <strong>Live Weather Screen</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Long Press <strong>UP</strong></td>
+            <td>Quick shortcut to open the <strong>Live Weather Screen</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Long Press <strong>DOWN</strong></td>
+            <td>Opens the full <strong>Aircraft List View</strong> (scrollable table of all visible contacts).</td>
+          </tr>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Long Press <strong>SELECT</strong></td>
+            <td>Opens the <strong>Main Settings Menu</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Radar Screen</strong></td>
+            <td>Dual Long Press (<strong>UP + DOWN together</strong>)</td>
+            <td>Emergency shortcut directly to the <strong>Live Weather Screen</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Flight Detail</strong></td>
+            <td>Short Press <strong>UP / DOWN</strong></td>
+            <td>Scroll up or down through detailed aircraft telemetry fields.</td>
+          </tr>
+          <tr>
+            <td><strong>Flight Detail</strong></td>
+            <td>Short / Long Press <strong>SELECT</strong></td>
+            <td>Return to the Main Radar Screen.</td>
+          </tr>
+          <tr>
+            <td><strong>Settings Menu</strong></td>
+            <td>Short Press <strong>UP / DOWN</strong></td>
+            <td>Navigate settings options.</td>
+          </tr>
+          <tr>
+            <td><strong>Settings Menu</strong></td>
+            <td>Short Press <strong>SELECT</strong></td>
+            <td>Enter submenu or toggle option. Long press returns to Radar.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
-    <!-- Transparent Assembly View -->
-    <figure class="skr-figure">
-      <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/enclosure_transparent.png')">
-        <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/enclosure_transparent.png" alt="FlyRadar32 Transparent X-Ray CAD View" />
-      </div>
-      <figcaption>Figure 6: Transparent X-Ray Assembly: PCB Clearances, Bezel Rails & Internal Pass-Throughs</figcaption>
-    </figure>
-
-    <h3 style="font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827;">3D Printing Parameters</h3>
-    <ul style="margin-bottom: 0;">
-      <li><strong>Layer Height:</strong> 0.20 mm for the main shell and bezel lid; 0.16 mm for button caps.</li>
-      <li><strong>Perimeter Walls:</strong> 3 solid perimeters for mechanical durability.</li>
-      <li><strong>Infill Density:</strong> 20% Gyroid or Grid infill.</li>
-      <li><strong>Support Material:</strong> None required. All internal cable channels and screw bosses use 45-degree chamfers.</li>
+    <h3 style="font-size: 1.1rem; color: #111827; margin-top: 1.5rem;">Settings Menu Options on TFT</h3>
+    <ul>
+      <li><strong>Zoom Level:</strong> Cycle between 25 km, 50 km, and 100 km radar ranges.</li>
+      <li><strong>Auto-Range:</strong> When enabled, automatically zooms the radar to fit the closest 10 aircraft.</li>
+      <li><strong>Brightness:</strong> Adjust TFT backlight from 10% to 100% in 10% steps.</li>
+      <li><strong>Sweep Animation:</strong> Toggle the rotating radar sweep beam line on or off.</li>
+      <li><strong>Aircraft Labels:</strong> Choose between Call Sign, Flight Number, or Altitude labels.</li>
+      <li><strong>Aircraft Icon:</strong> Switch blip style between simple Dot, Directional Arrow, or Aeroplane silhouette.</li>
+      <li><strong>Color Theme:</strong> Cycle between Classic Green, Modern Cyan, and High-Contrast Amber palettes.</li>
+      <li><strong>Compass Rose:</strong> Toggle N / S / E / W directional indicators around the outer ring.</li>
+      <li><strong>Range Labels:</strong> Show or hide distance numbers on the concentric range rings.</li>
+      <li><strong>Breadcrumb Trails:</strong> Display historical trajectory dots showing each plane's recent flight path.</li>
+      <li><strong>Provider Priority:</strong> Reorder fallback between OpenSky, adsb.lol, and airplanes.live.</li>
+      <li><strong>System Info:</strong> Check firmware version, Wi-Fi SSID, IP address, and free heap RAM.</li>
     </ul>
   </div>
 
-  <!-- 7. FreeRTOS Dual-Core Architecture -->
+  <!-- 9. Live Weather & Web Cockpit (All Images Using jsDelivr CDN) -->
+  <div id="weather-diagnostics" class="skr-card">
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">9. Accessing Live Weather & Station Diagnostics</h2>
+    <p>
+      FlyRadar32 features an integrated web dashboard running on the ESP32 async server, along with a dedicated aviation weather screen:
+    </p>
+
+    <!-- Radar Sweep Screenshot -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/flyradar_web_radar_tab_ss.png')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/flyradar_web_radar_tab_ss.png" alt="Web Radar Sweep View" />
+      <figcaption>Figure 4: Web Cockpit: Live Plan Position Indicator (PPI) Radar Sweep with Range Rings (Click to Enlarge)</figcaption>
+    </figure>
+
+    <!-- Flight Board Screenshot -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/flyradar_web_flightboard_tab_ss.png')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/flyradar_web_flightboard_tab_ss.png" alt="Web Flight Board Table" />
+      <figcaption>Figure 5: Web Cockpit: Live Flight Board Table Sorting Altitude, Bearing, and Speed (Click to Enlarge)</figcaption>
+    </figure>
+
+    <!-- Station Diagnostics & Weather Screenshot -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/flyradar_web_station_weather_tab_ss.png')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/flyradar_web_station_weather_tab_ss.png" alt="Station Weather Tab" />
+      <figcaption>Figure 6: Web Cockpit: Station Diagnostics & Local Meteorological Conditions (Click to Enlarge)</figcaption>
+    </figure>
+
+    <p>
+      On the physical ST7735 display, pressing <strong>UP + DOWN together</strong> brings up the weather card displaying:
+    </p>
+    <ul>
+      <li><strong>Air Temperature:</strong> Current temperature in degrees Celsius alongside "Feels Like" temperature.</li>
+      <li><strong>Wind & Gusts:</strong> Wind speed in knots, compass direction in degrees, and peak gust velocity.</li>
+      <li><strong>Barometric Pressure:</strong> Atmospheric pressure in hPa/mbar.</li>
+      <li><strong>Precipitation & Cloud Cover:</strong> Humidity percentage, cloud coverage, and precipitation in millimeters.</li>
+    </ul>
+  </div>
+
+  <!-- 10. FreeRTOS Dual-Core Architecture -->
   <div id="freertos-engine" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">7. FreeRTOS Dual-Core Architecture & Radar Math</h2>
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">10. FreeRTOS Dual-Core Architecture & Radar Math</h2>
     <p>
       Rendering a 360-degree radar display with animated sweep lines while handling TLS HTTPS network requests requires clean separation of tasks. FlyRadar32 takes full advantage of the ESP32's dual Xtensa LX6 cores using FreeRTOS:
     </p>
@@ -647,7 +1131,7 @@
       </p>
     </div>
 
-    <h3 style="font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827;">Spherical Radar Trigonometry</h3>
+    <h3 style="font-size: 1.1rem; color: #111827; margin-top: 1.5rem;">Spherical Radar Trigonometry</h3>
     <p>
       To place each aircraft on the radar screen, FlyRadar32 calculates distance using the Haversine formula and heading using the Great Circle initial bearing equation:
     </p>
@@ -666,49 +1150,20 @@ float x = cos(radians(homeLat)) * sin(radians(planeLat)) -
           sin(radians(homeLat)) * cos(radians(planeLat)) * cos(dLon);
 float bearingDeg = fmod((degrees(atan2(y, x)) + 360.0), 360.0);
 
-// Polar to Cartesian conversion for ST7735 screen (128x160)
-int screenX = centerX + (int)((distanceKm / maxRadiusKm) * radarRadiusPx * sin(radians(bearingDeg)));
-int screenY = centerY - (int)((distanceKm / maxRadiusKm) * radarRadiusPx * cos(radians(bearingDeg)));
+// Polar to Cartesian conversion for ST7735 screen (160x128 landscape)
+int screenX = CX + (int)((distanceKm / maxRadiusKm) * RADAR_R * sin(radians(bearingDeg)));
+int screenY = CY - (int)((distanceKm / maxRadiusKm) * RADAR_R * cos(radians(bearingDeg)));
 </pre>
-
-    <h3 style="font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827;">Altitude Color Coding</h3>
-    <p>Aircraft blips on the radar display are dynamically color-graded based on altitude:</p>
-    <ul style="margin-bottom: 0;">
-      <li><strong style="color: #ef4444;">Red:</strong> Low altitude / landing approach (below 5,000 ft).</li>
-      <li><strong style="color: #f97316;">Orange:</strong> Climb / descent phase (5,000 ft to 15,000 ft).</li>
-      <li><strong style="color: #eab308;">Yellow:</strong> Transition flight levels (15,000 ft to 25,000 ft).</li>
-      <li><strong style="color: #22c55e;">Green:</strong> High-altitude cruise (25,000 ft to 35,000 ft).</li>
-      <li><strong style="color: #3b82f6;">Cyan:</strong> Long-range transcontinental cruise (above 35,000 ft).</li>
-    </ul>
   </div>
 
-  <!-- 8. Multi-Provider ADS-B Network -->
-  <div id="multi-provider" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">8. Multi-Provider ADS-B Failover Network</h2>
-    <p>
-      Many open flight tracker projects fail when a single public API endpoint experiences downtime or rate limits. FlyRadar32 is built on a fault-tolerant multi-provider engine supporting four independent ADS-B networks with instant automatic fallback:
-    </p>
-
-    <ol style="list-style-type: decimal; padding-left: 1.5rem; line-height: 1.9; font-weight: 500; margin-bottom: 1.5rem;">
-      <li><strong>Flightradar24:</strong> Fast commercial data updates with global feeder coverage.</li>
-      <li><strong>ADS-B One:</strong> Unfiltered community feeder network offering bounding box JSON queries.</li>
-      <li><strong>Airplanes.live:</strong> Open tar1090 feeder network with high update reliability and no rate limits.</li>
-      <li><strong>OpenSky Network:</strong> Academic ADS-B network providing worldwide coverage.</li>
-    </ol>
-
-    <p>
-      If the primary provider fails to return valid telemetry within the timeout threshold, the engine automatically switches to the next configured provider. The active provider and failover state can be monitored in real time from the Station Diagnostics tab in the web cockpit.
-    </p>
-  </div>
-
-  <!-- 9. PWM Dimming -->
+  <!-- 11. PWM Dimming -->
   <div id="pwm-dimming" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">9. Hardware LEDC PWM Backlight Dimming</h2>
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">11. Hardware LEDC PWM Backlight Dimming</h2>
     <p>
-      Instead of simple software on/off switching or noisy low-frequency dimming, the ST7735 backlight is driven by the ESP32's dedicated LED Control (LEDC) peripheral on GPIO 21. By running at 5,000 Hz with 8-bit resolution (0-255 steps), the display produces zero audible whine and zero visible flicker:
+      Instead of simple software on/off switching or noisy low-frequency dimming, the ST7735 backlight is driven by the ESP32's dedicated LED Control (LEDC) peripheral on <strong>GPIO 15</strong>. By running at 5,000 Hz with 8-bit resolution (0-255 steps), the display produces zero audible whine and zero visible flicker:
     </p>
 
-    <pre class="skr-code">#define TFT_BLK_PIN   21
+    <pre class="skr-code">#define TFT_BLK_PIN   15
 #define PWM_CHANNEL   0
 #define PWM_FREQ      5000
 #define PWM_RES       8
@@ -716,11 +1171,11 @@ int screenY = centerY - (int)((distanceKm / maxRadiusKm) * radarRadiusPx * cos(r
 void init_backlight() {
     ledcSetup(PWM_CHANNEL, PWM_FREQ, PWM_RES);
     ledcAttachPin(TFT_BLK_PIN, PWM_CHANNEL);
-    set_backlight_percent(80); // Default comfortable workstation brightness
+    set_backlight_percent(80); // Default comfortable brightness
 }
 
 void set_backlight_percent(uint8_t percent) {
-    if (percent &gt; 100) percent = 100;
+    if (percent > 100) percent = 100;
     uint32_t duty = (uint32_t)(percent * 255) / 100;
     ledcWrite(PWM_CHANNEL, duty);
 }
@@ -734,72 +1189,89 @@ void set_backlight_percent(uint8_t percent) {
     </div>
   </div>
 
-  <!-- 10. Web Cockpit & Setup -->
-  <div id="web-cockpit" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">10. Onboard Web Cockpit & First-Boot Configuration</h2>
+  <!-- 12. FreeCAD 3D Enclosure -->
+  <div id="enclosure" class="skr-card">
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">12. FreeCAD 3D Enclosure Assembly Guide</h2>
     <p>
-      FlyRadar32 hosts a comprehensive, responsive web application served directly from the ESP32. When connected to your Wi-Fi, open your browser and visit <code>http://flyradar32.local</code>:
+      The FlyRadar32 enclosure was designed parametrically in FreeCAD specifically for desktop visibility. It features an inclined 20-degree faceplate angle, internal screw mounting bosses for the ST7735, a snap-in cradle for the ESP32, and tactile button shafts:
     </p>
 
-    <div class="skr-grid-2">
-      <!-- Tab 1: Live Radar -->
-      <figure class="skr-figure" style="margin: 0;">
-        <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_radar_tab_ss.png')">
-          <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_radar_tab_ss.png" alt="Web Cockpit Live Radar Sweep View" />
-        </div>
-        <figcaption>Figure 7: Web Cockpit: Real-Time Radar Sweep</figcaption>
-      </figure>
+    <!-- CAD Hero Isometric View -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/enclosure_hero.png')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/enclosure_hero.png" alt="FreeCAD 3D Enclosure Isometric View" />
+      <figcaption>Figure 7: Assembled FreeCAD Console Shell with Tactile Buttons (Click to Enlarge)</figcaption>
+    </figure>
 
-      <!-- Tab 2: Flight Board -->
-      <figure class="skr-figure" style="margin: 0;">
-        <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_flightboard_tab_ss.png')">
-          <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_flightboard_tab_ss.png" alt="Web Cockpit Live Flight Board" />
-        </div>
-        <figcaption>Figure 8: Web Cockpit: Live Flight Board Table</figcaption>
-      </figure>
+    <!-- Transparent Assembly View -->
+    <figure class="skr-figure" onclick="openImgModal('https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/enclosure_transparent.png')">
+      <img src="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/assets/enclosure_transparent.png" alt="FlyRadar32 Transparent X-Ray CAD View" />
+      <figcaption>Figure 8: Transparent X-Ray Assembly: PCB Clearances, Bezel Rails & Internal Wiring Cavity (Click to Enlarge)</figcaption>
+    </figure>
 
-      <!-- Tab 3: Settings -->
-      <figure class="skr-figure" style="margin: 0;">
-        <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_settings_tab_ss.png')">
-          <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_settings_tab_ss.png" alt="Web Cockpit Configuration & Settings" />
-        </div>
-        <figcaption>Figure 9: Web Cockpit: Settings & Coordinates</figcaption>
-      </figure>
-
-      <!-- Tab 4: Weather & Station -->
-      <figure class="skr-figure" style="margin: 0;">
-        <div onclick="openImgModal('https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_station_weather_tab_ss.png')">
-          <img src="https://raw.githubusercontent.com/skr-electronics-lab/flyradar32/main/assets/flyradar_web_station_weather_tab_ss.png" alt="Web Cockpit Ground Station & Diagnostics" />
-        </div>
-        <figcaption>Figure 10: Web Cockpit: Station Diagnostics</figcaption>
-      </figure>
-    </div>
-
-    <h3 style="font-size: 1.15rem; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #111827;">First-Boot Setup Workflow</h3>
-    <ul style="margin-bottom: 0;">
-      <li><strong>Step 1 — Wi-Fi Hotspot:</strong> On initial power-on, connect your phone or laptop to the temporary Wi-Fi network <strong>FlyRadar32-Setup</strong>.</li>
-      <li><strong>Step 2 — Wi-Fi Pairing:</strong> Enter your home Wi-Fi SSID and password in the captive portal. The ESP32 saves credentials to NVS flash and reboots.</li>
-      <li><strong>Step 3 — Custom Location:</strong> Access <code>http://flyradar32.local</code> to set your home latitude and longitude, select your tracking range (10 km to 250 km), choose your preferred units (metric or nautical), and adjust screen sleep timers.</li>
-    </ul>
+    <h3 style="font-size: 1.1rem; color: #111827; margin-top: 1.5rem;">Assembly Sequence</h3>
+    <ol>
+      <li>Print the 3 main STL files from the repository: <code>Base_Shell.stl</code>, <code>Lid_Faceplate.stl</code>, and <code>Buttons.stl</code>.</li>
+      <li>Insert the 3 tactile button caps into the lid bezel wells.</li>
+      <li>Seat the ST7735 1.8-inch TFT into the bezel mounting bosses and fasten with four M2 screws.</li>
+      <li>Snap the ESP32 NodeMCU board into the base cradle. Route wiring to the display headers.</li>
+      <li>Mate the top bezel with the base shell. The snap-fit joints lock securely without external glue.</li>
+    </ol>
   </div>
 
-  <!-- 11. Conclusion -->
+  <!-- 13. Conclusion & Modern Social Buttons -->
   <div id="conclusion" class="skr-card">
-    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">11. Conclusion, Downloads & Open Source Resources</h2>
+    <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">13. Conclusion, Downloads & Community Resources</h2>
     <p style="margin-bottom: 1.25rem;">
-      FlyRadar32 transforms an affordable ESP32 and a 1.8-inch ST7735 color display into an autonomous, real-time desktop aircraft radar. With its 4-provider failover engine, hardware PWM backlight dimming, and custom 3D enclosure, it makes a functional and attractive centerpiece for any electronics or aviation enthusiast's desk.
+      FlyRadar32 transforms an affordable ESP32 and an ST7735 color display into an autonomous, real-time desktop aircraft radar. With its 4-provider failover engine, hardware PWM backlight dimming, and custom 3D enclosure, it makes a functional and attractive centerpiece for any electronics or aviation enthusiast's desk.
     </p>
     
-    <p style="margin-bottom: 1.75rem;">
-      The entire project—including PlatformIO firmware source code, pre-compiled factory binary, 3D STL print files, and FreeCAD source files—is 100% open source under the MIT License.
+    <div class="skr-alert" style="background: #f8fafc; border-color: #0284c7; margin: 1.5rem 0;">
+      <strong style="color: #0369a1;">License & Attribution Notice (CC BY-NC-ND 4.0)</strong>
+      <p style="color: #334155; margin-bottom: 0.5rem;">
+        The entire project—including PlatformIO firmware source code, pre-compiled factory binary, 3D STL print files, and FreeCAD source files—is published under the <strong>Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International (CC BY-NC-ND 4.0)</strong> license.
+      </p>
+      <p style="color: #334155; margin-bottom: 0;">
+        You are completely free to build, flash, 3D-print, and enjoy FlyRadar32 for your own personal, educational, and maker use. However, commercial manufacturing, monetization, claiming ownership, or redistributing modified versions under a different brand is strictly prohibited. Full attribution to <strong>SK Raihan (SKR Electronics Lab)</strong> must be retained.
+      </p>
+    </div>
+
+    <h3 style="font-size: 1.15rem; color: #111827; margin-top: 1.75rem; margin-bottom: 0.75rem;">Official Project Links & Community</h3>
+    <p style="color: #6b7280; font-size: 0.92rem; margin-bottom: 1.25rem;">
+      Access the complete source code, 3D CAD files, video build walkthroughs, and developer updates below:
     </p>
 
-    <div style="margin-bottom: 1.5rem;">
-      <a href="https://github.com/skr-electronics-lab/flyradar32" target="_blank" rel="noopener" class="skr-btn-primary">
-        GitHub Repository
+    <!-- Modern Social / Branded Action Buttons with Inline SVGs -->
+    <div class="skr-social-grid">
+      <!-- GitHub -->
+      <a href="https://github.com/skr-electronics-lab/flyradar32" target="_blank" rel="noopener" class="skr-social-btn skr-btn-github">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        <span>GitHub Repository</span>
       </a>
-      <a href="https://youtube.com/@skr_electronics_lab" target="_blank" rel="noopener" class="skr-btn-dark">
-        YouTube Channel
+
+      <!-- YouTube -->
+      <a href="https://youtube.com/@skr_electronics_lab" target="_blank" rel="noopener" class="skr-social-btn skr-btn-youtube">
+        <svg viewBox="0 0 24 24">
+          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+        </svg>
+        <span>YouTube Channel</span>
+      </a>
+
+      <!-- Twitter / X -->
+      <a href="https://twitter.com/skrelectronics" target="_blank" rel="noopener" class="skr-social-btn skr-btn-twitter">
+        <svg viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+        <span>Follow on X</span>
+      </a>
+
+      <!-- Ko-fi -->
+      <a href="https://ko-fi.com/skrelectronicslab" target="_blank" rel="noopener" class="skr-social-btn skr-btn-kofi">
+        <svg viewBox="0 0 24 24">
+          <path d="M23.881 8.948c-.773-4.085-4.859-4.593-4.859-4.593H.723c-.604 0-.679.798-.679.798s-.082 7.324-.022 11.822c.164 2.424 2.586 2.672 2.586 2.672s8.267-.023 11.966-.049c2.438-.426 2.683-2.566 2.683-2.566l.006-.447c1.332.148 4.298-.198 5.602-2.317 1.547-2.513 1.016-5.32 1.016-5.32zm-4.708 3.585c-.463 1.076-1.579 1.492-2.529 1.574l-.011-3.66c1.199.043 2.164.331 2.641.874.457.521.362 1.212-.101 1.212z"/>
+        </svg>
+        <span>Support on Ko-fi</span>
       </a>
     </div>
 
@@ -810,17 +1282,17 @@ void set_backlight_percent(uint8_t percent) {
 
 </div>
 
-<!-- Full Image Modal (Lightbox) -->
+<!-- Clean Full-Screen Lightbox Modal -->
 <div id="skrImgModal" class="skr-img-modal" onclick="closeImgModal(event)">
   <span class="skr-img-modal-close" onclick="closeImgModal(event)">&times;</span>
-  <img class="skr-img-modal-content" id="skrImgModalImg" onclick="event.stopPropagation()">
+  <img class="skr-img-modal-content" id="skrImgModalImg" onclick="event.stopPropagation()" />
 </div>
 
 <script>
   function openImgModal(src) {
     var modal = document.getElementById("skrImgModal");
     var modalImg = document.getElementById("skrImgModalImg");
-    if(modal && modalImg) {
+    if (modal && modalImg) {
       modalImg.src = src;
       modal.style.display = "flex";
       void modal.offsetWidth; 
@@ -830,16 +1302,16 @@ void set_backlight_percent(uint8_t percent) {
   }
   
   function closeImgModal(e) {
-    if(e) e.stopPropagation();
+    if (e) e.stopPropagation();
     var modal = document.getElementById("skrImgModal");
-    if(modal) {
+    if (modal) {
       modal.classList.remove("show");
       document.body.style.overflow = "auto";
       setTimeout(function() {
         modal.style.display = "none";
         var modalImg = document.getElementById("skrImgModalImg");
-        if(modalImg) modalImg.src = ""; 
-      }, 250);
+        if (modalImg) modalImg.src = ""; 
+      }, 200);
     }
   }
 
@@ -852,16 +1324,61 @@ void set_backlight_percent(uint8_t percent) {
     }
   });
 
-  // Web Flasher Event Listeners
-  document.addEventListener('DOMContentLoaded', function() {
-    const flasher = document.querySelector('esp-flash-button');
-    if (flasher) {
-      flasher.addEventListener('flash-success', function(e) {
+  // Parameter 1-Click Copy Helper
+  function copyText(elementId, btn) {
+    var el = document.getElementById(elementId);
+    if (!el) return;
+    var text = el.textContent || el.innerText;
+    navigator.clipboard.writeText(text).then(function() {
+      var originalHTML = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:#22c55e;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span style="color:#22c55e;">Copied!</span>';
+      setTimeout(function() {
+        btn.innerHTML = originalHTML;
+      }, 2000);
+    });
+  }
+
+  // Global Bulletproof Web Flasher Trigger
+  window.triggerWebFlash = function(e) {
+    if (e) e.preventDefault();
+    const efb = document.getElementById('espFlashEngine');
+    if (!efb) {
+      alert('Flasher component not found on page.');
+      return;
+    }
+
+    if (!('serial' in navigator)) {
+      alert('Web Serial is only supported in Google Chrome or Microsoft Edge on desktop.\nPlease open this tutorial in Chrome or Edge to connect and flash your ESP32.');
+      return;
+    }
+
+    if (typeof efb._onButtonClick === 'function') {
+      efb._onButtonClick();
+    } else if (efb.shadowRoot) {
+      const shadowBtn = efb.shadowRoot.querySelector('button');
+      if (shadowBtn) shadowBtn.click();
+      else efb.click();
+    } else {
+      efb.click();
+    }
+  };
+
+  // Lifecycle listeners
+  function initFlasherListeners() {
+    const efb = document.getElementById('espFlashEngine');
+    if (efb) {
+      efb.addEventListener('flash-success', function(e) {
         console.log("FlyRadar32 Flash Complete:", e.detail);
       });
-      flasher.addEventListener('flash-error', function(e) {
+      efb.addEventListener('flash-error', function(e) {
         console.error("FlyRadar32 Flash Error:", e.detail);
       });
     }
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFlasherListeners);
+  } else {
+    initFlasherListeners();
+  }
 </script>

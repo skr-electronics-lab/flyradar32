@@ -6,7 +6,7 @@ FlyRadar32 is a standalone desktop aviation instrument powered by an ESP32 dual-
 
 <div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: CC BY-NC-ND 4.0](https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0-blue.svg)](LICENSE)
 [![Platform: ESP32](https://img.shields.io/badge/Hardware-ESP32--WROOM--32-red.svg)](https://www.espressif.com/)
 [![Framework: PlatformIO](https://img.shields.io/badge/Build-PlatformIO-orange.svg)](https://platformio.org/)
 [![Display: ST7735](https://img.shields.io/badge/Display-ST7735%201.8%22%20SPI-purple.svg)](include/radar_display.h)
@@ -105,16 +105,16 @@ FlyRadar32 segregates workloads across both symmetric Xtensa LX6 CPU cores using
 | Function | ESP32 GPIO | Peripheral Pin | Description |
 |----------|------------|----------------|-------------|
 | Display SCLK | GPIO 18 | SCK / CLK | Hardware VSPI Clock (27 MHz) |
-| Display MOSI | GPIO 23 | SDA / DIN | Hardware VSPI Data |
+| Display MOSI | GPIO 23 | SDA / DIN | Hardware VSPI Data Line |
 | Display CS | GPIO 5 | CS | Chip Select (Active Low) |
 | Display DC | GPIO 2 | DC / AO | Data / Command Select |
-| Display RST | GPIO 4 | RES / RESET | Hardware Reset |
-| Display BL | GPIO 15 | BL / LED | Backlight Control |
-| Display VCC | 3V3 Rail | VCC | 3.3V Power Rail |
-| Display GND | GND Rail | GND | Common Ground |
-| Button UP | GPIO 25 | Pin 1 to GPIO, Pin 2 to GND | Target cursor clockwise traverse |
-| Button DOWN | GPIO 26 | Pin 1 to GPIO, Pin 2 to GND | Target cursor counter-clockwise traverse |
-| Button SELECT | GPIO 27 | Pin 1 to GPIO, Pin 2 to GND | Short: Detail / Long: Menu |
+| Display RST | GPIO 4 | RES / RESET | Hardware Reset Pulse |
+| Display BL | GPIO 15 | BL / LED | Hardware LEDC PWM Backlight Dimming (5,000 Hz, 8-Bit) |
+| Display VCC | VIN (5V) / 3V3 | VCC | Display Logic and Backlight Supply |
+| Display GND | GND | GND | Common Circuit Ground |
+| Button UP | GPIO 25 | Pin 1 to GPIO, Pin 2 to GND | Cycle target aircraft / Long-press: Live Weather |
+| Button DOWN | GPIO 26 | Pin 1 to GPIO, Pin 2 to GND | Cycle target aircraft / Long-press: Flight List |
+| Button SELECT | GPIO 27 | Pin 1 to GPIO, Pin 2 to GND | Short: Flight Detail / Long: Settings / Dual UP+DOWN: Weather |
 
 > **Strapping Pin Notice:** Do not connect pull-down loads or switches to GPIO 0, GPIO 12, or GPIO 15 that force unexpected boot logic levels.
 
@@ -250,5 +250,10 @@ If you enjoy this open-source project and want to support ongoing development, c
 ---
 
 ## License
-
-This project is licensed under the [MIT License](LICENSE).
+ 
+ This project is licensed under the [Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International License (CC BY-NC-ND 4.0)](LICENSE).
+ 
+ - **Personal & Educational Use:** Free to build, 3D-print, flash firmware, and operate physical FlyRadar32 units for personal non-commercial hobbyist use.
+ - **No Rebranding / No Derivatives:** You may not modify the design, source code, or CAD models and redistribute them claiming them as your own original work.
+ - **Non-Commercial:** Commercial manufacturing, sale of pre-assembled units, paid kits, or commercial monetization without prior explicit written authorization is strictly prohibited.
+ - **Attribution:** Creator credit to **SK Raihan (SKR Electronics Lab)** must be preserved on all forks and physical builds.
