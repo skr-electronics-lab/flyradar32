@@ -58,11 +58,12 @@ static const char* settingsMainLabels[SETTINGS_MAIN_COUNT] = {
     "Back to Radar"
 };
 
-#define SETTINGS_DISPLAY_COUNT 4
+#define SETTINGS_DISPLAY_COUNT 5
 static const char* settingsDisplayLabels[SETTINGS_DISPLAY_COUNT] = {
     "50 km",
     "100 km",
     "150 km",
+    "300 km",
     "Back"
 };
 
@@ -122,7 +123,7 @@ static int effectiveZoom() {
 
     float ref = d[n >= 10 ? 9 : n - 1];   // 10th closest, or closest if fewer
     int want = 0;
-    while (want < 2 && ref > ApiProviders::ZOOM_KM[want]) want++;
+    while (want < (ApiProviders::ZOOM_LEVEL_COUNT - 1) && ref > ApiProviders::ZOOM_KM[want]) want++;
 
     static int lastWant = -1;
     static int stableCount = 0;
@@ -404,9 +405,9 @@ static void handleSettingsButtons(ButtonEvent ev, ButtonId which) {
             if (which == BTN_ID_UP) settingsDisplayIndex = (settingsDisplayIndex - 1 + SETTINGS_DISPLAY_COUNT) % SETTINGS_DISPLAY_COUNT;
             else if (which == BTN_ID_DOWN) settingsDisplayIndex = (settingsDisplayIndex + 1) % SETTINGS_DISPLAY_COUNT;
             else if (which == BTN_ID_SELECT && ev == BTN_EVENT_SHORT_PRESS) {
-                if (settingsDisplayIndex < 3) {
+                if (settingsDisplayIndex < ApiProviders::ZOOM_LEVEL_COUNT) {
                     s.zoomLevel = settingsDisplayIndex;
-                    // Manual pick overrides auto â€”switch it off
+                    // Manual pick overrides auto — switch it off
                     if (s.autoRange) { s.autoRange = false; Storage::saveAutoRange(false); }
                     persistDisplay(s);
                     RadarDisplay::forceLVGLRefresh();

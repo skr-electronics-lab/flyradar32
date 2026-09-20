@@ -2,6 +2,8 @@
 #include "config.h"
 #include <Preferences.h>
 
+#include "api_providers.h"
+
 static Preferences prefs;
 static AppSettings cache;
 static SemaphoreHandle_t settingsMutex = nullptr;
@@ -18,16 +20,24 @@ static void loadAll() {
     cache.timezone = prefs.getString("tz", DEFAULT_TZ);
     prefs.end();
 
-    prefs.begin(NVS_NS_API, true);
+    prefs.begin(NVS_NS_API, false);
+    int prvVer = prefs.getInt("prv_v", 0);
     for (int i = 0; i < PROVIDER_COUNT; i++) {
         String enKey = "en" + String(i);
         String prKey = "pr" + String(i);
-        // Default: all providers enabled. Default priority: adsb.lol(1)=0, OpenSky(0)=1, airplanes.live(2)=2
-        // This makes adsb.lol the first-tried provider (no auth needed, HTTP, fastest).
-        uint8_t defPriority = (i == PROVIDER_ADSB_LOL) ? 0 : (i == PROVIDER_OPENSKY) ? 1 : 2;
-        cache.providerEnabled[i]  = prefs.getBool(enKey.c_str(), true);
-        cache.providerPriority[i] = prefs.getUChar(prKey.c_str(), defPriority);
+        // Default: OpenSky(0)=0, adsb.lol(1)=1, airplanes.live(2)=2
+        // OpenSky has extensive receiver coverage across India and airports (e.g. Kolkata NSCBI/Dum Dum).
+        uint8_t defPriority = (i == PROVIDER_OPENSKY) ? 0 : (i == PROVIDER_ADSB_LOL) ? 1 : 2;
+        cache.providerEnabled[i] = prefs.getBool(enKey.c_str(), true);
+        if (prvVer < 2) {
+            // Automatically upgrade existing boards to OpenSky as top priority
+            cache.providerPriority[i] = defPriority;
+            prefs.putUChar(prKey.c_str(), defPriority);
+        } else {
+            cache.providerPriority[i] = prefs.getUChar(prKey.c_str(), defPriority);
+        }
     }
+    if (prvVer < 2) prefs.putInt("prv_v", 2);
     cache.refreshInterval     = prefs.getInt("refInt", 10);
     // Empty defaults: system will use anonymous/unauthenticated OpenSky if no credentials set.
     cache.openSkyClientId     = prefs.getString("osId", "");
@@ -56,7 +66,7 @@ static void loadAll() {
     // from a previous firmware version.
     if (cache.aircraftIcon >= AIRCRAFT_ICON_COUNT) cache.aircraftIcon = AIRCRAFT_ICON_DOT;
     if (cache.theme >= THEME_COUNT) cache.theme = 0;
-    if (cache.zoomLevel < 0 || cache.zoomLevel > 2) cache.zoomLevel = 1;
+    if (cache.zoomLevel < 0 || cache.zoomLevel >= ApiProviders::ZOOM_LEVEL_COUNT) cache.zoomLevel = 1;
     if (cache.labelsMode > 2) cache.labelsMode = 2;
     if (cache.refreshInterval < 5 || cache.refreshInterval > 300) cache.refreshInterval = 10;
 }

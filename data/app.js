@@ -1966,9 +1966,8 @@
     if (!lat || !lon || isNaN(lat) || isNaN(lon) || !rangeKm || rangeKm <= 0) return;
     try {
 
-    // Calculate zoom level from range
-    // rangeKm => zoom: 50=>10, 100=>9, 150=>8
-    const zoom = rangeKm <= 50 ? 10 : rangeKm <= 100 ? 9 : 8;
+    // rangeKm => zoom: 50=>10, 100=>9, 150=>8, 300=>7
+    const zoom = rangeKm <= 50 ? 10 : rangeKm <= 100 ? 9 : rangeKm <= 150 ? 8 : 7;
     mapZoom = zoom;
     mapCenter = { lat, lon };
 

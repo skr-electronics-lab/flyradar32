@@ -30,7 +30,7 @@ static int skipCyclesRemaining[PROVIDER_COUNT] = {0, 0, 0};
 // ---------------------------------------------------------------
 // Shared zoom table (km) — indexed by settings zoomLevel 0..2
 // ---------------------------------------------------------------
-const float ApiProviders::ZOOM_KM[3] = {50.0f, 100.0f, 150.0f};
+const float ApiProviders::ZOOM_KM[ApiProviders::ZOOM_LEVEL_COUNT] = {50.0f, 100.0f, 150.0f, 300.0f};
 
 // ---------------------------------------------------------------
 // Geo helpers

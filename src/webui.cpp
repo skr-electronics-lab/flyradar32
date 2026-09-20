@@ -150,7 +150,7 @@ static void registerStatusRoutes() {
         int zoomLevel = s.zoomLevel;
         double lat = s.lat, lon = s.lon;
 
-        float curRangeKm = ApiProviders::ZOOM_KM[zoomLevel >= 0 && zoomLevel < 3 ? zoomLevel : 1];
+        float curRangeKm = ApiProviders::ZOOM_KM[zoomLevel >= 0 && zoomLevel < ApiProviders::ZOOM_LEVEL_COUNT ? zoomLevel : 1];
 
         String out;
         out.reserve(12288);

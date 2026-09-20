@@ -10,9 +10,8 @@
 namespace ApiProviders {
     void begin();
 
-    // Radar zoom ranges (km), indexed by zoomLevel 0..2. Single source of
-    // truth shared by the render loop, the web UI and the REST API.
-    extern const float ZOOM_KM[3];
+    static const int ZOOM_LEVEL_COUNT = 4;
+    extern const float ZOOM_KM[ZOOM_LEVEL_COUNT];
 
     // Ask the background task to fetch as soon as possible (e.g. after a
     // long-press "refresh" or a location change). Non-blocking, safe to
