@@ -141,7 +141,7 @@
             </div>
             <button class="hud-toggle-btn active" id="trailToggleBtn" title="Toggle Breadcrumb Trails">Trail</button>
             <button class="hud-toggle-btn" id="vectorToggleBtn" title="Toggle Heading Vectors">Vectors</button>
-            <button class="hud-toggle-btn" id="mapToggleBtn" title="Toggle Real Map Overlay (OpenStreetMap)">🗺 Map</button>
+            <button class="hud-toggle-btn active" id="mapToggleBtn" title="Toggle Real Map Overlay (OpenStreetMap)">Map</button>
           </div>
         </div>
 
@@ -617,7 +617,7 @@
             <div class="provider-status-dot green"></div>
             <div class="provider-info">
               <strong>OpenSky Network</strong>
-              <span>REST API (Anonymous or OAuth2 credentials)</span>
+              <span>REST API (Anonymous or OAuth2 credentials) &bull; <a href="https://opensky-network.org" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan); text-decoration:underline;" onclick="event.stopPropagation()">opensky-network.org</a></span>
             </div>
             <span class="provider-badge backup" id="badge-0">BACKUP</span>
           </div>
@@ -768,16 +768,16 @@
           </svg>
           <h3>OpenSky API Credentials</h3>
         </div>
-        <p class="card-desc">OAuth2 client credentials for live OpenSky Network vector state feeds.</p>
+        <p class="card-desc">OAuth2 client credentials for live OpenSky Network vector state feeds. Generate your credentials at <a href="https://opensky-network.org" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan); text-decoration:underline;">opensky-network.org</a>.</p>
 
         <div class="form-group">
           <label>Import OpenSky Credentials File (.json)</label>
           <div class="file-upload-dropzone" id="jsonDropzone">
             <input type="file" id="openskyJsonFile" accept=".json" style="display:none;" />
             <button type="button" class="btn btn-secondary" style="width:100%; margin-bottom: 6px;" onclick="document.getElementById('openskyJsonFile').click()">
-              📁 Upload credentials.json
+              Upload credentials.json
             </button>
-            <div class="help-text" id="jsonFileStatus">Select credentials.json to auto-detect Client ID & Secret.</div>
+            <div class="help-text" id="jsonFileStatus">Generate credentials at <a href="https://opensky-network.org" target="_blank" rel="noopener noreferrer" style="color:var(--accent-cyan); text-decoration:underline;">opensky-network.org</a> &bull; select credentials.json to auto-detect Client ID &amp; Secret.</div>
           </div>
         </div>
 

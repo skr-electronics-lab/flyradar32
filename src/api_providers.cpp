@@ -170,7 +170,7 @@ static bool parseOpenSkyFallback(const char* str, int len, AircraftPoint temp[MA
             }
         }
     }
-    return (tempCount > 0);
+    return true;
 }
 
 static String cachedOpenSkyToken = "";
@@ -442,7 +442,7 @@ static bool fetchAdsbSchemaProvider(int providerIdx, const char* host, AircraftP
 
                 tempCount++;
             }
-            ok = (tempCount > 0);
+            ok = true;
         }
     } else {
         if (code == 429) {
@@ -672,8 +672,24 @@ void ApiProviders::begin() {
 void ApiProviders::requestRefresh() {
     if (!dataMutex) return;
     xSemaphoreTake(dataMutex, portMAX_DELAY);
-    if (!status.fetchInProgress) {
-        refreshRequested = true;
+    refreshRequested = true;
+    for (int i = 0; i < PROVIDER_COUNT; i++) {
+        skipCyclesRemaining[i] = 0;
+        failStreak[i] = 0;
+    }
+    xSemaphoreGive(dataMutex);
+}
+
+void ApiProviders::setPrimaryProvider(const char* name) {
+    if (!dataMutex) return;
+    xSemaphoreTake(dataMutex, portMAX_DELAY);
+    if (name && strlen(name) > 0) {
+        status.lastProviderUsed = name;
+    }
+    refreshRequested = true;
+    for (int i = 0; i < PROVIDER_COUNT; i++) {
+        skipCyclesRemaining[i] = 0;
+        failStreak[i] = 0;
     }
     xSemaphoreGive(dataMutex);
 }

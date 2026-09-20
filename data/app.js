@@ -10,7 +10,7 @@
   let sweepAngle = 0;
   let activeTheme = 0; // 0: Green, 1: Cyan, 2: Amber
   let lastDataUpdateMs = Date.now();
-  let mapTilesEnabled = false;
+  let mapTilesEnabled = true;
   let mapTileCache = {}; // url -> ImageBitmap|null|'loading'
   let mapCenter = { lat: 22.5726, lon: 88.3639 };
   let mapZoom = 8;
@@ -413,7 +413,7 @@
           ctx.shadowColor = "#FFFFFF";
           ctx.shadowBlur = 6;
           ctx.beginPath();
-          ctx.arc(px, py, 10, 0, Math.PI * 2);
+          ctx.arc(px, py, 14, 0, Math.PI * 2);
           ctx.stroke();
           ctx.restore();
 
@@ -422,8 +422,8 @@
           ctx.lineWidth = 1;
           ctx.setLineDash([2, 2]);
           ctx.beginPath();
-          ctx.moveTo(px, py - 14); ctx.lineTo(px, py + 14);
-          ctx.moveTo(px - 14, py); ctx.lineTo(px + 14, py);
+          ctx.moveTo(px, py - 18); ctx.lineTo(px, py + 18);
+          ctx.moveTo(px - 18, py); ctx.lineTo(px + 18, py);
           ctx.stroke();
           ctx.setLineDash([]);
         }
@@ -432,7 +432,7 @@
         ctx.font = `bold ${Math.max(9, Math.round(w * 0.02))}px 'JetBrains Mono', monospace`;
         ctx.fillStyle = "#FFFFFF";
         ctx.textAlign = "left";
-        ctx.fillText(p.flight || p.hex, px + 9, py - 4);
+        ctx.fillText(p.flight || p.hex, px + 13, py - 5);
       });
     } catch (err) {
       console.error("renderRadar error:", err);
@@ -452,6 +452,7 @@
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(trackDeg * Math.PI / 180);
+    ctx.scale(1.3, 1.3);
     ctx.fillStyle = color;
     ctx.strokeStyle = color;
     ctx.shadowColor = color;
@@ -808,7 +809,7 @@
         statusText.textContent = "SEARCHING";
       }
 
-      if (providerVal) providerVal.textContent = s.lastProvider || "OpenSky";
+      if (providerVal) providerVal.textContent = s.lastProvider || s.primaryProvider || "OpenSky";
       const clockEl = document.getElementById("stationClock");
       if (clockEl) clockEl.textContent = s.time || "";
 
@@ -1199,6 +1200,12 @@
     const select = document.getElementById("primaryProviderSelect");
     if (select) select.value = pId;
 
+    const shortNames = { 0: "OpenSky", 1: "adsb.lol", 2: "airplanes.live" };
+    const providerVal = document.getElementById("activeProvider");
+    if (providerVal && shortNames[pId]) {
+      providerVal.textContent = shortNames[pId];
+    }
+
     document.querySelectorAll(".provider-item").forEach(item => {
       const id = Number(item.dataset.provider);
       const isPrimary = (id === pId);
@@ -1532,79 +1539,204 @@
 
 
   // -------------------------------------------------------------
-  // WiFi Connection Success Modal (replaces browser alert)
   // -------------------------------------------------------------
-  function showWifiSuccessModal(ssid) {
-    // Remove any existing modal
-    const existingModal = document.getElementById("wifiSuccessModal");
-    if (existingModal) existingModal.remove();
+  // Verified WiFi Connection Flow & Modal (Live testing + Status polling)
+  // -------------------------------------------------------------
+  function startWifiConnectFlow(ssid, pass) {
+    const existing = document.getElementById("wifiStatusModal");
+    if (existing) existing.remove();
 
     const modal = document.createElement("div");
-    modal.id = "wifiSuccessModal";
+    modal.id = "wifiStatusModal";
     modal.style.cssText = `
       position:fixed; inset:0; z-index:9999;
-      background:rgba(0,0,0,0.82); backdrop-filter:blur(8px);
+      background:rgba(0,0,0,0.85); backdrop-filter:blur(8px);
       display:flex; align-items:center; justify-content:center;
       animation:fadeInModal 0.25s ease;
     `;
 
     modal.innerHTML = `
       <style>
-        @keyframes fadeInModal { from{opacity:0;transform:scale(0.92)} to{opacity:1;transform:scale(1)} }
-        @keyframes spinCheck { to{stroke-dashoffset:0} }
+        @keyframes fadeInModal { from{opacity:0;transform:scale(0.94)} to{opacity:1;transform:scale(1)} }
+        @keyframes spinRing { to{transform:rotate(360deg)} }
         .wm-card {
           background: linear-gradient(145deg, #0a1628, #060f1e);
           border: 1px solid var(--accent, #00ff00);
           border-radius: 16px;
           box-shadow: 0 0 40px var(--accent-glow, rgba(0,255,0,0.2)), 0 20px 60px rgba(0,0,0,0.5);
-          padding: 36px 40px;
-          max-width: 460px;
+          padding: 36px 38px;
+          max-width: 480px;
           width: 90vw;
           text-align: center;
           font-family: 'Chakra Petch', 'Inter', sans-serif;
+          position: relative;
         }
-        .wm-check {
-          width:64px; height:64px; margin:0 auto 16px;
+        .wm-icon-wrap {
+          width:68px; height:68px; margin:0 auto 16px;
           display:flex; align-items:center; justify-content:center;
-          border-radius:50%; background:rgba(0,255,0,0.1);
-          border:2px solid var(--accent,#00ff00);
+          border-radius:50%; position:relative;
         }
-        .wm-check svg { stroke:var(--accent,#00ff00); }
-        .wm-title { font-size:1.3rem; font-weight:700; color:var(--accent,#00ff00); margin-bottom:8px; letter-spacing:0.08em; }
-        .wm-ssid { font-size:0.95rem; color:#b0ffc0; margin-bottom:20px; }
-        .wm-steps { text-align:left; background:rgba(0,255,0,0.04); border-radius:8px; padding:14px 18px; margin-bottom:20px; }
-        .wm-step { font-size:0.82rem; color:#8bc; font-family:'JetBrains Mono',monospace; margin:4px 0; }
-        .wm-step .s-done { color:var(--accent,#00ff00); margin-right:6px; }
-        .wm-mdns { font-size:1rem; font-family:'JetBrains Mono',monospace; color:var(--accent,#00ff00);
-                   background:rgba(0,255,0,0.07); border:1px solid rgba(0,255,0,0.3); border-radius:6px;
-                   padding:8px 16px; margin-bottom:20px; display:block; }
-        .wm-ok-btn {
+        .wm-icon-spin {
+          width:100%; height:100%; position:absolute; inset:0;
+          border: 3px solid rgba(0,229,255,0.15);
+          border-top-color: var(--accent-cyan, #00e5ff);
+          border-radius: 50%;
+          animation: spinRing 1s linear infinite;
+        }
+        .wm-title { font-size:1.35rem; font-weight:700; color:var(--accent, #00ff00); margin-bottom:8px; letter-spacing:0.06em; }
+        .wm-sub { font-size:0.92rem; color:#b0ffc0; margin-bottom:20px; }
+        .wm-steps { text-align:left; background:rgba(0,255,0,0.04); border:1px solid rgba(0,255,0,0.12); border-radius:8px; padding:14px 18px; margin-bottom:20px; }
+        .wm-step { font-size:0.82rem; color:#8bc; font-family:'JetBrains Mono',monospace; margin:5px 0; display:flex; align-items:center; gap:8px; }
+        .wm-step-dot { width:8px; height:8px; border-radius:50%; background:var(--accent,#00ff00); flex-shrink:0; }
+        .wm-step-dot.spin { background:transparent; border:2px solid var(--accent-cyan,#00e5ff); border-top-color:transparent; animation:spinRing 0.8s linear infinite; }
+        .wm-step-dot.fail { background:#ff4444; }
+        .wm-notice { font-size:0.75rem; color:#678; font-family:'JetBrains Mono',monospace; margin-bottom:18px; line-height:1.4; }
+        .wm-btn-row { display:flex; gap:10px; justify-content:center; }
+        .wm-action-btn {
           background:var(--accent,#00ff00); color:#000; font-weight:700; font-size:0.9rem;
-          border:none; border-radius:8px; padding:10px 32px; cursor:pointer; letter-spacing:0.06em;
+          border:none; border-radius:8px; padding:11px 32px; cursor:pointer; letter-spacing:0.06em;
           transition:opacity 0.2s;
         }
-        .wm-ok-btn:hover { opacity:0.85; }
+        .wm-action-btn:hover { opacity:0.85; }
+        .wm-retry-btn {
+          background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:#fff;
+          border-radius:8px; padding:11px 26px; cursor:pointer; font-weight:600; font-size:0.88rem;
+        }
+        .wm-retry-btn:hover { background:rgba(255,255,255,0.14); }
       </style>
-      <div class="wm-card">
-        <div class="wm-check">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="20 6 9 17 4 12"/>
+      <div class="wm-card" id="wmCard">
+        <div class="wm-icon-wrap" style="background:rgba(0,229,255,0.08); border:2px solid rgba(0,229,255,0.3);">
+          <div class="wm-icon-spin"></div>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan,#00e5ff)" stroke-width="2">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
           </svg>
         </div>
-        <div class="wm-title">✓ CONNECTED!</div>
-        <div class="wm-ssid">Switching to <strong>${esc(ssid)}</strong>...</div>
+        <div class="wm-title" style="color:var(--accent-cyan,#00e5ff);">CONNECTING...</div>
+        <div class="wm-sub" id="wmSub">Attempting link to <strong>${esc(ssid)}</strong>...</div>
         <div class="wm-steps">
-          <div class="wm-step"><span class="s-done">✓</span> Credentials saved to hardware</div>
-          <div class="wm-step"><span class="s-done">✓</span> ESP32 switching to Station mode</div>
-          <div class="wm-step"><span class="s-done">✓</span> Setup AP closing in ~5s</div>
+          <div class="wm-step" id="wmStep1"><span class="wm-step-dot"></span> Initiating handshake with router</div>
+          <div class="wm-step" id="wmStep2"><span class="wm-step-dot spin"></span> Negotiating DHCP &amp; verifying credentials</div>
+          <div class="wm-step" id="wmStep3"><span class="wm-step-dot spin"></span> Keeping FlyRadar32 Setup AP alive</div>
         </div>
-        <strong style="display:block;font-size:0.78rem;color:#8bc;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;">Reconnect your device to <em>${esc(ssid)}</em>, then open:</strong>
-        <code class="wm-mdns">http://flyradar32.local</code>
-        <button class="wm-ok-btn" onclick="document.getElementById('wifiSuccessModal')?.remove()">Got it</button>
+        <div class="wm-notice">Please do not disconnect. Testing connectivity in background...</div>
       </div>
     `;
     document.body.appendChild(modal);
-    modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
+
+    apiPost("/api/wifi/connect", { ssid, password: pass }).then(() => {
+      pollWifiStatus(modal, ssid);
+    }).catch(err => {
+      showWifiFailState(modal, ssid, err.message || "Failed to trigger connect");
+    });
+  }
+
+  function pollWifiStatus(modal, ssid) {
+    let attempts = 0;
+    const maxAttempts = 22;
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const s = await apiGet("/api/wifi/status");
+        if (s.state === "connected") {
+          clearInterval(interval);
+          showWifiConnectedState(modal, ssid, s);
+        } else if (s.state === "failed") {
+          clearInterval(interval);
+          showWifiFailState(modal, ssid, s.error || "Incorrect password or network unreachable.");
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          showWifiFailState(modal, ssid, "Connection timed out. Check password or signal range.");
+        }
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          showWifiFailState(modal, ssid, "Network unreachable. Please check credentials.");
+        }
+      }
+    }, 1000);
+  }
+
+  function showWifiConnectedState(modal, ssid, s) {
+    const card = modal.querySelector("#wmCard");
+    if (!card) return;
+    card.style.border = "1px solid var(--accent, #00ff00)";
+    card.style.boxShadow = "0 0 40px var(--accent-glow, rgba(0,255,0,0.25)), 0 20px 60px rgba(0,0,0,0.5)";
+
+    const staIp = s.staIp && s.staIp !== "0.0.0.0" ? s.staIp : "Acquiring IP...";
+    let countdownSec = s.apRemainingSec > 0 ? s.apRemainingSec : 4;
+
+    card.innerHTML = `
+      <div class="wm-icon-wrap" style="background:rgba(0,255,0,0.1); border:2px solid var(--accent,#00ff00);">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--accent,#00ff00)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <div class="wm-title">✓ CONNECTED!</div>
+      <div class="wm-sub">Successfully linked to <strong>${esc(ssid)}</strong></div>
+      <div class="wm-steps">
+        <div class="wm-step"><span class="wm-step-dot"></span> Verified credentials &amp; saved to hardware</div>
+        <div class="wm-step"><span class="wm-step-dot"></span> Station IP: <strong style="color:var(--accent,#00ff00);">${esc(staIp)}</strong></div>
+        <div class="wm-step"><span class="wm-step-dot"></span> Setup AP closing in <span id="wmCountdown" style="color:var(--accent,#00ff00);font-weight:bold;">${countdownSec}s</span></div>
+      </div>
+      <div style="text-align:left;margin-bottom:18px;">
+        <strong style="display:block;font-size:0.75rem;color:#8bc;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.08em;">Reconnect device to <em>${esc(ssid)}</em>, then open:</strong>
+        <code style="font-size:0.95rem;font-family:'JetBrains Mono',monospace;color:var(--accent,#00ff00);background:rgba(0,255,0,0.07);border:1px solid rgba(0,255,0,0.3);border-radius:6px;padding:8px 14px;display:block;word-break:break-all;">http://flyradar32.local</code>
+      </div>
+      <div class="wm-btn-row">
+        <button class="wm-action-btn" id="wmDoneBtn">Got it</button>
+      </div>
+    `;
+
+    const doneBtn = card.querySelector("#wmDoneBtn");
+    if (doneBtn) doneBtn.addEventListener("click", () => modal.remove());
+
+    const cdEl = card.querySelector("#wmCountdown");
+    const cdTimer = setInterval(() => {
+      countdownSec--;
+      if (cdEl) cdEl.textContent = `${Math.max(0, countdownSec)}s`;
+      if (countdownSec <= 0) {
+        clearInterval(cdTimer);
+        if (cdEl) cdEl.textContent = "Switched to Station mode";
+      }
+    }, 1000);
+  }
+
+  function showWifiFailState(modal, ssid, errorMsg) {
+    const card = modal.querySelector("#wmCard");
+    if (!card) return;
+    card.style.border = "1px solid #ff4444";
+    card.style.boxShadow = "0 0 40px rgba(255,68,68,0.25), 0 20px 60px rgba(0,0,0,0.5)";
+
+    card.innerHTML = `
+      <div class="wm-icon-wrap" style="background:rgba(255,68,68,0.1); border:2px solid #ff4444;">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#ff4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+      <div class="wm-title" style="color:#ff4444;">CONNECTION FAILED</div>
+      <div class="wm-sub" style="color:#ffb0b0;">Could not connect to <strong>${esc(ssid)}</strong></div>
+      <div class="wm-steps" style="background:rgba(255,68,68,0.04); border-color:rgba(255,68,68,0.2);">
+        <div class="wm-step" style="color:#ffb0b0;"><span class="wm-step-dot fail"></span> ${esc(errorMsg)}</div>
+        <div class="wm-step" style="color:#8bc;"><span class="wm-step-dot" style="background:#00e5ff;"></span> Check password accuracy and 2.4 GHz range</div>
+        <div class="wm-step" style="color:#8bc;"><span class="wm-step-dot" style="background:#00e5ff;"></span> FlyRadar32 Setup AP is still active</div>
+      </div>
+      <div class="wm-btn-row">
+        <button class="wm-retry-btn" id="wmRetryBtn">Try Again</button>
+      </div>
+    `;
+
+    const retryBtn = card.querySelector("#wmRetryBtn");
+    if (retryBtn) {
+      retryBtn.addEventListener("click", () => {
+        modal.remove();
+        const passInput = document.getElementById("passInput");
+        if (passInput) {
+          passInput.focus();
+          passInput.select();
+        }
+      });
+    }
   }
 
   // -------------------------------------------------------------
@@ -1748,22 +1880,11 @@
   }
 
   if (connectBtn) {
-    connectBtn.addEventListener("click", async () => {
+    connectBtn.addEventListener("click", () => {
       const ssid = ssidInput?.value.trim();
-      const pass = passInput?.value;
+      const pass = passInput?.value || "";
       if (!ssid) { showToast("Enter an SSID first", true); return; }
-      connectBtn.disabled = true;
-      connectBtn.textContent = "Connecting...";
-      try {
-        await apiPost("/api/wifi/connect", { ssid, password: pass });
-        showWifiSuccessModal(ssid);
-        showToast(`Wi-Fi saved! Connect to '${ssid}' and visit http://flyradar32.local`);
-      } catch (e) {
-        showToast("Connect failed: " + e.message, true);
-      } finally {
-        connectBtn.disabled = false;
-        connectBtn.textContent = "Connect Wi-Fi";
-      }
+      startWifiConnectFlow(ssid, pass);
     });
   }
 

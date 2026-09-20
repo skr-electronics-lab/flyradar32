@@ -56,8 +56,8 @@
 //  bootloader instead of your app)
 // ============================================================
 #define BTN_UP      25
-#define BTN_DOWN    26
-#define BTN_SELECT  27
+#define BTN_DOWN    27
+#define BTN_SELECT  26
 
 #define LONG_PRESS_MS   700
 #define DEBOUNCE_MS     20

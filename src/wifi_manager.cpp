@@ -19,6 +19,9 @@ static const unsigned long CONNECT_TIMEOUT_MS = 15000;
 static String lastError = "";
 static bool apActive = false;
 static bool mdnsStarted = false;
+static String pendingSsid = "";
+static String pendingPass = "";
+static unsigned long stopApTimerMs = 0;
 
 static void startApMode() {
     lockWifi();
@@ -102,6 +105,10 @@ void WifiManager::begin() {
 
 void WifiManager::startConnect(const String& ssid, const String& password) {
     lockWifi();
+    pendingSsid = ssid;
+    pendingPass = password;
+    lastError = "";
+    stopApTimerMs = 0;
     if (apActive) {
         WiFi.mode(WIFI_AP_STA);
     } else {
@@ -126,19 +133,38 @@ void WifiManager::loop() {
             lockWifi();
             state = WIFI_STATE_CONNECTED;
             lastError = "";
+            if (pendingSsid.length() > 0) {
+                Storage::saveWifi(pendingSsid, pendingPass);
+            }
+            if (apActive) {
+                stopApTimerMs = millis() + 4500;
+            }
             unlockWifi();
-            stopApMode();
             startMdns();
             startNtp();
         } else if (millis() - curConnectStart > CONNECT_TIMEOUT_MS) {
             lockWifi();
             state = WIFI_STATE_FAILED;
-            lastError = "Connection failed or timed out";
+            lastError = "Incorrect password or network unreachable.";
+            stopApTimerMs = 0;
             bool needAp = !apActive;
             unlockWifi();
+            WiFi.disconnect(false);
             if (needAp) startApMode();
         }
     } else if (curState == WIFI_STATE_CONNECTED) {
+        bool doStopAp = false;
+        lockWifi();
+        if (apActive && stopApTimerMs > 0 && millis() >= stopApTimerMs) {
+            doStopAp = true;
+            stopApTimerMs = 0;
+        }
+        unlockWifi();
+        if (doStopAp) {
+            Serial.println("[WiFi] Network confirmed, stopping setup AP now.");
+            stopApMode();
+            WiFi.mode(WIFI_STA);
+        }
         static unsigned long downSinceMs = 0;
         if (WiFi.status() != WL_CONNECTED) {
             if (downSinceMs == 0) downSinceMs = millis();
@@ -250,4 +276,28 @@ String WifiManager::getClockDateTime() {
     char buf[20];
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", &t);
     return String(buf);
+}
+
+bool WifiManager::isApActive() {
+    lockWifi();
+    bool b = apActive;
+    unlockWifi();
+    return b;
+}
+
+int WifiManager::getApRemainingSec() {
+    lockWifi();
+    int sec = 0;
+    if (apActive && stopApTimerMs > millis()) {
+        sec = (int)((stopApTimerMs - millis() + 999) / 1000);
+    }
+    unlockWifi();
+    return sec;
+}
+
+String WifiManager::getPendingSsid() {
+    lockWifi();
+    String s = pendingSsid;
+    unlockWifi();
+    return s;
 }

@@ -92,7 +92,17 @@ static void registerStatusRoutes() {
         ApiProviders::Status pst = ApiProviders::getStatus();
         doc["fetchInProgress"] = pst.fetchInProgress;
         doc["lastFetchOk"] = pst.lastFetchOk;
-        doc["lastProvider"] = pst.lastProviderUsed;
+
+        Storage::lock();
+        AppSettings& s = Storage::settings();
+        int primIdx = 0;
+        for (int i = 0; i < PROVIDER_COUNT; i++) {
+            if (s.providerPriority[i] == 0) { primIdx = i; break; }
+        }
+        Storage::unlock();
+        const char* pNames[PROVIDER_COUNT] = {"OpenSky", "adsb.lol", "airplanes.live"};
+        doc["primaryProvider"] = pNames[primIdx];
+        doc["lastProvider"] = pst.lastProviderUsed.isEmpty() ? pNames[primIdx] : pst.lastProviderUsed;
         doc["lastSuccessMs"] = pst.lastSuccessMs;
 
         String out;
@@ -222,6 +232,28 @@ static void registerWifiRoutes() {
     server.on("/api/wifi/disconnect", HTTP_POST, handleWifiClear);
     server.on("/api/wifi/clear", HTTP_POST, handleWifiClear);
 
+    server.on("/api/wifi/status", HTTP_GET, [](AsyncWebServerRequest* request) {
+        DynamicJsonDocument doc(512);
+        WifiState st = WifiManager::getState();
+        String stateStr = "unknown";
+        switch (st) {
+            case WIFI_STATE_AP_MODE: stateStr = "ap_mode"; break;
+            case WIFI_STATE_CONNECTING: stateStr = "connecting"; break;
+            case WIFI_STATE_CONNECTED: stateStr = "connected"; break;
+            case WIFI_STATE_FAILED: stateStr = "failed"; break;
+        }
+        doc["state"] = stateStr;
+        doc["apActive"] = WifiManager::isApActive();
+        doc["apRemainingSec"] = WifiManager::getApRemainingSec();
+        doc["staIp"] = WifiManager::getStaIp();
+        doc["apIp"] = WifiManager::getApIp();
+        doc["ssid"] = WifiManager::getPendingSsid();
+        doc["error"] = WifiManager::getLastError();
+        String out;
+        serializeJson(doc, out);
+        request->send(200, "application/json", out);
+    });
+
     server.on("/api/wifi/connect", HTTP_POST, [](AsyncWebServerRequest* request) {
         handleJsonRequest(request, [](AsyncWebServerRequest* request, JsonDocument& doc) {
             String ssid = doc["ssid"] | "";
@@ -230,9 +262,8 @@ static void registerWifiRoutes() {
                 request->send(400, "application/json", "{\"error\":\"ssid required\"}");
                 return;
             }
-            Storage::saveWifi(ssid, pass);
-            sendOk(request);
-            connectDeferred(ssid, pass, 500);
+            connectDeferred(ssid, pass, 100);
+            request->send(200, "application/json", "{\"status\":\"connecting\"}");
         });
     }, nullptr, jsonBody());
 }
@@ -335,7 +366,8 @@ static void registerSettingsRoutes() {
                         if (i != p) pr[i] = nextRank++;
                     }
                     Storage::saveProviderConfig(en, pr);
-                    ApiProviders::requestRefresh();
+                    const char* pNames[PROVIDER_COUNT] = {"OpenSky", "adsb.lol", "airplanes.live"};
+                    ApiProviders::setPrimaryProvider(pNames[p]);
                 }
             } else if (doc.containsKey("enabled") || doc.containsKey("priority")) {
                 bool en[PROVIDER_COUNT]; uint8_t pr[PROVIDER_COUNT];

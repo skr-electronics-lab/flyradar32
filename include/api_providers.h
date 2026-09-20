@@ -18,6 +18,7 @@ namespace ApiProviders {
     // long-press "refresh" or a location change). Non-blocking, safe to
     // call from the main core.
     void requestRefresh();
+    void setPrimaryProvider(const char* name);
 
     // Thread-safe snapshot copy. Returns true if data was ever
     // successfully fetched at least once.

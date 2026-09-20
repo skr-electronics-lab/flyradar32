@@ -33,6 +33,9 @@ namespace WifiManager {
     String getApIp();
     String getStaIp();
     String getLastError();
+    bool   isApActive();
+    int    getApRemainingSec();
+    String getPendingSsid();
 
     // NTP: "HH:MM" ("" if never synced) and "YYYY-MM-DD HH:MM" for detail rows
     bool  timeSynced();

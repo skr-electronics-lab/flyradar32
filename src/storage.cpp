@@ -34,15 +34,6 @@ static void loadAll() {
     cache.openSkyClientSecret = prefs.getString("osSecret", "");
     prefs.end();
 
-    // When OpenSky credentials are not configured, ensure anonymous OpenSky is not primary (priority 0)
-    // to prevent immediate rate-limiting (429). Keep priorities distinct [0, 1, 2].
-    if (cache.openSkyClientId.isEmpty() && cache.providerPriority[PROVIDER_OPENSKY] == 0) {
-        // Swap OpenSky with whichever provider had priority 1
-        int swapIdx = (cache.providerPriority[PROVIDER_ADSB_LOL] == 1) ? PROVIDER_ADSB_LOL : PROVIDER_AIRPLANES_LIVE;
-        cache.providerPriority[PROVIDER_OPENSKY] = 1;
-        cache.providerPriority[swapIdx] = 0;
-    }
-
     // Open READ-WRITE so stale keys can be removed (read-only mode
     // silently ignores writes — was the root cause of a reboot loop).
     prefs.begin(NVS_NS_DISPLAY, false);
