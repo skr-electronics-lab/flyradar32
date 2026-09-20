@@ -577,7 +577,7 @@
 </style>
 
 <!-- ESP Flash Button Web Component -->
-<script src="https://esp-flash-button.pages.dev/esp-flash-button.js"></script>
+<script type="module" src="https://skr-electronics-lab.github.io/esp-flasher-button/esp-flasher-button.js"></script>
 
 <div class="flyradar-blog-wrapper">
 
@@ -820,11 +820,11 @@
     </div>
   </div>
 
-  <!-- 5. Web Flasher with Clean Custom Flash Button & Light Theme -->
+  <!-- 5. Web Flasher with Official ESP Flasher Button -->
   <div id="flasher" class="skr-card">
     <h2 style="font-size: 1.45rem; margin-bottom: 1.25rem;">5. In-Browser One-Click Firmware Flashing (Web Serial)</h2>
     <p>
-      No software installation, Python scripts, or Arduino IDE configuration is required. With our Web Serial Flasher powered by <code>esp-flash-button</code>, you can flash the factory firmware binary directly onto your ESP32 from Google Chrome or Microsoft Edge.
+      No software installation, Python scripts, or Arduino IDE configuration is required. With our Web Serial Flasher powered by <code>esp-flasher-button</code>, you can flash the factory firmware binary directly onto your ESP32 from Google Chrome, Microsoft Edge, Brave, or Opera.
     </p>
     <p>
       Connect your ESP32 to your computer using a USB data cable and click the button below:
@@ -832,25 +832,23 @@
     
     <div class="skr-flasher-wrap">
       <h3>One-Click Factory Firmware Install</h3>
-      <p>Connect your ESP32 via USB and click below to flash the v1.0.0 FlyRadar32 factory firmware directly in your browser.</p>
+      <p>Connect your ESP32 via USB and click below to install the latest FlyRadar32 factory firmware directly in your browser. The button automatically fetches the latest release from GitHub.</p>
       
-      <!-- Clean, Professional Flash Button -->
-      <div style="display: flex; justify-content: center; align-items: center; margin: 1.75rem 0;">
-        <esp-flash-button 
+      <!-- Modern, Perfectly Proportioned ESP Flasher Button -->
+      <div style="display: flex; justify-content: center; align-items: center; margin: 2rem 0 1.5rem 0;">
+        <esp-flasher-button 
           id="espFlashEngine"
-          manifest="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@main/firmware/manifest.json"
-          theme="light">
-          <button slot="activate" id="skrFlashBtn" class="custom-flash-btn" type="button" onclick="triggerWebFlash(event)">
-            <svg viewBox="0 0 24 24">
-              <path d="M13 2L3 14h8l-2 8 10-12h-8l2-8z"/>
-            </svg>
-            <span>Flash Firmware</span>
-          </button>
-        </esp-flash-button>
+          manifest="https://cdn.jsdelivr.net/gh/skr-electronics-lab/flyradar32@latest/firmware/manifest.json"
+          github="skr-electronics-lab/flyradar32"
+          label="Flash Firmware"
+          theme="red"
+          size="17"
+          radius="pill">
+        </esp-flasher-button>
       </div>
 
       <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 0; margin-top: 1.25rem;">
-        Requires Chrome or Edge 89+ on desktop with Web Serial API enabled over HTTPS.
+        Requires Chrome, Edge, Brave, or Opera on desktop with Web Serial API enabled over HTTPS.
       </p>
     </div>
 
