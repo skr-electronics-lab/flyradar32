@@ -1,6 +1,6 @@
 {
   "name": "FlyRadar32 Standalone ADS-B Radar",
-  "version": "1.0.0",
+  "version": "latest",
   "description": "Complete factory firmware for FlyRadar32 standalone ADS-B aircraft radar on ESP32",
   "flashSettings": {
     "mode": "dio",
@@ -13,7 +13,7 @@
       "chipFamily": "ESP32",
       "parts": [
         {
-          "path": "flyradar32-esp32-v1.0.0-factory.bin",
+          "path": "flyradar32-esp32-factory.bin",
           "offset": 0
         },
         {
