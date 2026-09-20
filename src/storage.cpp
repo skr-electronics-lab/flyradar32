@@ -25,19 +25,19 @@ static void loadAll() {
     for (int i = 0; i < PROVIDER_COUNT; i++) {
         String enKey = "en" + String(i);
         String prKey = "pr" + String(i);
-        // Default: OpenSky(0)=0, adsb.lol(1)=1, airplanes.live(2)=2
-        // OpenSky has extensive receiver coverage across India and airports (e.g. Kolkata NSCBI/Dum Dum).
-        uint8_t defPriority = (i == PROVIDER_OPENSKY) ? 0 : (i == PROVIDER_ADSB_LOL) ? 1 : 2;
+        // Default: adsb.lol(1)=0, OpenSky(0)=1, airplanes.live(2)=2
+        // adsb.lol runs over lightweight HTTP (no TLS memory overhead) and responds rapidly
+        uint8_t defPriority = (i == PROVIDER_ADSB_LOL) ? 0 : (i == PROVIDER_OPENSKY) ? 1 : 2;
         cache.providerEnabled[i] = prefs.getBool(enKey.c_str(), true);
-        if (prvVer < 2) {
-            // Automatically upgrade existing boards to OpenSky as top priority
+        if (prvVer < 4) {
+            // Automatically upgrade existing boards to adsb.lol as top priority
             cache.providerPriority[i] = defPriority;
             prefs.putUChar(prKey.c_str(), defPriority);
         } else {
             cache.providerPriority[i] = prefs.getUChar(prKey.c_str(), defPriority);
         }
     }
-    if (prvVer < 2) prefs.putInt("prv_v", 2);
+    if (prvVer < 4) prefs.putInt("prv_v", 4);
     cache.refreshInterval     = prefs.getInt("refInt", 10);
     // Empty defaults: system will use anonymous/unauthenticated OpenSky if no credentials set.
     cache.openSkyClientId     = prefs.getString("osId", "");

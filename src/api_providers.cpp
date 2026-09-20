@@ -384,13 +384,13 @@ static bool fetchAdsbSchemaProvider(int providerIdx, const char* host, AircraftP
             filterInit = true;
         }
 
-        String payload = http.getString();
+        DynamicJsonDocument doc(7168);
+        WiFiClient* stream = http.getStreamPtr();
+        if (stream) stream->setTimeout(3500);
+        DeserializationError err = stream ? deserializeJson(doc, *stream, DeserializationOption::Filter(filter)) : DeserializationError::NoMemory;
         http.end();
         if (useHttps) secureClient.stop();
         else plainClient.stop();
-
-        DynamicJsonDocument doc(16384);
-        DeserializationError err = deserializeJson(doc, payload, DeserializationOption::Filter(filter));
 
         Serial.printf("[fetch] %s parse err=%s docSize=%u\n", host, err.c_str(), (unsigned)doc.size());
         if (!err) {
