@@ -132,7 +132,7 @@
 // ============================================================
 //  AIRCRAFT DATA
 // ============================================================
-#define MAX_PLANES 25
+#define MAX_PLANES 50
 
 // Trail (breadcrumb) history — 25 slots * (5 fixes * 8 bytes + 16 B) ≈ 1.1 KB
 #define TRAIL_LEN 5

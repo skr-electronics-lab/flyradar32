@@ -153,7 +153,7 @@ static void registerStatusRoutes() {
         float curRangeKm = ApiProviders::ZOOM_KM[zoomLevel >= 0 && zoomLevel < 3 ? zoomLevel : 1];
 
         String out;
-        out.reserve(6144);
+        out.reserve(12288);
         out += "{\"count\":"; out += count;
         out += ",\"provider\":\""; out += (pst.lastProviderUsed.isEmpty() ? "" : pst.lastProviderUsed); out += "\"";
         out += ",\"lastFetchOk\":"; out += (pst.lastFetchOk ? "true" : "false");

@@ -284,7 +284,7 @@ static bool fetchOpenSky(AircraftPoint temp[MAX_PLANES], int& tempCount,
         int code = http.GET();
         Serial.printf("[fetch] OpenSky url=%s code=%d\n", url.c_str(), code);
         if (code == HTTP_CODE_OK) {
-            static char openSkyBuf[10240];
+            static char openSkyBuf[16384];
             const int bufSize = sizeof(openSkyBuf);
             // Stream into static buffer — avoids heap allocation and large String copy.
             int bytesRead = 0;
@@ -389,7 +389,7 @@ static bool fetchAdsbSchemaProvider(int providerIdx, const char* host, AircraftP
         if (useHttps) secureClient.stop();
         else plainClient.stop();
 
-        DynamicJsonDocument doc(12288);
+        DynamicJsonDocument doc(16384);
         DeserializationError err = deserializeJson(doc, payload, DeserializationOption::Filter(filter));
 
         Serial.printf("[fetch] %s parse err=%s docSize=%u\n", host, err.c_str(), (unsigned)doc.size());
@@ -511,7 +511,7 @@ static void runFetchCycle() {
         return;
     }
 
-    float maxRangeKm = 150.0f; // always pull the widest zoom's worth; drawing handles the active zoom
+    float maxRangeKm = 320.0f; // Fetch full 300+ km coverage so web scope & regional traffic are fully visible
 
     // Build try-order: providers sorted by priority[], filtered to enabled ones not in backoff.
     int order[PROVIDER_COUNT];

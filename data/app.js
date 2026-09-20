@@ -3,7 +3,7 @@
 
   let currentPlanes = [];
   let selectedPlane = null;
-  let radarRangeKm = 100;
+  let radarRangeKm = 300;
   let showTrails = true;
   let showVectors = false;
   let showSweepAnim = true;
@@ -644,9 +644,7 @@
       document.getElementById("targetCount").textContent = count;
       document.getElementById("trafficBadge").textContent = count;
 
-      if (data.rangeKm && !window.userManuallySelectedRange) {
-        setRadarRange(data.rangeKm, false);
-      }
+      // Web dashboard preserves regional 300km scope
 
       if (data.lat && data.lon) {
         mapCenter = { lat: Number(data.lat), lon: Number(data.lon) };
