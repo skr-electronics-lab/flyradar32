@@ -412,9 +412,253 @@
     color: #ffffff !important;
   }
 
-  .skr-copy-btn svg {
+  /* Interactive GPS Coordinate Detector Widget */
+  .skr-geo-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 1.5rem 0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
+  .skr-geo-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .skr-geo-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #e0f2fe;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .skr-geo-icon svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+
+  .skr-geo-action-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .skr-geo-detect-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #0284c7;
+    color: #ffffff !important;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 3px 10px rgba(2, 132, 199, 0.3);
+  }
+
+  .skr-geo-detect-btn:hover {
+    background: #0369a1;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
+  }
+
+  .skr-geo-detect-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+
+  .skr-geo-hint {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+
+  .skr-geo-result {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed #cbd5e1;
+    animation: skrGeoFadeIn 0.3s ease-out;
+  }
+
+  @keyframes skrGeoFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .skr-geo-params {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .skr-geo-params {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .skr-geo-param-box {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .skr-geo-param-meta {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .skr-geo-param-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  .skr-geo-param-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.15rem;
+    color: #38bdf8;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .skr-geo-copy-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #e2e8f0;
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .skr-geo-copy-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+  }
+
+  .skr-geo-copy-btn svg {
     width: 13px;
     height: 13px;
+    fill: currentColor;
+  }
+
+  .skr-geo-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .skr-geo-accuracy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-weight: 600;
+  }
+
+  .skr-geo-accuracy svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+
+  .skr-geo-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .skr-geo-quick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1e293b;
+    color: #f1f5f9;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .skr-geo-quick-btn:hover {
+    background: #0f172a;
+    color: #ffffff;
+  }
+
+  .skr-geo-quick-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+  }
+
+  .skr-geo-dash-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #f1f5f9;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+  }
+
+  .skr-geo-dash-link:hover {
+    background: #e2e8f0;
+    text-decoration: none !important;
+  }
+
+  .skr-geo-dash-link svg {
+    width: 14px;
+    height: 14px;
     fill: currentColor;
   }
 
@@ -980,11 +1224,76 @@
       To track aircraft flying directly over your house or workplace, FlyRadar32 needs your geographic coordinates:
     </p>
 
+    <!-- 1-Click Interactive GPS Coordinate Detector Widget -->
+    <div class="skr-geo-card">
+      <div class="skr-geo-header">
+        <div class="skr-geo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+        </div>
+        <div>
+          <h4 style="margin: 0 0 4px 0; font-size: 1.1rem; color: #0f172a;">1-Click GPS Coordinate Detector</h4>
+          <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Instantly detect your device's exact latitude and longitude for FlyRadar32</p>
+        </div>
+      </div>
+
+      <div class="skr-geo-action-row">
+        <button type="button" id="skrGeoDetectBtn" class="skr-geo-detect-btn" onclick="detectUserLocation(this)">
+          <svg viewBox="0 0 24 24" id="skrGeoBtnIcon"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+          <span id="skrGeoBtnText">Detect &amp; Copy My Coordinates</span>
+        </button>
+        <span class="skr-geo-hint" id="skrGeoStatus">Click to get precise browser GPS coordinates</span>
+      </div>
+
+      <!-- Result Display (Populates on detection) -->
+      <div id="skrGeoResult" class="skr-geo-result" style="display: none;">
+        <div class="skr-geo-params">
+          <div class="skr-geo-param-box">
+            <div class="skr-geo-param-meta">
+              <span class="skr-geo-param-label">Latitude</span>
+              <span class="skr-geo-param-val" id="skrGeoLatVal">--</span>
+            </div>
+            <button type="button" class="skr-geo-copy-btn" onclick="copyCoord('skrGeoLatVal', this)">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Copy Lat</span>
+            </button>
+          </div>
+
+          <div class="skr-geo-param-box">
+            <div class="skr-geo-param-meta">
+              <span class="skr-geo-param-label">Longitude</span>
+              <span class="skr-geo-param-val" id="skrGeoLonVal">--</span>
+            </div>
+            <button type="button" class="skr-geo-copy-btn" onclick="copyCoord('skrGeoLonVal', this)">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Copy Lon</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="skr-geo-footer">
+          <div class="skr-geo-accuracy" id="skrGeoAccuracy">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            <span id="skrGeoAccuracyText">Accuracy: ±15m</span>
+          </div>
+          <div class="skr-geo-quick-actions">
+            <button type="button" class="skr-geo-quick-btn" id="skrCopyBothBtn" onclick="copyBothCoords(this)">
+              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              <span>Copy Pair (lat, lon)</span>
+            </button>
+            <a href="http://flyradar32.local" target="_blank" rel="noopener" class="skr-geo-dash-link">
+              <span>Open Dashboard</span>
+              <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <h3 style="font-size: 1.1rem; color: #111827; margin-top: 1.25rem;">Setting Home Coordinates</h3>
     <ol>
-      <li>Open Google Maps or GPS-Coordinates.net, right-click on your house or city, and copy your <strong>Latitude</strong> and <strong>Longitude</strong> (e.g. <code>22.5726</code>, <code>88.3639</code>).</li>
-      <li>In the FlyRadar32 web cockpit (<code>http://flyradar32.local</code>), click on the <strong>Settings</strong> tab.</li>
-      <li>Enter your Latitude and Longitude under "Station Location" and click <strong>Save Location</strong>.</li>
+      <li>Use the <strong>1-Click GPS Detector</strong> above to get your coordinates, or open Google Maps, right-click on your house or city, and copy your <strong>Latitude</strong> and <strong>Longitude</strong> (e.g. <code>22.5726</code>, <code>88.3639</code>).</li>
+      <li>In the FlyRadar32 web cockpit (<a href="http://flyradar32.local" target="_blank" rel="noopener">http://flyradar32.local</a>), click on the <strong>Settings</strong> tab.</li>
+      <li>Paste the copied coordinate pair into the <strong>"Quick Paste from Google Maps"</strong> box and click <strong>Apply</strong> (or enter Latitude and Longitude directly).</li>
       <li>The radar engine will immediately calculate a bounding box around your position and request live telemetry.</li>
     </ol>
 
@@ -1362,6 +1671,113 @@ void set_backlight_percent(uint8_t percent) {
       btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:#22c55e;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span style="color:#22c55e;">Copied!</span>';
       setTimeout(function() {
         btn.innerHTML = originalHTML;
+      }, 2000);
+    });
+  }
+
+  // 1-Click Interactive GPS Coordinate Detector
+  var skrUserLat = null;
+  var skrUserLon = null;
+
+  function detectUserLocation(btn) {
+    var status = document.getElementById('skrGeoStatus');
+    var btnText = document.getElementById('skrGeoBtnText');
+    var resultDiv = document.getElementById('skrGeoResult');
+
+    if (!('geolocation' in navigator)) {
+      if (status) {
+        status.style.color = '#ef4444';
+        status.textContent = 'Geolocation is not supported by your browser.';
+      }
+      return;
+    }
+
+    if (btnText) btnText.textContent = 'Detecting Location...';
+    if (status) {
+      status.style.color = '#0284c7';
+      status.textContent = 'Requesting browser GPS permission...';
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function(position) {
+        var lat = position.coords.latitude.toFixed(4);
+        var lon = position.coords.longitude.toFixed(4);
+        skrUserLat = lat;
+        skrUserLon = lon;
+
+        var latEl = document.getElementById('skrGeoLatVal');
+        var lonEl = document.getElementById('skrGeoLonVal');
+        if (latEl) latEl.textContent = lat;
+        if (lonEl) lonEl.textContent = lon;
+
+        var acc = Math.round(position.coords.accuracy);
+        var accEl = document.getElementById('skrGeoAccuracyText');
+        if (accEl) accEl.textContent = 'GPS Accuracy: ±' + acc + 'm';
+
+        // Auto-copy coordinate pair (lat, lon) to clipboard
+        var coordStr = lat + ', ' + lon;
+        navigator.clipboard.writeText(coordStr).then(function() {
+          if (btnText) btnText.textContent = 'Coordinates Copied!';
+          if (status) {
+            status.style.color = '#16a34a';
+            status.textContent = 'Copied ' + coordStr + ' to clipboard! Ready to paste in dashboard.';
+          }
+        }).catch(function() {
+          if (btnText) btnText.textContent = 'Location Detected';
+          if (status) {
+            status.style.color = '#16a34a';
+            status.textContent = 'Coordinates ready below. Click copy to paste into dashboard.';
+          }
+        });
+
+        if (resultDiv) {
+          resultDiv.style.display = 'block';
+        }
+
+        setTimeout(function() {
+          if (btnText) btnText.textContent = 'Re-detect GPS Location';
+        }, 4000);
+      },
+      function(error) {
+        if (btnText) btnText.textContent = 'Detect & Copy My Coordinates';
+        if (status) {
+          status.style.color = '#ef4444';
+          if (error.code === error.PERMISSION_DENIED) {
+            status.textContent = 'Location access denied. Please allow location permissions in your browser URL bar.';
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            status.textContent = 'Location unavailable. Please check your device GPS/location settings.';
+          } else if (error.code === error.TIMEOUT) {
+            status.textContent = 'Location request timed out. Please try again.';
+          } else {
+            status.textContent = 'Unable to detect location (' + error.message + ').';
+          }
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  function copyCoord(elementId, btn) {
+    var el = document.getElementById(elementId);
+    if (!el) return;
+    var text = el.textContent || el.innerText;
+    navigator.clipboard.writeText(text).then(function() {
+      var origHTML = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:#22c55e;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span style="color:#22c55e;">Copied!</span>';
+      setTimeout(function() {
+        btn.innerHTML = origHTML;
+      }, 2000);
+    });
+  }
+
+  function copyBothCoords(btn) {
+    if (!skrUserLat || !skrUserLon) return;
+    var pair = skrUserLat + ', ' + skrUserLon;
+    navigator.clipboard.writeText(pair).then(function() {
+      var origHTML = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:#22c55e;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span style="color:#22c55e;">Copied Pair!</span>';
+      setTimeout(function() {
+        btn.innerHTML = origHTML;
       }, 2000);
     });
   }
