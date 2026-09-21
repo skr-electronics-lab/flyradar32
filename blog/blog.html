@@ -412,24 +412,36 @@
     color: #ffffff !important;
   }
 
-  /* Interactive GPS Coordinate Detector Widget */
-  .skr-geo-card {
-    background: #f8fafc;
+  /* =========================================================
+     7. Interactive Ground Station Location & Demo Hub
+     ========================================================= */
+  .skr-loc-card {
+    background: #ffffff;
     border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 1.5rem 0;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    border-radius: 14px;
+    padding: 24px;
+    margin: 1.75rem 0;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
   }
 
-  .skr-geo-header {
+  .skr-loc-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .skr-loc-header {
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 16px;
   }
 
-  .skr-geo-icon {
+  .skr-loc-badge-icon {
     width: 44px;
     height: 44px;
     border-radius: 10px;
@@ -441,224 +453,466 @@
     flex-shrink: 0;
   }
 
-  .skr-geo-icon svg {
+  .skr-loc-badge-icon svg {
     width: 24px;
     height: 24px;
     fill: currentColor;
   }
 
-  .skr-geo-action-row {
+  .skr-loc-title {
+    margin: 0 0 4px 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .skr-loc-subtitle {
+    margin: 0;
+    font-size: 0.88rem;
+    color: #64748b;
+  }
+
+  /* Segmented Mode Tabs */
+  .skr-loc-tabs {
+    display: inline-flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+    width: 100%;
+    max-width: 500px;
+  }
+
+  .skr-loc-tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .skr-loc-tab svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  .skr-loc-tab:hover {
+    color: #0f172a;
+  }
+
+  .skr-loc-tab.active {
+    background: #ffffff;
+    color: #0284c7;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Tab Panes */
+  .skr-loc-pane {
+    display: none;
+    animation: skrLocFadeIn 0.25s ease-out;
+  }
+
+  .skr-loc-pane.active {
+    display: block;
+  }
+
+  @keyframes skrLocFadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Privacy Notice Box */
+  .skr-loc-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 18px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #166534;
+  }
+
+  .skr-loc-alert svg {
+    width: 20px;
+    height: 20px;
+    fill: #16a34a;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* Preset Airport Cards Grid */
+  .skr-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .skr-preset-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .skr-preset-card:hover {
+    border-color: #38bdf8;
+    background: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.08);
+  }
+
+  .skr-preset-card.selected {
+    border-color: #0284c7;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+  }
+
+  .skr-preset-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .skr-preset-flag {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+
+  .skr-preset-name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: #0f172a;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .skr-preset-tag {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #0284c7;
+    background: #e0f2fe;
+    padding: 2px 7px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .skr-preset-desc {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-bottom: 12px;
+    line-height: 1.35;
+  }
+
+  .skr-preset-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-top: 10px;
+    border-top: 1px dashed #e2e8f0;
+  }
+
+  .skr-preset-coords {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #0369a1;
+    background: #e0f2fe;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+
+  .skr-preset-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #0284c7;
+    color: #ffffff !important;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .skr-preset-copy-btn:hover {
+    background: #0369a1;
+  }
+
+  .skr-preset-copy-btn.copied {
+    background: #16a34a !important;
+  }
+
+  /* GPS Tab Controls */
+  .skr-gps-controls {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .skr-gps-action-group {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 16px;
+    margin-bottom: 12px;
   }
 
-  .skr-geo-detect-btn {
+  .skr-gps-detect-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     background: #0284c7;
     color: #ffffff !important;
     border: none;
-    padding: 11px 20px;
+    padding: 10px 20px;
     border-radius: 8px;
-    font-size: 0.95rem;
+    font-size: 0.92rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 3px 10px rgba(2, 132, 199, 0.3);
+    box-shadow: 0 3px 8px rgba(2, 132, 199, 0.25);
   }
 
-  .skr-geo-detect-btn:hover {
+  .skr-gps-detect-btn:hover {
     background: #0369a1;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(2, 132, 199, 0.4);
   }
 
-  .skr-geo-detect-btn svg {
+  .skr-gps-detect-btn svg {
     width: 18px;
     height: 18px;
     fill: currentColor;
   }
 
-  .skr-geo-hint {
+  .skr-mask-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #475569;
+    font-weight: 500;
+    user-select: none;
+  }
+
+  .skr-mask-toggle input {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: #0284c7;
+  }
+
+  .skr-gps-status-banner {
     font-size: 0.85rem;
     color: #64748b;
-    font-weight: 500;
-    transition: color 0.2s ease;
+    line-height: 1.4;
   }
 
-  .skr-geo-result {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed #cbd5e1;
-    animation: skrGeoFadeIn 0.3s ease-out;
+  /* Clean GPS Result Box */
+  .skr-gps-result {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    animation: skrLocFadeIn 0.25s ease-out;
   }
 
-  @keyframes skrGeoFadeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .skr-geo-params {
+  .skr-gps-fields {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
   }
 
   @media (max-width: 600px) {
-    .skr-geo-params {
+    .skr-gps-fields {
       grid-template-columns: 1fr;
+    }
+    .skr-loc-tabs {
+      flex-direction: column;
     }
   }
 
-  .skr-geo-param-box {
-    background: #0f172a;
-    border: 1px solid #1e293b;
+  .skr-gps-field {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 12px 16px;
+    padding: 10px 14px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
   }
 
-  .skr-geo-param-meta {
+  .skr-gps-field-meta {
     display: flex;
     flex-direction: column;
-    overflow: hidden;
   }
 
-  .skr-geo-param-label {
-    font-size: 0.72rem;
+  .skr-gps-label {
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #94a3b8;
-    font-weight: 600;
-  }
-
-  .skr-geo-param-val {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 1.15rem;
-    color: #38bdf8;
     font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: #64748b;
   }
 
-  .skr-geo-copy-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+  .skr-gps-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .skr-gps-chip-btn {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
     border-radius: 6px;
-    color: #e2e8f0;
-    padding: 6px 12px;
-    font-size: 0.78rem;
+    color: #334155;
+    padding: 5px 10px;
+    font-size: 0.74rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+  }
+
+  .skr-gps-chip-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+
+  .skr-gps-actions {
     display: flex;
     align-items: center;
-    gap: 5px;
-    flex-shrink: 0;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #e2e8f0;
   }
 
-  .skr-geo-copy-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    color: #ffffff;
+  .skr-gps-acc-badge {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 4px 10px;
+    border-radius: 999px;
   }
 
-  .skr-geo-copy-btn svg {
-    width: 13px;
-    height: 13px;
+  .skr-gps-primary-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #0284c7;
+    color: #ffffff !important;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .skr-gps-primary-copy:hover {
+    background: #0369a1;
+  }
+
+  .skr-gps-primary-copy svg {
+    width: 14px;
+    height: 14px;
     fill: currentColor;
   }
 
-  .skr-geo-footer {
+  /* Live Notification & Dashboard Link Bar */
+  .skr-loc-statusbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 12px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    padding: 10px 16px;
   }
 
-  .skr-geo-accuracy {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
-    color: #059669;
-    background: #ecfdf5;
-    padding: 4px 10px;
-    border-radius: 9999px;
-    font-weight: 600;
-  }
-
-  .skr-geo-accuracy svg {
-    width: 14px;
-    height: 14px;
-    fill: currentColor;
-  }
-
-  .skr-geo-quick-actions {
+  .skr-status-content {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .skr-geo-quick-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #1e293b;
-    color: #f1f5f9;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 0.82rem;
+    gap: 8px;
+    font-size: 0.85rem;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    color: #15803d;
   }
 
-  .skr-geo-quick-btn:hover {
-    background: #0f172a;
+  .skr-status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: #22c55e;
     color: #ffffff;
+    border-radius: 50%;
+    font-size: 0.72rem;
   }
 
-  .skr-geo-quick-btn svg {
-    width: 14px;
-    height: 14px;
-    fill: currentColor;
-  }
-
-  .skr-geo-dash-link {
+  .skr-status-dash-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #f1f5f9;
+    background: #ffffff;
     color: #0f172a !important;
     border: 1px solid #cbd5e1;
     border-radius: 6px;
-    padding: 6px 14px;
-    font-size: 0.82rem;
+    padding: 5px 12px;
+    font-size: 0.78rem;
     font-weight: 600;
     text-decoration: none !important;
     transition: all 0.2s ease;
   }
 
-  .skr-geo-dash-link:hover {
-    background: #e2e8f0;
+  .skr-status-dash-btn:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
     text-decoration: none !important;
   }
 
-  .skr-geo-dash-link svg {
-    width: 14px;
-    height: 14px;
+  .skr-status-dash-btn svg {
+    width: 13px;
+    height: 13px;
     fill: currentColor;
   }
 
@@ -1224,68 +1478,181 @@
       To track aircraft flying directly over your house or workplace, FlyRadar32 needs your geographic coordinates:
     </p>
 
-    <!-- 1-Click Interactive GPS Coordinate Detector Widget -->
-    <div class="skr-geo-card">
-      <div class="skr-geo-header">
-        <div class="skr-geo-icon">
-          <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+    <!-- Unified Ground Station Location & Demo Hub -->
+    <div class="skr-loc-card">
+      <div class="skr-loc-top">
+        <div class="skr-loc-header">
+          <div class="skr-loc-badge-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+          </div>
+          <div>
+            <h3 class="skr-loc-title">Ground Station Coordinates</h3>
+            <p class="skr-loc-subtitle">Choose a busy demo airport or detect your device's exact coordinates</p>
+          </div>
         </div>
-        <div>
-          <h4 style="margin: 0 0 4px 0; font-size: 1.1rem; color: #0f172a;">1-Click GPS Coordinate Detector</h4>
-          <p style="margin: 0; font-size: 0.85rem; color: #64748b;">Instantly detect your device's exact latitude and longitude for FlyRadar32</p>
+
+        <div class="skr-loc-tabs">
+          <button type="button" class="skr-loc-tab active" id="tabBtnPresets" onclick="switchLocTab('presets')">
+            <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+            <span>Demo Airspaces (Privacy Safe)</span>
+          </button>
+          <button type="button" class="skr-loc-tab" id="tabBtnGps" onclick="switchLocTab('gps')">
+            <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+            <span>Detect My Current GPS</span>
+          </button>
         </div>
       </div>
 
-      <div class="skr-geo-action-row">
-        <button type="button" id="skrGeoDetectBtn" class="skr-geo-detect-btn" onclick="detectUserLocation(this)">
-          <svg viewBox="0 0 24 24" id="skrGeoBtnIcon"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
-          <span id="skrGeoBtnText">Detect &amp; Copy My Coordinates</span>
-        </button>
-        <span class="skr-geo-hint" id="skrGeoStatus">Click to get precise browser GPS coordinates</span>
-      </div>
-
-      <!-- Result Display (Populates on detection) -->
-      <div id="skrGeoResult" class="skr-geo-result" style="display: none;">
-        <div class="skr-geo-params">
-          <div class="skr-geo-param-box">
-            <div class="skr-geo-param-meta">
-              <span class="skr-geo-param-label">Latitude</span>
-              <span class="skr-geo-param-val" id="skrGeoLatVal">--</span>
-            </div>
-            <button type="button" class="skr-geo-copy-btn" onclick="copyCoord('skrGeoLatVal', this)">
-              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-              <span>Copy Lat</span>
-            </button>
-          </div>
-
-          <div class="skr-geo-param-box">
-            <div class="skr-geo-param-meta">
-              <span class="skr-geo-param-label">Longitude</span>
-              <span class="skr-geo-param-val" id="skrGeoLonVal">--</span>
-            </div>
-            <button type="button" class="skr-geo-copy-btn" onclick="copyCoord('skrGeoLonVal', this)">
-              <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
-              <span>Copy Lon</span>
-            </button>
+      <!-- TAB 1: DEMO PRESETS (Privacy Safe & High Traffic) -->
+      <div id="locTabPresets" class="skr-loc-pane active">
+        <div class="skr-loc-alert">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          <div>
+            <strong>Creator &amp; Video Privacy Tip:</strong> When recording video demos, reels, or tutorials, use these high-density airspaces. Your home address remains completely private, and you'll immediately see 20–60+ live aircraft on your radar scope!
           </div>
         </div>
 
-        <div class="skr-geo-footer">
-          <div class="skr-geo-accuracy" id="skrGeoAccuracy">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-            <span id="skrGeoAccuracyText">Accuracy: ±15m</span>
+        <div class="skr-preset-grid">
+          <!-- London Heathrow -->
+          <div class="skr-preset-card" onclick="copyPreset('51.4700, -0.4543', '51.4700', '-0.4543', 'London Heathrow (LHR)', this)">
+            <div class="skr-preset-top">
+              <span class="skr-preset-flag">🇬🇧</span>
+              <div class="skr-preset-name">London Heathrow (LHR)</div>
+              <span class="skr-preset-tag">High Traffic</span>
+            </div>
+            <div class="skr-preset-desc">Continuous commercial, European &amp; transatlantic arrivals</div>
+            <div class="skr-preset-bottom">
+              <code class="skr-preset-coords">51.4700, -0.4543</code>
+              <button type="button" class="skr-preset-copy-btn">Copy Coords</button>
+            </div>
           </div>
-          <div class="skr-geo-quick-actions">
-            <button type="button" class="skr-geo-quick-btn" id="skrCopyBothBtn" onclick="copyBothCoords(this)">
+
+          <!-- New York JFK -->
+          <div class="skr-preset-card" onclick="copyPreset('40.6413, -73.7781', '40.6413', '-73.7781', 'New York JFK (JFK)', this)">
+            <div class="skr-preset-top">
+              <span class="skr-preset-flag">🇺🇸</span>
+              <div class="skr-preset-name">New York JFK (JFK)</div>
+              <span class="skr-preset-tag">Super Hub</span>
+            </div>
+            <div class="skr-preset-desc">Massive US East Coast and international flight corridor</div>
+            <div class="skr-preset-bottom">
+              <code class="skr-preset-coords">40.6413, -73.7781</code>
+              <button type="button" class="skr-preset-copy-btn">Copy Coords</button>
+            </div>
+          </div>
+
+          <!-- Frankfurt Main -->
+          <div class="skr-preset-card" onclick="copyPreset('50.0379, 8.5622', '50.0379', '8.5622', 'Frankfurt Main (FRA)', this)">
+            <div class="skr-preset-top">
+              <span class="skr-preset-flag">🇩🇪</span>
+              <div class="skr-preset-name">Frankfurt Main (FRA)</div>
+              <span class="skr-preset-tag">Central Europe</span>
+            </div>
+            <div class="skr-preset-desc">Major European air-traffic crossroads with dense flights</div>
+            <div class="skr-preset-bottom">
+              <code class="skr-preset-coords">50.0379, 8.5622</code>
+              <button type="button" class="skr-preset-copy-btn">Copy Coords</button>
+            </div>
+          </div>
+
+          <!-- Dubai International -->
+          <div class="skr-preset-card" onclick="copyPreset('25.2532, 55.3657', '25.2532', '55.3657', 'Dubai Intl (DXB)', this)">
+            <div class="skr-preset-top">
+              <span class="skr-preset-flag">🇦🇪</span>
+              <div class="skr-preset-name">Dubai Intl (DXB)</div>
+              <span class="skr-preset-tag">Widebody Hub</span>
+            </div>
+            <div class="skr-preset-desc">Heavy long-haul international routes (A380 / B777 fleets)</div>
+            <div class="skr-preset-bottom">
+              <code class="skr-preset-coords">25.2532, 55.3657</code>
+              <button type="button" class="skr-preset-copy-btn">Copy Coords</button>
+            </div>
+          </div>
+
+          <!-- Delhi Indira Gandhi -->
+          <div class="skr-preset-card" onclick="copyPreset('28.5562, 77.1000', '28.5562', '77.1000', 'Delhi IGI (DEL)', this)">
+            <div class="skr-preset-top">
+              <span class="skr-preset-flag">🇮🇳</span>
+              <div class="skr-preset-name">Delhi IGI (DEL)</div>
+              <span class="skr-preset-tag">South Asia</span>
+            </div>
+            <div class="skr-preset-desc">Extensive domestic networks and Asian transit airways</div>
+            <div class="skr-preset-bottom">
+              <code class="skr-preset-coords">28.5562, 77.1000</code>
+              <button type="button" class="skr-preset-copy-btn">Copy Coords</button>
+            </div>
+          </div>
+
+          <!-- Tokyo Haneda -->
+          <div class="skr-preset-card" onclick="copyPreset('35.5494, 139.7798', '35.5494', '139.7798', 'Tokyo Haneda (HND)', this)">
+            <div class="skr-preset-top">
+              <span class="skr-preset-flag">🇯🇵</span>
+              <div class="skr-preset-name">Tokyo Haneda (HND)</div>
+              <span class="skr-preset-tag">Asia-Pacific</span>
+            </div>
+            <div class="skr-preset-desc">Continuous high-frequency arrivals over Tokyo Bay</div>
+            <div class="skr-preset-bottom">
+              <code class="skr-preset-coords">35.5494, 139.7798</code>
+              <button type="button" class="skr-preset-copy-btn">Copy Coords</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: DETECT CURRENT GPS (With Privacy Masking) -->
+      <div id="locTabGps" class="skr-loc-pane">
+        <div class="skr-gps-controls">
+          <div class="skr-gps-action-group">
+            <button type="button" id="skrGeoDetectBtn" class="skr-gps-detect-btn" onclick="detectUserLocation(this)">
+              <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
+              <span id="skrGeoBtnText">Detect My Exact GPS</span>
+            </button>
+            <label class="skr-mask-toggle">
+              <input type="checkbox" id="skrMaskToggle" onchange="toggleMaskCoords(this)">
+              <span>Hide on screen (Video Recording Privacy)</span>
+            </label>
+          </div>
+          <div class="skr-gps-status-banner" id="skrGeoStatus">Click above to detect your browser's exact coordinates.</div>
+        </div>
+
+        <!-- Clean GPS Result Box -->
+        <div id="skrGeoResult" class="skr-gps-result" style="display: none;">
+          <div class="skr-gps-fields">
+            <div class="skr-gps-field">
+              <div class="skr-gps-field-meta">
+                <span class="skr-gps-label">Latitude</span>
+                <span class="skr-gps-val" id="skrGeoLatVal">--</span>
+              </div>
+              <button type="button" class="skr-gps-chip-btn" onclick="copyCoord('skrGeoLatVal', this)">Copy Lat</button>
+            </div>
+            <div class="skr-gps-field">
+              <div class="skr-gps-field-meta">
+                <span class="skr-gps-label">Longitude</span>
+                <span class="skr-gps-val" id="skrGeoLonVal">--</span>
+              </div>
+              <button type="button" class="skr-gps-chip-btn" onclick="copyCoord('skrGeoLonVal', this)">Copy Lon</button>
+            </div>
+          </div>
+          <div class="skr-gps-actions">
+            <span class="skr-gps-acc-badge" id="skrGeoAccuracyText">GPS Accuracy: ±15m</span>
+            <button type="button" class="skr-gps-primary-copy" onclick="copyBothCoords(this)">
               <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
               <span>Copy Pair (lat, lon)</span>
             </button>
-            <a href="http://flyradar32.local" target="_blank" rel="noopener" class="skr-geo-dash-link">
-              <span>Open Dashboard</span>
-              <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
-            </a>
           </div>
         </div>
+      </div>
+
+      <!-- Live Selection Toast / Notification Bar -->
+      <div class="skr-loc-statusbar" id="skrLocStatusBar">
+        <div class="skr-status-content">
+          <span class="skr-status-icon">✓</span>
+          <span id="skrStatusMsg">Coordinates ready. Paste into the FlyRadar32 dashboard.</span>
+        </div>
+        <a href="http://flyradar32.local" target="_blank" rel="noopener" class="skr-status-dash-btn">
+          <span>Open Dashboard</span>
+          <svg viewBox="0 0 24 24"><path d="M19 19H5V5h7V3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/></svg>
+        </a>
       </div>
     </div>
 
@@ -1675,9 +2042,58 @@ void set_backlight_percent(uint8_t percent) {
     });
   }
 
-  // 1-Click Interactive GPS Coordinate Detector
+  // =========================================================
+  // Ground Station Location & Demo Hub Logic
+  // =========================================================
   var skrUserLat = null;
   var skrUserLon = null;
+
+  function switchLocTab(tab) {
+    var btnPresets = document.getElementById('tabBtnPresets');
+    var btnGps = document.getElementById('tabBtnGps');
+    var panePresets = document.getElementById('locTabPresets');
+    var paneGps = document.getElementById('locTabGps');
+
+    if (tab === 'presets') {
+      if (btnPresets) btnPresets.classList.add('active');
+      if (btnGps) btnGps.classList.remove('active');
+      if (panePresets) panePresets.classList.add('active');
+      if (paneGps) paneGps.classList.remove('active');
+    } else {
+      if (btnGps) btnGps.classList.add('active');
+      if (btnPresets) btnPresets.classList.remove('active');
+      if (paneGps) paneGps.classList.add('active');
+      if (panePresets) panePresets.classList.remove('active');
+    }
+  }
+
+  function copyPreset(coordPair, lat, lon, airportName, cardEl) {
+    skrUserLat = lat;
+    skrUserLon = lon;
+
+    navigator.clipboard.writeText(coordPair).then(function() {
+      // Highlight card
+      document.querySelectorAll('.skr-preset-card').forEach(function(c) {
+        c.classList.remove('selected');
+      });
+      if (cardEl) cardEl.classList.add('selected');
+
+      // Update button inside this card
+      var btn = cardEl ? cardEl.querySelector('.skr-preset-copy-btn') : null;
+      if (btn) {
+        var origText = btn.textContent;
+        btn.textContent = '✓ Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() {
+          btn.textContent = origText;
+          btn.classList.remove('copied');
+        }, 2000);
+      }
+
+      // Update bottom status bar
+      updateLocStatusBar('Copied ' + coordPair + ' (' + airportName + ')! Paste into Settings.');
+    });
+  }
 
   function detectUserLocation(btn) {
     var status = document.getElementById('skrGeoStatus');
@@ -1705,47 +2121,42 @@ void set_backlight_percent(uint8_t percent) {
         skrUserLat = lat;
         skrUserLon = lon;
 
-        var latEl = document.getElementById('skrGeoLatVal');
-        var lonEl = document.getElementById('skrGeoLonVal');
-        if (latEl) latEl.textContent = lat;
-        if (lonEl) lonEl.textContent = lon;
+        renderGpsDisplay();
 
         var acc = Math.round(position.coords.accuracy);
         var accEl = document.getElementById('skrGeoAccuracyText');
         if (accEl) accEl.textContent = 'GPS Accuracy: ±' + acc + 'm';
 
-        // Auto-copy coordinate pair (lat, lon) to clipboard
         var coordStr = lat + ', ' + lon;
         navigator.clipboard.writeText(coordStr).then(function() {
           if (btnText) btnText.textContent = 'Coordinates Copied!';
           if (status) {
             status.style.color = '#16a34a';
-            status.textContent = 'Copied ' + coordStr + ' to clipboard! Ready to paste in dashboard.';
+            status.textContent = 'Detected and copied to clipboard! Ready to paste into dashboard.';
           }
+          updateLocStatusBar('Copied ' + coordStr + ' (Device GPS)! Paste into Settings.');
         }).catch(function() {
           if (btnText) btnText.textContent = 'Location Detected';
           if (status) {
             status.style.color = '#16a34a';
-            status.textContent = 'Coordinates ready below. Click copy to paste into dashboard.';
+            status.textContent = 'Location detected. Click copy to paste into dashboard.';
           }
         });
 
-        if (resultDiv) {
-          resultDiv.style.display = 'block';
-        }
+        if (resultDiv) resultDiv.style.display = 'block';
 
         setTimeout(function() {
           if (btnText) btnText.textContent = 'Re-detect GPS Location';
         }, 4000);
       },
       function(error) {
-        if (btnText) btnText.textContent = 'Detect & Copy My Coordinates';
+        if (btnText) btnText.textContent = 'Detect My Exact GPS';
         if (status) {
           status.style.color = '#ef4444';
           if (error.code === error.PERMISSION_DENIED) {
-            status.textContent = 'Location access denied. Please allow location permissions in your browser URL bar.';
+            status.textContent = 'Location access denied. Please allow location access in your browser or pick a demo airport above.';
           } else if (error.code === error.POSITION_UNAVAILABLE) {
-            status.textContent = 'Location unavailable. Please check your device GPS/location settings.';
+            status.textContent = 'Location unavailable. Please check your device location settings.';
           } else if (error.code === error.TIMEOUT) {
             status.textContent = 'Location request timed out. Please try again.';
           } else {
@@ -1757,13 +2168,33 @@ void set_backlight_percent(uint8_t percent) {
     );
   }
 
+  function renderGpsDisplay() {
+    var latEl = document.getElementById('skrGeoLatVal');
+    var lonEl = document.getElementById('skrGeoLonVal');
+    var maskToggle = document.getElementById('skrMaskToggle');
+    var isMasked = maskToggle && maskToggle.checked;
+
+    if (!skrUserLat || !skrUserLon) return;
+
+    if (isMasked) {
+      if (latEl) latEl.textContent = skrUserLat.substring(0, 3) + '****';
+      if (lonEl) lonEl.textContent = skrUserLon.substring(0, 3) + '****';
+    } else {
+      if (latEl) latEl.textContent = skrUserLat;
+      if (lonEl) lonEl.textContent = skrUserLon;
+    }
+  }
+
+  function toggleMaskCoords(checkbox) {
+    renderGpsDisplay();
+  }
+
   function copyCoord(elementId, btn) {
-    var el = document.getElementById(elementId);
-    if (!el) return;
-    var text = el.textContent || el.innerText;
+    if (!skrUserLat || !skrUserLon) return;
+    var text = (elementId === 'skrGeoLatVal') ? skrUserLat : skrUserLon;
     navigator.clipboard.writeText(text).then(function() {
       var origHTML = btn.innerHTML;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:#22c55e;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span style="color:#22c55e;">Copied!</span>';
+      btn.innerHTML = '✓ Copied!';
       setTimeout(function() {
         btn.innerHTML = origHTML;
       }, 2000);
@@ -1775,11 +2206,26 @@ void set_backlight_percent(uint8_t percent) {
     var pair = skrUserLat + ', ' + skrUserLon;
     navigator.clipboard.writeText(pair).then(function() {
       var origHTML = btn.innerHTML;
-      btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:13px;height:13px;fill:#22c55e;"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg><span style="color:#22c55e;">Copied Pair!</span>';
+      btn.innerHTML = '✓ Copied Pair!';
       setTimeout(function() {
         btn.innerHTML = origHTML;
       }, 2000);
+      updateLocStatusBar('Copied ' + pair + '! Ready to paste into dashboard.');
     });
+  }
+
+  function updateLocStatusBar(msg) {
+    var bar = document.getElementById('skrLocStatusBar');
+    var msgEl = document.getElementById('skrStatusMsg');
+    if (msgEl) msgEl.textContent = msg;
+    if (bar) {
+      bar.style.borderColor = '#22c55e';
+      bar.style.backgroundColor = '#ecfdf5';
+      setTimeout(function() {
+        bar.style.borderColor = '#bbf7d0';
+        bar.style.backgroundColor = '#f0fdf4';
+      }, 1500);
+    }
   }
 
   // Global Bulletproof Web Flasher Trigger
